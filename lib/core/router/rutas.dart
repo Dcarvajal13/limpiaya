@@ -8,7 +8,17 @@ abstract final class Rutas {
   static const landing = '/';
   static const login = '/login';
   static const registro = '/registro';
+
+  /// Reparte a cada quien a su inicio según su rol. Mientras se carga el
+  /// rol, muestra una espera.
   static const inicio = '/inicio';
+
+  /// Inicio de cada rol (HU-02A / HU-02B). Todo lo que empiece por estas
+  /// direcciones solo lo puede abrir ese rol, por ejemplo '/cliente/publicar'.
+  static const inicioCliente = '/cliente';
+  static const inicioTrabajadora = '/trabajadora';
+  static const inicioAdmin = '/admin';
+
   static const sistemaDiseno = '/diseno';
 
   /// Registro con el rol ya sugerido, desde los botones de la landing.
