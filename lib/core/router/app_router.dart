@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
+import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
 import '../di/providers.dart';
 import 'rutas.dart';
@@ -14,8 +15,10 @@ import 'rutas.dart';
 /// Rutas de la app y protección de pantallas.
 ///
 /// Regla actual:
-/// - Sin sesión → solo puede ver login y registro (HU-03, criterio 2).
-/// - Con sesión → si intenta abrir login o registro, va a inicio.
+/// - Sin sesión → solo puede ver la landing, login y registro
+///   (HU-03, criterio 2). Cualquier otra pantalla lo manda a login.
+/// - Con sesión → si intenta abrir la landing, login o registro, va a inicio
+///   (HU-62, criterio 4).
 ///
 /// TODO(HU-02A/HU-02B): cuando exista el perfil con rol (HD-03), mandar al
 /// cliente a "Mis solicitudes" y a la trabajadora a "Solicitudes disponibles".
@@ -25,7 +28,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refrescar.dispose);
 
   return GoRouter(
-    initialLocation: Rutas.inicio,
+    initialLocation: Rutas.landing,
     refreshListenable: refrescar,
     redirect: (context, state) {
       if (Rutas.libres.contains(state.matchedLocation)) return null;
@@ -38,6 +41,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: Rutas.landing,
+        builder: (context, state) => const LandingScreen(),
+      ),
       GoRoute(
         path: Rutas.login,
         builder: (context, state) => const LoginScreen(),

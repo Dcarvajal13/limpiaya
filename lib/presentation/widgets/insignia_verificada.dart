@@ -20,12 +20,14 @@ class InsigniaVerificada extends StatelessWidget {
       children: [
         icono,
         const SizedBox(width: 5),
-        Text(
-          'Identidad verificada',
-          style: Theme.of(context)
-              .textTheme
-              .labelMedium
-              ?.copyWith(color: AppColors.primario, fontWeight: FontWeight.w700),
+        Flexible(
+          child: Text(
+            'Identidad verificada',
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(color: AppColors.primario, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
