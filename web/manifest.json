@@ -1,11 +1,11 @@
 {
-    "name": "limpiaya",
-    "short_name": "limpiaya",
+    "name": "LimpiaYa",
+    "short_name": "LimpiaYa",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0F5E58",
+    "theme_color": "#0F5E58",
+    "description": "Limpieza de confianza en Caracas",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
