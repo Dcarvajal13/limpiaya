@@ -97,9 +97,12 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> cerrarSesion() {
-    // TODO(HU-03): llamar a _client.auth.signOut().
-    throw UnimplementedError('Pendiente: HU-03');
+  Future<void> cerrarSesion() async {
+    try {
+      await _client.auth.signOut();
+    } on Exception {
+      throw const AppException('No pudimos cerrar tu sesión. Intenta de nuevo.');
+    }
   }
 
   /// Convierte la respuesta de `mi_sesion()` en la entidad del dominio.
