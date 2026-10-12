@@ -88,6 +88,19 @@ class MiPantalla extends ConsumerWidget {
 }
 ```
 
+## Estilo visual (sistema de diseño)
+
+El diseño viene del prototipo de Figma Make. Los colores, las fuentes y el estilo de los componentes ya están en el tema, así que **una pantalla nueva no necesita estilos propios**.
+
+- **Colores:** `AppColors.primario`, `AppColors.fondo`, `AppColors.textoSecundario`… (`core/theme/app_colors.dart`). Nunca `Color(0xFF...)` en una pantalla.
+- **Textos:** `Theme.of(context).textTheme.headlineLarge`, `.bodyMedium`, etc. Títulos en Bricolage Grotesque, texto en Figtree.
+- **Botones:** `FilledButton` (principal), `OutlinedButton` (secundario), `TextButton` (enlace). Para ámbar o peligro: `style: AppTheme.botonAmbar` / `AppTheme.botonPeligro`.
+- **Campos:** `TextFormField` con `InputDecoration(labelText: ..., hintText: ...)` y un validador de `core/utils/validadores.dart`.
+- **Componentes compartidos** (`presentation/widgets/`): `LogoLimpiaYa`, `InsigniaEstado`, `InsigniaVerificada`, `AvatarUsuario`, `Estrellas`, `EstadoVacio`, `ContenidoCentrado`.
+- **Móvil vs. escritorio:** `Responsive.esMovil(context)` (menos de 800 px = una columna).
+
+Para verlos todos funcionando, abre la app en **/#/diseno**.
+
 ## Decisiones tomadas
 
 | Tema | Decisión | Por qué |
@@ -96,3 +109,4 @@ class MiPantalla extends ConsumerWidget {
 | Navegación | go_router | URLs reales en la web y protección de pantallas sin sesión |
 | Claves | `env.json` + `--dart-define-from-file` | Nada de claves en el repositorio (HD-01, criterio 3) |
 | Plataforma | Web primero; Android/iOS listos | Sin `dart:html`, así el mismo código sirve para la app móvil |
+| Diseño | Prototipo de Figma Make + `core/theme` | Un solo lugar para colores y estilos; todas las pantallas se ven iguales |

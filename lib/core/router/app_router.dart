@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
+import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
 import '../di/providers.dart';
 import 'rutas.dart';
 
@@ -27,6 +28,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: Rutas.inicio,
     refreshListenable: refrescar,
     redirect: (context, state) {
+      if (Rutas.libres.contains(state.matchedLocation)) return null;
+
       final haySesion = auth.usuarioActual != null;
       final esPublica = Rutas.publicas.contains(state.matchedLocation);
 
@@ -46,6 +49,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.inicio,
         builder: (context, state) => const InicioScreen(),
+      ),
+      GoRoute(
+        path: Rutas.sistemaDiseno,
+        builder: (context, state) => const SistemaDisenoScreen(),
       ),
     ],
   );
