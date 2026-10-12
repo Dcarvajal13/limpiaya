@@ -98,6 +98,7 @@ El diseño viene del prototipo de Figma Make. Los colores, las fuentes y el esti
 - **Campos:** `TextFormField` con `InputDecoration(labelText: ..., hintText: ...)` y un validador de `core/utils/validadores.dart`.
 - **Componentes compartidos** (`presentation/widgets/`): `LogoLimpiaYa`, `InsigniaEstado`, `InsigniaVerificada`, `AvatarUsuario`, `Estrellas`, `EstadoVacio`, `ContenidoCentrado`.
 - **Móvil vs. escritorio:** `Responsive.esMovil(context)` (menos de 800 px = una columna).
+- **Pruebas de pantallas:** en las pruebas de widgets, poner `AppFonts.usarGoogleFonts = false` en `setUpAll` para que no intenten descargar fuentes. Ejemplo: `test/presentation/landing_screen_test.dart`.
 
 Para verlos todos funcionando, abre la app en **/#/diseno**.
 

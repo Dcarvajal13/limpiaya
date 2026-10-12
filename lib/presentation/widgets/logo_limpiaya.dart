@@ -6,6 +6,7 @@ import '../../core/theme/app_fonts.dart';
 /// Logo: casita en un cuadrado redondeado + "LimpiaYa".
 ///
 /// [sobreOscuro] invierte los colores para fondos verdes oscuros.
+/// [soloMarca] muestra solo la casita (para pantallas muy angostas).
 class LogoLimpiaYa extends StatelessWidget {
   const LogoLimpiaYa({
     super.key,
@@ -13,6 +14,7 @@ class LogoLimpiaYa extends StatelessWidget {
     this.sobreOscuro = false,
     this.subtitulo,
     this.onTap,
+    this.soloMarca = false,
   });
 
   final double tamano;
@@ -22,57 +24,65 @@ class LogoLimpiaYa extends StatelessWidget {
   final String? subtitulo;
 
   final VoidCallback? onTap;
+  final bool soloMarca;
 
   @override
   Widget build(BuildContext context) {
     final colorTexto = sobreOscuro ? Colors.white : AppColors.primarioOscuro;
 
-    final logo = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: tamano,
-          height: tamano,
-          decoration: BoxDecoration(
-            color: sobreOscuro ? Colors.white : AppColors.primario,
-            borderRadius: BorderRadius.circular(tamano * 0.3),
-          ),
-          child: Icon(
-            Icons.home_rounded,
-            size: tamano * 0.55,
-            color: sobreOscuro ? AppColors.primario : Colors.white,
-          ),
-        ),
-        SizedBox(width: tamano * 0.25),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'LimpiaYa',
-              style: AppFonts.titulos(
-                TextStyle(
-                  fontSize: tamano * 0.6,
-                  fontWeight: FontWeight.w800,
-                  color: colorTexto,
-                  height: 1,
-                ),
-              ),
-            ),
-            if (subtitulo != null)
-              Text(
-                subtitulo!.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                  color: colorTexto,
-                ),
-              ),
-          ],
-        ),
-      ],
+    final marca = Container(
+      width: tamano,
+      height: tamano,
+      decoration: BoxDecoration(
+        color: sobreOscuro ? Colors.white : AppColors.primario,
+        borderRadius: BorderRadius.circular(tamano * 0.3),
+      ),
+      child: Icon(
+        Icons.home_rounded,
+        size: tamano * 0.55,
+        color: sobreOscuro ? AppColors.primario : Colors.white,
+      ),
     );
+
+    final Widget logo;
+    if (soloMarca) {
+      logo = Semantics(label: 'LimpiaYa', child: marca);
+    } else {
+      logo = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          marca,
+          SizedBox(width: tamano * 0.25),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LimpiaYa',
+                style: AppFonts.titulos(
+                  TextStyle(
+                    fontSize: tamano * 0.6,
+                    fontWeight: FontWeight.w800,
+                    color: colorTexto,
+                    height: 1,
+                  ),
+                ),
+              ),
+              if (subtitulo != null)
+                Text(
+                  subtitulo!.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
+                    color: colorTexto,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
 
     if (onTap == null) return logo;
     return InkWell(

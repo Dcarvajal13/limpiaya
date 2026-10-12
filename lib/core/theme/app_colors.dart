@@ -17,12 +17,15 @@ abstract final class AppColors {
   static const superficie = Color(0xFFFFFFFF);
   static const arena = Color(0xFFF1E6D6);
   static const borde = Color(0xFFE6DACB);
+  static const arenaOscura = Color(0xFFD8C4A9); // bloques de foto
+  static const seleccionSuave = Color(0xFFF5FBF9); // fila elegida
 
   // Texto
   static const texto = Color(0xFF1F1A17);
   static const textoSecundario = Color(0xFF6B625A);
   static const textoSobreOscuro = Color(0xFFD9E2E0);
   static const verdeSobreOscuro = Color(0xFF9DD1C9);
+  static const textoSuaveSobreOscuro = Color(0xFFCDD8D5);
 
   // Estados
   static const exito = Color(0xFF2E7D4F);
