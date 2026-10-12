@@ -8,6 +8,7 @@ class PantallaEnConstruccion extends StatelessWidget {
     required this.titulo,
     required this.historia,
     this.acciones = const [],
+    this.accionesBarra = const [],
   });
 
   final String titulo;
@@ -17,12 +18,15 @@ class PantallaEnConstruccion extends StatelessWidget {
 
   final List<Widget> acciones;
 
+  /// Botones arriba a la derecha (por ejemplo BotonCerrarSesion).
+  final List<Widget> accionesBarra;
+
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(titulo)),
+      appBar: AppBar(title: Text(titulo), actions: accionesBarra),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

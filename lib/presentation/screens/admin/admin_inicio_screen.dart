@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/boton_cerrar_sesion.dart';
 import '../../widgets/pantalla_en_construccion.dart';
 
 /// Inicio del administrador.
@@ -14,6 +15,7 @@ class AdminInicioScreen extends StatelessWidget {
       titulo: 'Administración',
       historia: 'E7 · Verificación y administración',
       acciones: [Text('Entraste como administrador.')],
+      accionesBarra: [BotonCerrarSesion()],
     );
   }
 }

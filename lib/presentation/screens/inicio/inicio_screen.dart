@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/sesion_provider.dart';
+import '../../widgets/boton_cerrar_sesion.dart';
 import '../../widgets/logo_limpiaya.dart';
 
 /// Espera mientras se carga el rol de quien inició sesión.
 ///
 /// Apenas se sabe el rol, el router manda a cada quien a su inicio
 /// (ver core/router/redireccion.dart). Si no se pudo cargar, se muestra
-/// un mensaje con la opción de reintentar.
+/// un mensaje con la opción de reintentar o de cerrar sesión.
 class InicioScreen extends ConsumerWidget {
   const InicioScreen({super.key});
 
@@ -46,6 +47,8 @@ class InicioScreen extends ConsumerWidget {
                   onPressed: () => ref.invalidate(sesionProvider),
                   child: const Text('Reintentar'),
                 ),
+                const SizedBox(height: 8),
+                const BotonCerrarSesion(),
               ],
             ],
           ),
