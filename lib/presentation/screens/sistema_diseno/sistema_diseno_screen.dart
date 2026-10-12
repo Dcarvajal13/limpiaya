@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validadores.dart';
 import '../../widgets/avatar_usuario.dart';
+import '../../widgets/campo_texto.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/estrellas.dart';
@@ -117,11 +118,18 @@ class _SistemaDisenoScreenState extends State<SistemaDisenoScreen> {
                   ),
                 ),
                 _Seccion(
-                  titulo: 'Campos de texto',
+                  titulo: 'Campos de texto · CampoTexto (etiqueta arriba, como el Figma)',
                   child: Wrap(
                     spacing: 16,
                     runSpacing: 16,
                     children: [
+                      const SizedBox(
+                        width: 320,
+                        child: CampoTexto(
+                          etiqueta: 'Correo',
+                          pista: 'tu@correo.com',
+                        ),
+                      ),
                       SizedBox(
                         width: 320,
                         child: TextFormField(

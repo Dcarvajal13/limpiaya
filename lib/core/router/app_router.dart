@@ -1,45 +1,41 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../presentation/providers/sesion_provider.dart';
+import '../../presentation/screens/admin/admin_inicio_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
+import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
+import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
 import '../di/providers.dart';
+import 'redireccion.dart';
 import 'rutas.dart';
 
 /// Rutas de la app y protección de pantallas.
 ///
-/// Regla actual:
-/// - Sin sesión → solo puede ver la landing, login y registro
-///   (HU-03, criterio 2). Cualquier otra pantalla lo manda a login.
-/// - Con sesión → si intenta abrir la landing, login o registro, va a inicio
-///   (HU-62, criterio 4).
-///
-/// TODO(HU-02A/HU-02B): cuando exista el perfil con rol (HD-03), mandar al
-/// cliente a "Mis solicitudes" y a la trabajadora a "Solicitudes disponibles".
+/// Las reglas de a dónde puede entrar cada quien están en redireccion.dart.
+/// Este archivo solo las conecta con go_router.
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authRepositoryProvider);
-  final refrescar = _RefrescarConStream(auth.cambiosDeSesion());
+
+  // Cada vez que cambia la sesión (alguien entra, sale o termina de cargar
+  // su rol), el router vuelve a revisar las reglas.
+  final refrescar = ValueNotifier<int>(0);
+  ref.listen(sesionProvider, (anterior, siguiente) => refrescar.value++);
   ref.onDispose(refrescar.dispose);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: Rutas.landing,
     refreshListenable: refrescar,
-    redirect: (context, state) {
-      if (Rutas.libres.contains(state.matchedLocation)) return null;
-
-      final haySesion = auth.usuarioActual != null;
-      final esPublica = Rutas.publicas.contains(state.matchedLocation);
-
-      if (!haySesion && !esPublica) return Rutas.login;
-      if (haySesion && esPublica) return Rutas.inicio;
-      return null;
-    },
+    redirect: (context, state) => redirigir(
+      ubicacion: state.matchedLocation,
+      haySesion: auth.usuarioActual != null,
+      rol: ref.read(sesionProvider).value?.rol,
+    ),
     routes: [
       GoRoute(
         path: Rutas.landing,
@@ -58,25 +54,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const InicioScreen(),
       ),
       GoRoute(
+        path: Rutas.inicioCliente,
+        builder: (context, state) => const MisSolicitudesScreen(),
+      ),
+      GoRoute(
+        path: Rutas.inicioTrabajadora,
+        builder: (context, state) => const SolicitudesDisponiblesScreen(),
+      ),
+      GoRoute(
+        path: Rutas.inicioAdmin,
+        builder: (context, state) => const AdminInicioScreen(),
+      ),
+      GoRoute(
         path: Rutas.sistemaDiseno,
         builder: (context, state) => const SistemaDisenoScreen(),
       ),
     ],
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
-
-/// Hace que el router vuelva a revisar las reglas cada vez que alguien
-/// inicia o cierra sesión.
-class _RefrescarConStream extends ChangeNotifier {
-  _RefrescarConStream(Stream<dynamic> stream) {
-    _suscripcion = stream.listen((_) => notifyListeners());
-  }
-
-  late final StreamSubscription<dynamic> _suscripcion;
-
-  @override
-  void dispose() {
-    _suscripcion.cancel();
-    super.dispose();
-  }
-}

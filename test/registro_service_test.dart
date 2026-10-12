@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/core/errors/app_exception.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
+import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/usuario.dart';
 import 'package:limpiaya/domain/repositories/auth_repository.dart';
 import 'package:limpiaya/domain/services/registro_service.dart';
@@ -31,6 +32,9 @@ class _RepositorioFalso implements AuthRepository {
     required String email,
     required String password,
   }) async {}
+
+  @override
+  Future<Sesion?> obtenerSesion() async => null;
 
   @override
   Future<void> cerrarSesion() async {}

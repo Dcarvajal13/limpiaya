@@ -1,4 +1,5 @@
 import '../entities/rol_usuario.dart';
+import '../entities/sesion.dart';
 import '../entities/usuario.dart';
 
 /// Contrato de autenticación: QUÉ se puede hacer, sin decir CÓMO.
@@ -27,6 +28,10 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+
+  /// Rol, nombre y estado del perfil de quien inició sesión
+  /// (HU-02A / HU-02B). Devuelve null si no hay sesión o no tiene perfil.
+  Future<Sesion?> obtenerSesion();
 
   /// HU-03 · Cerrar sesión.
   Future<void> cerrarSesion();
