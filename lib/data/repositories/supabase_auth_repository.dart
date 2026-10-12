@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/errors/app_exception.dart';
 
 import '../../domain/entities/rol_usuario.dart';
 import '../../domain/entities/usuario.dart';
@@ -29,11 +30,33 @@ class SupabaseAuthRepository implements AuthRepository {
     required String telefono,
     required String password,
     required RolUsuario rol,
-  }) {
-    // TODO(HU-01): llamar a _client.auth.signUp(...) enviando nombre,
-    // teléfono y rol en `data`, y convertir los errores en AppException
-    // (por ejemplo "Este correo ya tiene una cuenta").
-    throw UnimplementedError('Pendiente: HU-01');
+  }) async {
+    try {
+      final respuesta = await _client.auth.signUp(
+        email: email,
+        password: password,
+        // El trigger de la base de datos lee estos datos y crea el perfil.
+        data: {
+          'nombre': nombre,
+          'telefono': telefono,
+          'rol': rol.name,
+        },
+      );
+
+      // Si el correo ya existe y la confirmación por correo está activa,
+      // Supabase no da error: devuelve un usuario sin identidades.
+      final identidades = respuesta.user?.identities;
+      if (identidades != null && identidades.isEmpty) {
+        throw AppException('Este correo ya tiene una cuenta');
+      }
+    } on AuthException catch (e) {
+      final yaExiste = e.code == 'user_already_exists' ||
+          e.message.toLowerCase().contains('already registered');
+      if (yaExiste) {
+        throw AppException('Este correo ya tiene una cuenta'); // HU-01 c2
+      }
+      throw AppException('No pudimos crear tu cuenta. Intenta de nuevo.');
+    }
   }
 
   @override

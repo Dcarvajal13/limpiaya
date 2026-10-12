@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/services/registro_service.dart';
 
 /// "Inyección de dependencias": aquí se decide qué implementación
 /// usa cada contrato del dominio.
@@ -20,4 +21,8 @@ final supabaseClientProvider = Provider<SupabaseClient>(
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => SupabaseAuthRepository(ref.watch(supabaseClientProvider)),
+);
+
+final registroServiceProvider = Provider<RegistroService>(
+  (ref) => RegistroService(ref.watch(authRepositoryProvider)),
 );
