@@ -23,7 +23,7 @@ Donde se junta el trabajo de todos durante el sprint. Cada historia terminada en
 1. Siempre crear la rama desde `develop` actualizado.
 2. Una rama = una tarjeta. No mezclar tarjetas en la misma rama.
 3. Nadie trabaja en la rama de otro.
-4. Todo entra a `develop` con un PR aprobado por **otro** integrante.
+4. Todo entra a `develop` con un PR y el CI en verde. **Cada quien hace el merge de su propio PR**; no hace falta esperar aprobación.
 5. Después del merge, la rama se borra.
 6. Ramas cortas: idealmente se cierran en 1 a 3 días.
 
@@ -47,8 +47,10 @@ flutter test      # debe decir "All tests passed!"
 
 # 4. Abrir el PR
 gh pr create --base develop
-# → Avisar en el grupo para que alguien lo revise
-# → En Trello: mover la tarjeta a 🧪 Pruebas
+
+# 5. Cuando el CI esté en ✅ verde, hacer el merge
+gh pr merge --merge --delete-branch
+# → En Trello: mover la tarjeta a 🧪 Pruebas y avisar en el grupo
 ```
 
 Si no tienes `gh`, después del `git push` entra al repo en GitHub y dale al botón **Compare & pull request**.
@@ -73,16 +75,18 @@ Formato: `tipo(TARJETA): qué hiciste`, en presente y en español.
 | `docs` | Documentación | `docs: explicar cómo correr el proyecto` |
 | `test` | Pruebas | `test(HU-01): validar teléfono` |
 
-## Revisar el PR de un compañero
+## Probar la historia de un compañero (🧪 Pruebas)
 
-1. Baja su rama y pruébala:
+La Definición de Hecho pide que otra persona pruebe cada historia antes de pasarla a ✅ Hecho.
+
+1. Trae lo último de `develop` y córrelo:
    ```bash
-   git fetch
-   git checkout feature/HU-XX-descripcion
+   git checkout develop
+   git pull
    flutter run -d chrome --dart-define-from-file=env.json
    ```
 2. Revisa que cumpla los criterios de aceptación de la tarjeta y la Definición de Hecho.
-3. En GitHub: **Files changed → Review changes → Approve** (o **Request changes** con comentarios).
+3. Si cumple, mueve la tarjeta a ✅ Hecho. Si no, coméntalo en la tarjeta y vuelve a 🔨 En Proceso.
 
 ## Reglas de código
 
