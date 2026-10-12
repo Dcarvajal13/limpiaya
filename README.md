@@ -1,16 +1,45 @@
-# limpiaya
+# LimpiaYa
 
-A new Flutter project.
+Página web tipo "Airbnb de la limpieza" que conecta hogares de Caracas con trabajadoras de limpieza verificadas.
 
-## Getting Started
+Proyecto de **Ingeniería de Software · UNIMET**. Equipo: Derek Carvajal, Ruben Dos Santos, Anthony Caldera y Gloria Fernandes. Profesora: Keyla Rivas.
 
-This project is a starting point for a Flutter application.
+**Tecnologías:** Flutter (web) · Supabase · Riverpod · go_router
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Cómo correr el proyecto
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Tener **Flutter 3.38.x** (`flutter --version`).
+2. Clonar el repo:
+   ```bash
+   git clone https://github.com/Dcarvajal13/limpiaya.git
+   cd limpiaya
+   flutter pub get
+   ```
+3. Crear `env.json` en la raíz (al lado de `pubspec.yaml`). Pídele el contenido a un integrante del equipo:
+   ```json
+   {
+     "SUPABASE_URL": "https://xxxx.supabase.co",
+     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
+   }
+   ```
+   ⚠️ `env.json` **nunca** se sube al repo (ya está en `.gitignore`).
+4. Correr:
+   ```bash
+   flutter run -d chrome --dart-define-from-file=env.json
+   ```
+   O en VS Code: **F5** (ya está configurado en `.vscode/launch.json`).
+
+## Documentación del equipo
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): ramas, commits y pull requests. **Léelo antes de empezar.**
+- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md): cómo está organizado el código y receta para programar una historia.
+
+## Comandos útiles
+
+| Comando | Para qué |
+|---|---|
+| `flutter analyze` | Revisa errores y malas prácticas. Debe decir "No issues found!" antes de un PR |
+| `flutter test` | Corre las pruebas |
+| `dart format lib test` | Ordena el formato del código |

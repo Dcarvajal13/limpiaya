@@ -1,0 +1,31 @@
+# Revisa automáticamente cada Pull Request: si el código tiene errores
+# o las pruebas fallan, GitHub lo marca en rojo antes de aprobarlo.
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+jobs:
+  analizar-y-probar:
+    name: Analizar y probar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          channel: stable
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Analizar código
+        run: flutter analyze
+
+      - name: Correr pruebas
+        run: flutter test
