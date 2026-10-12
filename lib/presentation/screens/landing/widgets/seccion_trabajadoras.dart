@@ -40,69 +40,82 @@ class SeccionTrabajadoras extends StatelessWidget {
   }
 }
 
-/// Espacio reservado para una foto real. Mientras tanto muestra una
-/// tarjeta de ejemplo de una trabajadora.
+/// Foto de una trabajadora con una tarjeta de ejemplo encima.
 ///
-/// TODO: cuando tengamos una foto propia, ponerla en assets/ y usar
-/// DecorationImage aquí.
+/// La foto está en assets/images/trabajadora.jpg. Si no carga, se ve el
+/// bloque arena de fondo y la tarjeta igual.
 class _BloqueImagen extends StatelessWidget {
   const _BloqueImagen();
+
+  static const _foto = 'assets/images/trabajadora.jpg';
+
+  static const _forma = BorderRadius.only(
+    topLeft: Radius.circular(32),
+    topRight: Radius.circular(32),
+    bottomLeft: Radius.circular(32),
+    bottomRight: Radius.circular(120),
+  );
 
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final movil = Responsive.esMovil(context);
 
-    return Container(
-      constraints: BoxConstraints(minHeight: movil ? 350 : 480),
-      decoration: const BoxDecoration(
-        color: AppColors.arenaOscura,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(120),
-        ),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: movil ? 350 : 480,
+      child: Stack(
         children: [
-          SizedBox(
-            height: movil ? 190 : 300,
-            child: Center(
-              child: Icon(
-                Icons.cleaning_services_rounded,
-                size: movil ? 88 : 120,
-                color: AppColors.primarioOscuro.withValues(alpha: 0.18),
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: _forma,
+              child: Image.asset(
+                _foto,
+                fit: BoxFit.cover,
+                semanticLabel: 'Una trabajadora limpiando una casa',
+                errorBuilder: (context, error, stackTrace) =>
+                    const ColoredBox(color: AppColors.arenaOscura),
               ),
             ),
           ),
-          Container(
-            constraints: const BoxConstraints(maxWidth: 340),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.superficie,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                const AvatarUsuario(nombre: 'Carmen Pérez'),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Carmen Pérez', style: textos.titleMedium),
-                      const SizedBox(height: 2),
-                      const Estrellas(valor: 4.9, tamano: 16),
-                      const SizedBox(height: 4),
-                      const InsigniaVerificada(),
-                    ],
-                  ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 24,
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 340),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.superficie,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primarioOscuro.withValues(alpha: 0.12),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-              ],
+                child: Row(
+                  children: [
+                    const AvatarUsuario(nombre: 'Carmen Pérez'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Carmen Pérez', style: textos.titleMedium),
+                          const SizedBox(height: 2),
+                          const Estrellas(valor: 4.9, tamano: 16),
+                          const SizedBox(height: 4),
+                          const InsigniaVerificada(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
