@@ -139,7 +139,7 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                       initialValue: _zonaElegida,
                       decoration: const InputDecoration(
                         labelText: 'Zona',
-                        hintText: 'Elige tu zona',
+                        hintText: 'Selecciona una zona',
                       ),
                       items: [
                         for (final zona in zonasAsync.value ?? const [])
