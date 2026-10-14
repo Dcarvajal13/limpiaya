@@ -19,6 +19,10 @@ abstract final class Rutas {
   static const inicioTrabajadora = '/trabajadora';
   static const inicioAdmin = '/admin';
 
+  /// Perfil del cliente (HU-05). Antes de publicar una solicitud, el
+  /// cliente recién registrado completa su zona y dirección.
+  static const perfilCliente = '/cliente/perfil';
+
   static const sistemaDiseno = '/diseno';
 
   /// Registro con el rol ya sugerido, desde los botones de la landing.

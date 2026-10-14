@@ -4,8 +4,9 @@ import 'package:limpiaya/core/router/rutas.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 
 void main() {
-  String? ir(String ubicacion, {bool haySesion = true, RolUsuario? rol}) =>
-      redirigir(ubicacion: ubicacion, haySesion: haySesion, rol: rol);
+  String? ir(String ubicacion,
+          {bool haySesion = true, RolUsuario? rol, bool perfilCompleto = true}) =>
+      redirigir(ubicacion: ubicacion, haySesion: haySesion, rol: rol, perfilCompleto: perfilCompleto);
 
   group('sin sesión', () {
     test('puede ver la landing, el login y el registro', () {
@@ -45,6 +46,40 @@ void main() {
     test('cada rol se queda en su propio inicio', () {
       expect(ir(Rutas.inicioCliente, rol: RolUsuario.cliente), isNull);
       expect(ir(Rutas.inicioTrabajadora, rol: RolUsuario.trabajadora), isNull);
+    });
+  });
+
+  group('HU-05 · perfil del cliente', () {
+    test('recién registrado: la mandan a completar su perfil', () {
+      expect(
+        ir(Rutas.inicioCliente, rol: RolUsuario.cliente, perfilCompleto: false),
+        Rutas.perfilCliente,
+      );
+    });
+
+    test('recién registrado: desde /inicio va directo al perfil', () {
+      expect(
+        ir(Rutas.inicio, rol: RolUsuario.cliente, perfilCompleto: false),
+        Rutas.perfilCliente,
+      );
+    });
+
+    test('con el perfil completo entra a Mis solicitudes', () {
+      expect(
+        ir(Rutas.inicioCliente, rol: RolUsuario.cliente, perfilCompleto: true),
+        isNull,
+      );
+    });
+
+    test('puede abrir su perfil aunque esté incompleto', () {
+      expect(
+        ir(Rutas.perfilCliente, rol: RolUsuario.cliente, perfilCompleto: false),
+        isNull,
+      );
+    });
+
+    test('la trabajadora no entra al perfil del cliente', () {
+      expect(ir(Rutas.perfilCliente, rol: RolUsuario.trabajadora), Rutas.inicioTrabajadora);
     });
   });
 

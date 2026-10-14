@@ -63,6 +63,10 @@ Widget _app(_RepositorioFalso repositorio) {
         builder: (context, state) => const Scaffold(body: Text('Landing')),
       ),
       GoRoute(
+        path: Rutas.login,
+        builder: (context, state) => const Scaffold(body: Text('Inicio de sesión')),
+      ),
+      GoRoute(
         path: Rutas.inicioCliente,
         builder: (context, state) => Scaffold(
           appBar: AppBar(actions: const [BotonCerrarSesion()]),
@@ -80,7 +84,7 @@ Widget _app(_RepositorioFalso repositorio) {
 void main() {
   setUpAll(() => AppFonts.usarGoogleFonts = false);
 
-  testWidgets('HU-03: cerrar sesión lleva a la página de inicio', (tester) async {
+  testWidgets('HU-03: cerrar sesión lleva al inicio de sesión', (tester) async {
     final repositorio = _RepositorioFalso();
     await tester.pumpWidget(_app(repositorio));
     await tester.pumpAndSettle();
@@ -89,7 +93,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repositorio.cierres, 1);
-    expect(find.text('Landing'), findsOneWidget);
+    expect(find.text('Inicio de sesión'), findsOneWidget);
   });
 
   testWidgets('si falla, avisa y se queda en la pantalla', (tester) async {
