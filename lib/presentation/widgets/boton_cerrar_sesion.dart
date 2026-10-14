@@ -11,9 +11,10 @@ import '../../core/router/rutas.dart';
 /// Botón para la barra de arriba de las pantallas con sesión:
 ///   AppBar(actions: const [BotonCerrarSesion()])
 ///
-/// Al cerrar sesión lleva a la página de inicio (landing). Después de eso,
-/// si alguien intenta abrir una pantalla con sesión (por ejemplo '/cliente'),
-/// el router lo manda al login.
+/// Al cerrar sesión lleva a la pantalla de inicio de sesión (login), como
+/// pide el criterio 1 de HU-03. Si después alguien intenta abrir una
+/// pantalla con sesión (por ejemplo '/cliente'), el router también lo
+/// manda al login.
 class BotonCerrarSesion extends ConsumerStatefulWidget {
   const BotonCerrarSesion({super.key});
 
@@ -33,7 +34,7 @@ class _BotonCerrarSesionState extends ConsumerState<BotonCerrarSesion> {
     setState(() => _cerrando = true);
     try {
       await ref.read(authRepositoryProvider).cerrarSesion();
-      router.go(Rutas.landing);
+      router.go(Rutas.login);
     } on AppException catch (e) {
       mensajes.showSnackBar(SnackBar(content: Text(e.mensaje)));
       if (mounted) setState(() => _cerrando = false);
