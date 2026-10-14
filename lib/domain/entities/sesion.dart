@@ -11,6 +11,7 @@ class Sesion {
     required this.nombre,
     required this.perfilCompleto,
     this.fotoPath,
+    this.fotoUrl,
     this.verificacion,
   });
 
@@ -24,6 +25,9 @@ class Sesion {
 
   /// Ruta de la foto en el bucket `avatars`, o null si no tiene.
   final String? fotoPath;
+
+  /// Dirección pública de la foto (para mostrarla), o null si no tiene.
+  final String? fotoUrl;
 
   /// Solo para trabajadoras: pendiente, en_revision, aprobada o rechazada.
   final String? verificacion;

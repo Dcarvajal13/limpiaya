@@ -12,6 +12,7 @@ String? redirigir({
   required String ubicacion,
   required bool haySesion,
   required RolUsuario? rol,
+  bool perfilCompleto = true,
 }) {
   if (Rutas.libres.contains(ubicacion)) return null;
 
@@ -19,6 +20,16 @@ String? redirigir({
 
   // Sin sesión: solo landing, login y registro (HU-03, criterio 2).
   if (!haySesion) return esPublica ? null : Rutas.login;
+
+  // HU-04, criterio 1: la trabajadora recién registrada completa su perfil
+  // antes de ver las solicitudes. Se revisa ANTES de mandarla a su inicio,
+  // porque go_router evalúa la redirección una sola vez por navegación: si
+  // primero la mandáramos a /trabajadora, se quedaría ahí.
+  if (rol == RolUsuario.trabajadora &&
+      !perfilCompleto &&
+      (ubicacion == Rutas.inicio || ubicacion == Rutas.inicioTrabajadora)) {
+    return Rutas.perfilTrabajadora;
+  }
 
   // Con sesión: la landing, el login y el registro mandan a su inicio
   // (HU-62 c4, HU-02A, HU-02B). Si el rol aún no carga, a la espera.

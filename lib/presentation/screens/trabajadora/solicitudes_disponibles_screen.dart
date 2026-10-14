@@ -34,6 +34,7 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nombre = ref.watch(sesionProvider).value?.nombre ?? '';
+    final fotoUrl = ref.watch(sesionProvider).value?.fotoUrl;
     final zonas = ref.watch(misZonasProvider).value ?? const <Zona>[];
     final movil = Responsive.esMovil(context);
 
@@ -43,7 +44,7 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          BarraTrabajadora(nombre: nombre),
+          BarraTrabajadora(nombre: nombre, fotoUrl: fotoUrl),
           Expanded(
             child: SingleChildScrollView(
               child: ContenidoCentrado(
