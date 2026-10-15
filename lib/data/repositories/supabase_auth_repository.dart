@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/errors/app_exception.dart';
 import '../../domain/entities/rol_usuario.dart';
+import '../../domain/entities/sesion.dart';
 import '../../domain/entities/usuario.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -29,28 +31,94 @@ class SupabaseAuthRepository implements AuthRepository {
     required String telefono,
     required String password,
     required RolUsuario rol,
-  }) {
-    // TODO(HU-01): llamar a _client.auth.signUp(...) enviando nombre,
-    // teléfono y rol en `data`, y convertir los errores en AppException
-    // (por ejemplo "Este correo ya tiene una cuenta").
-    throw UnimplementedError('Pendiente: HU-01');
+  }) async {
+    try {
+      final respuesta = await _client.auth.signUp(
+        email: email,
+        password: password,
+        // El trigger de la base de datos lee estos datos y crea el perfil.
+        data: {
+          'nombre': nombre,
+          'telefono': telefono,
+          'rol': rol.name,
+        },
+      );
+
+      // Si el correo ya existe y la confirmación por correo está activa,
+      // Supabase no da error: devuelve un usuario sin identidades.
+      final identidades = respuesta.user?.identities;
+      if (identidades != null && identidades.isEmpty) {
+        throw AppException('Este correo ya tiene una cuenta');
+      }
+    } on AuthException catch (e) {
+      final yaExiste = e.code == 'user_already_exists' ||
+          e.message.toLowerCase().contains('already registered');
+      if (yaExiste) {
+        throw AppException('Este correo ya tiene una cuenta'); // HU-01 c2
+      }
+      throw AppException('No pudimos crear tu cuenta. Intenta de nuevo.');
+    }
   }
 
   @override
   Future<void> iniciarSesion({
     required String email,
     required String password,
-  }) {
-    // TODO(HU-02A/HU-02B): llamar a _client.auth.signInWithPassword(...)
-    // y convertir los errores en AppException
-    // ("Correo o contraseña incorrectos").
-    throw UnimplementedError('Pendiente: HU-02A / HU-02B');
+  }) async {
+    try {
+      await _client.auth.signInWithPassword(email: email, password: password);
+    } on AuthException catch (e) {
+      final datosIncorrectos = e.code == 'invalid_credentials' ||
+          e.message.toLowerCase().contains('invalid login credentials');
+      if (datosIncorrectos) {
+        // No decimos cuál de los dos está mal, para no revelar
+        // qué correos tienen cuenta.
+        throw const AppException('Correo o contraseña incorrectos');
+      }
+      if (e.code == 'email_not_confirmed') {
+        throw const AppException('Confirma tu correo antes de entrar');
+      }
+      throw const AppException('No pudimos iniciar sesión. Intenta de nuevo.');
+    } on Exception {
+      throw const AppException('Revisa tu conexión e intenta de nuevo.');
+    }
   }
 
   @override
-  Future<void> cerrarSesion() {
-    // TODO(HU-03): llamar a _client.auth.signOut().
-    throw UnimplementedError('Pendiente: HU-03');
+  Future<Sesion?> obtenerSesion() async {
+    if (_client.auth.currentUser == null) return null;
+    try {
+      final datos = await _client.rpc('mi_sesion');
+      if (datos is! Map) return null; // Tiene usuario pero no perfil.
+      return _aSesion(Map<String, dynamic>.from(datos));
+    } on Exception {
+      throw const AppException('No pudimos cargar tu cuenta.');
+    }
+  }
+
+  @override
+  Future<void> cerrarSesion() async {
+    try {
+      await _client.auth.signOut();
+    } on Exception {
+      throw const AppException('No pudimos cerrar tu sesión. Intenta de nuevo.');
+    }
+  }
+
+  /// Convierte la respuesta de `mi_sesion()` en la entidad del dominio.
+  Sesion _aSesion(Map<String, dynamic> datos) {
+    final fotoPath = datos['foto_path'] as String?;
+    return Sesion(
+      id: datos['id'] as String,
+      rol: RolUsuario.values.byName(datos['rol'] as String),
+      nombre: datos['nombre'] as String? ?? '',
+      perfilCompleto: datos['perfil_completo'] as bool? ?? false,
+      fotoPath: fotoPath,
+      fotoUrl: fotoPath == null
+          ? null
+          : _client.storage.from('avatars').getPublicUrl(fotoPath),
+      verificacion: datos['verificacion'] as String?,
+    );
   }
 
   /// Convierte el usuario de Supabase en la entidad del dominio.

@@ -88,6 +88,26 @@ class MiPantalla extends ConsumerWidget {
 }
 ```
 
+## Estilo visual (sistema de diseño)
+
+El diseño viene del prototipo de Figma Make. Los colores, las fuentes y el estilo de los componentes ya están en el tema, así que **una pantalla nueva no necesita estilos propios**.
+
+- **Colores:** `AppColors.primario`, `AppColors.fondo`, `AppColors.textoSecundario`… (`core/theme/app_colors.dart`). Nunca `Color(0xFF...)` en una pantalla.
+- **Textos:** `Theme.of(context).textTheme.headlineLarge`, `.bodyMedium`, etc. Títulos en Bricolage Grotesque, texto en Figtree.
+- **Botones:** `FilledButton` (principal), `OutlinedButton` (secundario), `TextButton` (enlace). Para ámbar o peligro: `style: AppTheme.botonAmbar` / `AppTheme.botonPeligro`.
+- **Campos:** `TextFormField` con `InputDecoration(labelText: ..., hintText: ...)` y un validador de `core/utils/validadores.dart`.
+- **Componentes compartidos** (`presentation/widgets/`): `LogoLimpiaYa`, `InsigniaEstado`, `InsigniaVerificada`, `AvatarUsuario`, `Estrellas`, `EstadoVacio`, `ContenidoCentrado`.
+- **Móvil vs. escritorio:** `Responsive.esMovil(context)` (menos de 800 px = una columna).
+- **Pruebas de pantallas:** en las pruebas de widgets, poner `AppFonts.usarGoogleFonts = false` en `setUpAll` para que no intenten descargar fuentes. Ejemplo: `test/presentation/landing_screen_test.dart`.
+
+Para verlos todos funcionando, abre la app en **/#/diseno**.
+
+## Sesión y roles
+
+- **¿Quién entró?** `ref.watch(sesionProvider).value` devuelve la `Sesion` (id, rol, nombre, perfilCompleto) o null. Viene de la función `mi_sesion()` de Supabase y se recarga sola al entrar o salir.
+- **A dónde va cada rol:** las reglas están en `core/router/redireccion.dart` (con pruebas en `test/core/router/`). El cliente va a `/cliente`, la trabajadora a `/trabajadora` y el admin a `/admin`. Lo que empiece por esas direcciones solo lo abre ese rol: una pantalla nueva del cliente va en `/cliente/...`.
+- **Formularios:** usar `CampoTexto` (etiqueta arriba, como el Figma). Las pantallas de login y registro usan `PlantillaAuth` (panel verde + tarjeta).
+
 ## Decisiones tomadas
 
 | Tema | Decisión | Por qué |
@@ -96,3 +116,4 @@ class MiPantalla extends ConsumerWidget {
 | Navegación | go_router | URLs reales en la web y protección de pantallas sin sesión |
 | Claves | `env.json` + `--dart-define-from-file` | Nada de claves en el repositorio (HD-01, criterio 3) |
 | Plataforma | Web primero; Android/iOS listos | Sin `dart:html`, así el mismo código sirve para la app móvil |
+| Diseño | Prototipo de Figma Make + `core/theme` | Un solo lugar para colores y estilos; todas las pantallas se ven iguales |
