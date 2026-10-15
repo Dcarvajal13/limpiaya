@@ -19,6 +19,10 @@ abstract final class Rutas {
   static const inicioTrabajadora = '/trabajadora';
   static const inicioAdmin = '/admin';
 
+  /// Perfil de la trabajadora (HU-04). Antes de ver solicitudes, la
+  /// trabajadora recién registrada completa su perfil.
+  static const perfilTrabajadora = '/trabajadora/perfil';
+
   static const sistemaDiseno = '/diseno';
 
   /// Registro con el rol ya sugerido, desde los botones de la landing.

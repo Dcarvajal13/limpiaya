@@ -107,12 +107,16 @@ class SupabaseAuthRepository implements AuthRepository {
 
   /// Convierte la respuesta de `mi_sesion()` en la entidad del dominio.
   Sesion _aSesion(Map<String, dynamic> datos) {
+    final fotoPath = datos['foto_path'] as String?;
     return Sesion(
       id: datos['id'] as String,
       rol: RolUsuario.values.byName(datos['rol'] as String),
       nombre: datos['nombre'] as String? ?? '',
       perfilCompleto: datos['perfil_completo'] as bool? ?? false,
-      fotoPath: datos['foto_path'] as String?,
+      fotoPath: fotoPath,
+      fotoUrl: fotoPath == null
+          ? null
+          : _client.storage.from('avatars').getPublicUrl(fotoPath),
       verificacion: datos['verificacion'] as String?,
     );
   }

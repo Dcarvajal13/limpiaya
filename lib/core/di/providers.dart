@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_perfil_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/services/registro_service.dart';
 
@@ -27,6 +29,10 @@ final authRepositoryProvider = Provider<AuthRepository>(
 
 final solicitudRepositoryProvider = Provider<SolicitudRepository>(
   (ref) => SupabaseSolicitudRepository(ref.watch(supabaseClientProvider)),
+);
+
+final perfilRepositoryProvider = Provider<PerfilRepository>(
+  (ref) => SupabasePerfilRepository(ref.watch(supabaseClientProvider)),
 );
 
 final registroServiceProvider = Provider<RegistroService>(
