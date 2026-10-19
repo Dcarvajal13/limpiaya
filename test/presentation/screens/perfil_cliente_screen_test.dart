@@ -107,6 +107,24 @@ void main() {
     expect(repo.ultimoZonaId, isNull);
   });
 
+  testWidgets('HU-05: dirección de menos de 5 caracteres no guarda', (tester) async {
+    final repo = _ClienteFalso();
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sabana Grande').last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'test');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Escribe al menos 5 caracteres'), findsOneWidget);
+    expect(repo.ultimoZonaId, isNull);
+  });
+
   testWidgets('HU-05: guarda la zona y la dirección', (tester) async {
     final repo = _ClienteFalso();
     await tester.pumpWidget(_app(repo));

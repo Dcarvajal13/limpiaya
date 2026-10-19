@@ -158,7 +158,7 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                     etiqueta: 'Dirección',
                     pista: 'Av. Francisco de Miranda, Edificio…',
                     controller: _direccion,
-                    validator: Validadores.requerido,
+                    validator: Validadores.direccion,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -170,6 +170,7 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                     etiqueta: 'Punto de referencia (opcional)',
                     pista: 'Al lado del farmatodo',
                     controller: _punto,
+                    validator: Validadores.maximo(200),
                   ),
                   const SizedBox(height: 24),
                   if (_errorGeneral != null) ...[
