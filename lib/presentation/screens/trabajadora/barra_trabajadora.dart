@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../widgets/avatar_usuario.dart';
@@ -13,12 +15,19 @@ import '../../widgets/logo_limpiaya.dart';
 /// `appBar`) porque en móvil es más alta: las pestañas pasan a una segunda
 /// fila para que todo quepa.
 ///
-/// TODO(HU-04 / HU-26): "Mis servicios" y "Mi perfil" todavía no tienen
-/// pantalla; por ahora avisan que llegan pronto.
+/// TODO(HU-26): "Mis servicios" todavía no tiene pantalla; por ahora avisa
+/// que llegará pronto.
 class BarraTrabajadora extends StatelessWidget {
-  const BarraTrabajadora({super.key, required this.nombre});
+  const BarraTrabajadora({
+    super.key,
+    required this.nombre,
+    this.fotoUrl,
+  });
 
   final String nombre;
+
+  /// Foto de perfil (HU-04), o null para mostrar las iniciales.
+  final String? fotoUrl;
 
   static const _altoPrincipal = 64.0;
   static const _altoPestanas = 48.0;
@@ -27,19 +36,25 @@ class BarraTrabajadora extends StatelessWidget {
   Widget build(BuildContext context) {
     final movil = Responsive.esMovil(context);
     final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
+    // maybeOf por si la barra se muestra fuera de un router (pruebas):
+    // en ese caso ninguna pestaña queda activa.
+    final ubicacion = GoRouter.maybeOf(context)?.state.uri.toString() ?? '';
 
     final pestanas = _Pestanas(
+      ubicacion: ubicacion,
       onProximamente: (nombre) => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(content: Text('$nombre estará disponible pronto')),
         ),
+      onTrabajos: () => context.go(Rutas.inicioTrabajadora),
+      onMiPerfil: () => context.go(Rutas.perfilTrabajadora),
     );
 
     final usuario = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AvatarUsuario(nombre: nombre, tamano: 36),
+      AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, tamano: 36),
         if (!movil) ...[
           const SizedBox(width: 10),
           Text(primerNombre, style: Theme.of(context).textTheme.labelMedium),
@@ -91,23 +106,37 @@ class BarraTrabajadora extends StatelessWidget {
 }
 
 class _Pestanas extends StatelessWidget {
-  const _Pestanas({required this.onProximamente});
+  const _Pestanas({
+    required this.ubicacion,
+    required this.onProximamente,
+    required this.onTrabajos,
+    required this.onMiPerfil,
+  });
 
+  /// Dirección actual, para marcar la pestaña activa.
+  final String ubicacion;
   final void Function(String nombre) onProximamente;
+  final VoidCallback onTrabajos;
+  final VoidCallback onMiPerfil;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const _Pestana(etiqueta: 'Trabajos', activa: true),
+        _Pestana(
+          etiqueta: 'Trabajos',
+          activa: ubicacion == Rutas.inicioTrabajadora,
+          onTap: onTrabajos,
+        ),
         _Pestana(
           etiqueta: 'Mis servicios',
           onTap: () => onProximamente('Mis servicios'),
         ),
         _Pestana(
           etiqueta: 'Mi perfil',
-          onTap: () => onProximamente('Mi perfil'),
+          activa: ubicacion == Rutas.perfilTrabajadora,
+          onTap: onMiPerfil,
         ),
       ],
     );

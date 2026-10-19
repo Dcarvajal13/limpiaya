@@ -63,4 +63,24 @@ abstract final class Validadores {
       return null;
     };
   }
+
+  /// Tarifa por hora de referencia: opcional. Si se escribe, debe ser un
+  /// número (HU-04, criterio 5).
+  static String? tarifa(String? valor) {
+    final texto = (valor ?? '').trim();
+    if (texto.isEmpty) return null;
+    final numero = double.tryParse(texto.replaceAll(',', '.'));
+    if (numero == null || numero < 0) return 'Escribe un número';
+    return null;
+  }
+
+  /// Años de experiencia: opcional (0 es recién empezada). Si se escribe,
+  /// entre 0 y 70.
+  static String? anosExperiencia(String? valor) {
+    final texto = (valor ?? '').trim();
+    if (texto.isEmpty) return null;
+    final numero = int.tryParse(texto);
+    if (numero == null || numero < 0 || numero > 70) return 'Escribe los años (0 a 70)';
+    return null;
+  }
 }
