@@ -39,6 +39,31 @@ abstract final class Validadores {
     return null;
   }
 
+  /// Dirección del perfil del cliente (HU-05).
+  ///
+  /// Misma regla que la base (`clientes.direccion`): entre 5 y 300
+  /// caracteres. Si no coincide, PostgreSQL rechaza el guardado.
+  static String? direccion(String? valor) {
+    final vacio = requerido(valor);
+    if (vacio != null) return vacio;
+    final largo = valor!.trim().length;
+    if (largo < 5) return 'Escribe al menos 5 caracteres';
+    if (largo > 300) return 'Máximo 300 caracteres';
+    return null;
+  }
+
+  /// Validación para campos opcionales con largo máximo (HU-05,
+  /// punto de referencia: 200 caracteres en la base).
+  static String? Function(String?) maximo(int caracteres) {
+    return (valor) {
+      if (valor == null || valor.trim().isEmpty) return null;
+      if (valor.trim().length > caracteres) {
+        return 'Máximo $caracteres caracteres';
+      }
+      return null;
+    };
+  }
+
   /// Tarifa por hora de referencia: opcional. Si se escribe, debe ser un
   /// número (HU-04, criterio 5).
   static String? tarifa(String? valor) {

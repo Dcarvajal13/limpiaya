@@ -49,6 +49,43 @@ void main() {
     });
   });
 
+  group('HU-05 · perfil del cliente', () {
+    test('recién registrado: lo mandan a completar su perfil', () {
+      expect(
+        ir(Rutas.inicioCliente, rol: RolUsuario.cliente, perfilCompleto: false),
+        Rutas.perfilCliente,
+      );
+    });
+
+    test('recién registrado: desde /inicio va directo al perfil', () {
+      expect(
+        ir(Rutas.inicio, rol: RolUsuario.cliente, perfilCompleto: false),
+        Rutas.perfilCliente,
+      );
+    });
+
+    test('con el perfil completo entra a Mis solicitudes', () {
+      expect(
+        ir(Rutas.inicioCliente, rol: RolUsuario.cliente, perfilCompleto: true),
+        isNull,
+      );
+    });
+
+    test('puede abrir su perfil aunque esté incompleto', () {
+      expect(
+        ir(Rutas.perfilCliente, rol: RolUsuario.cliente, perfilCompleto: false),
+        isNull,
+      );
+    });
+
+    test('la trabajadora no entra al perfil del cliente', () {
+      expect(
+        ir(Rutas.perfilCliente, rol: RolUsuario.trabajadora),
+        Rutas.inicioTrabajadora,
+      );
+    });
+  });
+
   group('HU-04 · perfil de la trabajadora', () {
     test('recién registrada: la mandan a completar su perfil', () {
       expect(

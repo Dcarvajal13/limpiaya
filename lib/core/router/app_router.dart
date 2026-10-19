@@ -7,6 +7,7 @@ import '../../presentation/screens/admin/admin_inicio_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
+import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
@@ -58,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.inicioCliente,
         builder: (context, state) => const MisSolicitudesScreen(),
+      ),
+      GoRoute(
+        path: Rutas.perfilCliente,
+        builder: (context, state) => const PerfilClienteScreen(),
       ),
       GoRoute(
         path: Rutas.inicioTrabajadora,
