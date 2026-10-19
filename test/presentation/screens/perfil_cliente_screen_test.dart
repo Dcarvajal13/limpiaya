@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:limpiaya/core/di/providers.dart';
+import 'package:limpiaya/core/router/rutas.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/perfil_cliente.dart';
@@ -80,14 +82,29 @@ class _AuthFalso implements AuthRepository {
 }
 
 Widget _app(_ClienteFalso repo) {
+  final router = GoRouter(
+    initialLocation: Rutas.perfilCliente,
+    routes: [
+      GoRoute(
+        path: Rutas.inicioCliente,
+        builder: (context, state) =>
+            const Scaffold(body: Text('Inicio cliente')),
+      ),
+      GoRoute(
+        path: Rutas.perfilCliente,
+        builder: (context, state) => const PerfilClienteScreen(),
+      ),
+    ],
+  );
+
   return ProviderScope(
     overrides: [
       clienteRepositoryProvider.overrideWithValue(repo),
       authRepositoryProvider.overrideWithValue(_AuthFalso()),
     ],
-    child: MaterialApp(
+    child: MaterialApp.router(
       theme: AppTheme.claro,
-      home: const PerfilClienteScreen(),
+      routerConfig: router,
     ),
   );
 }
@@ -143,6 +160,7 @@ void main() {
 
     expect(repo.ultimoZonaId, 1);
     expect(repo.ultimaDireccion, 'Av. Francisco de Miranda');
-    expect(find.text('Perfil guardado'), findsOneWidget);
+    // Al guardar vuelve a Mis solicitudes (no se queda en el formulario).
+    expect(find.text('Inicio cliente'), findsOneWidget);
   });
 }

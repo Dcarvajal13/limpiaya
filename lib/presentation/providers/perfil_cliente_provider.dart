@@ -36,6 +36,13 @@ class PerfilClienteController extends AsyncNotifier<PerfilCliente?> {
           );
       // La sesión sabe si el perfil está completo (HU-02A, criterio 4).
       ref.invalidate(sesionProvider);
+      // Esperamos a que se recargue: si no, al volver a Mis solicitudes el
+      // router todavía cree que el perfil está incompleto y rebota al perfil.
+      try {
+        await ref.read(sesionProvider.future);
+      } on Exception {
+        // Si la sesión no se puede recargar, el perfil igual quedó guardado.
+      }
       return ref.read(clienteRepositoryProvider).miPerfil();
     });
     return !state.hasError;

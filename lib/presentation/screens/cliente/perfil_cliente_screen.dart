@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validadores.dart';
 import '../../../domain/entities/perfil_cliente.dart';
@@ -76,6 +78,8 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Perfil guardado')));
+      // Vuelve a Mis solicitudes: ya no hay motivo para quedarse acá.
+      context.go(Rutas.inicioCliente);
     } else {
       final error = ref.read(perfilClienteProvider).error;
       setState(() => _errorGeneral = error is AppException
@@ -104,7 +108,7 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis solicitudes'),
+        title: const Text('Mi perfil'),
         actions: const [BotonCerrarSesion()],
       ),
       body: SingleChildScrollView(
