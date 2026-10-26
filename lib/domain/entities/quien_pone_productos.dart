@@ -10,4 +10,10 @@ enum QuienPoneProductos {
 
   /// Texto que ve la persona en pantalla.
   final String etiqueta;
-}
+
+  static QuienPoneProductos desdeDb(String valor) =>
+      QuienPoneProductos.values.firstWhere(
+        (q) => q.valorDb == valor,
+        orElse: () => QuienPoneProductos.cliente,
+      );
+}

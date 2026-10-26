@@ -5,6 +5,8 @@ import '../../domain/entities/direccion_cliente.dart';
 import '../../domain/entities/nueva_solicitud.dart';
 import '../../domain/entities/zona.dart';
 
+import 'mis_solicitudes_provider.dart';
+
 /// Catálogo de zonas de Caracas para el selector (reutiliza HU-04).
 final zonasCatalogoProvider = FutureProvider<List<Zona>>(
   (ref) => ref.watch(perfilRepositoryProvider).zonasDisponibles(),
@@ -30,6 +32,7 @@ class PublicarSolicitudController extends Notifier<AsyncValue<void>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard<void>(() async {
       await ref.read(solicitudServiceProvider).publicar(solicitud);
+      ref.invalidate(misSolicitudesProvider);
     });
     return !state.hasError;
   }

@@ -1,12 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors/app_exception.dart';
+import '../../domain/entities/direccion_cliente.dart';
+import '../../domain/entities/nueva_solicitud.dart';
+import '../../domain/entities/solicitud.dart';
 import '../../domain/entities/solicitud_disponible.dart';
 import '../../domain/entities/zona.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../models/solicitud_model.dart';
-import '../../domain/entities/direccion_cliente.dart';
-import '../../domain/entities/nueva_solicitud.dart';
 
 /// Implementación de SolicitudRepository usando Supabase.
 ///
@@ -114,4 +115,30 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
       return null;
     }
   }
+
+  @override
+  Future<List<Solicitud>> misSolicitudes() async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) {
+      throw const AppException('Tu sesión expiró. Inicia sesión de nuevo.');
+    }
+    try {
+      // La vista solicitudes_publicas incluye las solicitudes del cliente con
+      // num_postulantes y el nombre de la zona (RLS: cliente_id = usuario.id).
+      // HU-08 c1: ordenadas por fecha de inicio del servicio.
+      final filas = await _client
+          .from('solicitudes_publicas')
+          .select()
+          .eq('cliente_id', usuario.id)
+          .order('inicio', ascending: true);
+
+      return [
+        for (final fila in filas)
+          SolicitudModel.solicitudDesdeJson(Map<String, dynamic>.from(fila)),
+      ];
+    } on Exception {
+      throw const AppException('No pudimos cargar tus solicitudes.');
+    }
+  }
 }
+
