@@ -4,6 +4,7 @@ import 'package:limpiaya/domain/entities/direccion_cliente.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/quien_pone_productos.dart';
+import 'package:limpiaya/domain/entities/solicitud.dart';
 import 'package:limpiaya/domain/entities/solicitud_disponible.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/entities/zona.dart';
@@ -28,6 +29,9 @@ class _RepositorioFalso implements SolicitudRepository {
 
   @override
   Future<List<SolicitudDisponible>> disponibles() async => const [];
+
+  @override
+  Future<List<Solicitud>> misSolicitudes() async => const [];
 }
 
 void main() {

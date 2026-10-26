@@ -6,20 +6,24 @@ import '../entities/tipo_limpieza.dart';
 /// - [tipo] null significa "Todos".
 /// - [zonasOcultas] son las zonas que desmarcó. Se guardan las desmarcadas
 ///   (y no las marcadas) para que, por defecto, se vean todas sus zonas.
-/// - [fecha] null significa "cualquier fecha".
+/// - [fecha] es "Desde la fecha" (Figma W06): ese día y los siguientes.
+///   null significa "cualquier fecha".
+/// - [sinMascotas] true deja solo las casas sin mascotas.
 class FiltroSolicitudes {
   const FiltroSolicitudes({
     this.tipo,
     this.zonasOcultas = const {},
     this.fecha,
+    this.sinMascotas = false,
   });
 
   final TipoLimpieza? tipo;
   final Set<int> zonasOcultas;
   final DateTime? fecha;
+  final bool sinMascotas;
 
   bool get hayFiltros =>
-      tipo != null || zonasOcultas.isNotEmpty || fecha != null;
+      tipo != null || zonasOcultas.isNotEmpty || fecha != null || sinMascotas;
 
   FiltroSolicitudes copiarCon({
     TipoLimpieza? tipo,
@@ -27,11 +31,13 @@ class FiltroSolicitudes {
     Set<int>? zonasOcultas,
     DateTime? fecha,
     bool quitarFecha = false,
+    bool? sinMascotas,
   }) {
     return FiltroSolicitudes(
       tipo: quitarTipo ? null : (tipo ?? this.tipo),
       zonasOcultas: zonasOcultas ?? this.zonasOcultas,
       fecha: quitarFecha ? null : (fecha ?? this.fecha),
+      sinMascotas: sinMascotas ?? this.sinMascotas,
     );
   }
 }
@@ -44,14 +50,15 @@ List<SolicitudDisponible> filtrarSolicitudes(
   List<SolicitudDisponible> solicitudes,
   FiltroSolicitudes filtro,
 ) {
-  bool mismoDia(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  final fecha = filtro.fecha;
+  // "Desde la fecha": desde el comienzo de ese día, sin importar la hora.
+  final desde = fecha == null ? null : DateTime(fecha.year, fecha.month, fecha.day);
 
   return solicitudes.where((solicitud) {
     if (filtro.tipo != null && solicitud.tipo != filtro.tipo) return false;
     if (filtro.zonasOcultas.contains(solicitud.zonaId)) return false;
-    final fecha = filtro.fecha;
-    if (fecha != null && !mismoDia(solicitud.inicio, fecha)) return false;
+    if (desde != null && solicitud.inicio.isBefore(desde)) return false;
+    if (filtro.sinMascotas && solicitud.tieneMascotas) return false;
     return true;
   }).toList();
 }
