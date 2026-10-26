@@ -1,6 +1,7 @@
 import '../entities/solicitud_disponible.dart';
 import '../entities/zona.dart';
-
+import '../entities/direccion_cliente.dart';
+import '../entities/nueva_solicitud.dart';
 /// Contrato de solicitudes: QUÉ se puede pedir, sin decir CÓMO.
 ///
 /// La implementación con Supabase está en
@@ -13,4 +14,9 @@ abstract interface class SolicitudRepository {
   /// HU-11 · Solicitudes Publicadas, con fecha futura y de las zonas de la
   /// trabajadora, ordenadas de la más próxima a la más lejana.
   Future<List<SolicitudDisponible>> disponibles();
+    /// HU-07 · Publica una solicitud del cliente con sesión y devuelve su id.
+  Future<String> publicar(NuevaSolicitud solicitud);
+
+  /// HU-05 c2 · Zona y dirección guardadas del cliente, para precargarlas.
+  Future<DireccionCliente?> miDireccion();
 }

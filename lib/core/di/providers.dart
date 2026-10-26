@@ -8,7 +8,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/services/registro_service.dart';
-
+import '../../domain/services/solicitud_service.dart';
 /// "Inyección de dependencias": aquí se decide qué implementación
 /// usa cada contrato del dominio.
 ///
@@ -37,4 +37,8 @@ final perfilRepositoryProvider = Provider<PerfilRepository>(
 
 final registroServiceProvider = Provider<RegistroService>(
   (ref) => RegistroService(ref.watch(authRepositoryProvider)),
+);
+
+final solicitudServiceProvider = Provider<SolicitudService>(
+  (ref) => SolicitudService(ref.watch(solicitudRepositoryProvider)),
 );
