@@ -15,7 +15,7 @@ import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.da
 import '../di/providers.dart';
 import 'redireccion.dart';
 import 'rutas.dart';
-
+import '../../presentation/screens/cliente/publicar_solicitud_screen.dart';
 /// Rutas de la app y protección de pantallas.
 ///
 /// Las reglas de a dónde puede entrar cada quien están en redireccion.dart.
@@ -74,6 +74,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.sistemaDiseno,
         builder: (context, state) => const SistemaDisenoScreen(),
+      ),
+      GoRoute(
+        path: Rutas.publicarSolicitud,
+        builder: (context, state) => const PublicarSolicitudScreen(),
       ),
     ],
   );

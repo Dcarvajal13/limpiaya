@@ -5,6 +5,8 @@ import '../../domain/entities/solicitud_disponible.dart';
 import '../../domain/entities/zona.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../models/solicitud_model.dart';
+import '../../domain/entities/direccion_cliente.dart';
+import '../../domain/entities/nueva_solicitud.dart';
 
 /// Implementación de SolicitudRepository usando Supabase.
 ///
@@ -64,6 +66,52 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
       ];
     } on Exception {
       throw const AppException('No pudimos cargar las solicitudes.');
+    }
+  }
+
+    @override
+  Future<String> publicar(NuevaSolicitud solicitud) async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) {
+      throw const AppException('Tu sesión expiró. Inicia sesión de nuevo.');
+    }
+    try {
+      // RLS: el cliente solo puede crear solicitudes a su nombre.
+      final fila = await _client
+          .from('solicitudes')
+          .insert(SolicitudModel.nuevaAJson(solicitud, usuario.id))
+          .select('id')
+          .single();
+      return fila['id'] as String;
+    } on PostgrestException catch (e) {
+      // El trigger de la base rechaza las fechas pasadas (HU-07 c2).
+      if (e.message.contains('La fecha debe ser futura')) {
+        throw const AppException('La fecha debe ser futura');
+      }
+      throw const AppException(
+        'No pudimos publicar la solicitud. Revisa los datos e intenta de nuevo.',
+      );
+    } on Exception {
+      throw const AppException(
+        'No pudimos publicar la solicitud. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
+
+  @override
+  Future<DireccionCliente?> miDireccion() async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) return null;
+    try {
+      final fila = await _client
+          .from('clientes')
+          .select('zona_id, direccion, punto_referencia')
+          .eq('id', usuario.id)
+          .maybeSingle();
+      return fila == null ? null : SolicitudModel.direccionDesdeJson(fila);
+    } on Exception {
+      // Si falla, el formulario simplemente sale vacío.
+      return null;
     }
   }
 }

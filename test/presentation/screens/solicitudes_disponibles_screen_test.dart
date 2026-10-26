@@ -12,7 +12,8 @@ import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/entities/zona.dart';
 import 'package:limpiaya/domain/repositories/solicitud_repository.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
-import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
+import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';import 'package:limpiaya/domain/entities/direccion_cliente.dart';
+import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 
 class _RepositorioFalso implements SolicitudRepository {
   _RepositorioFalso({this.zonas = const [], this.solicitudes = const []});
@@ -25,6 +26,12 @@ class _RepositorioFalso implements SolicitudRepository {
 
   @override
   Future<List<SolicitudDisponible>> disponibles() async => solicitudes;
+
+    @override
+  Future<String> publicar(NuevaSolicitud solicitud) async => 'id-de-prueba';
+
+  @override
+  Future<DireccionCliente?> miDireccion() async => null;
 }
 
 class _SesionFalsa extends SesionNotifier {
