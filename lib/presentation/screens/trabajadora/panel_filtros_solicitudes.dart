@@ -3,136 +3,219 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/tipo_limpieza.dart';
 import '../../../domain/entities/zona.dart';
+import '../../../domain/services/filtro_solicitudes.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 
-/// Panel "Filtros" de HU-11 (criterio 2): tipo de limpieza, fecha y zonas.
+/// Barra de filtros de HU-11 (criterio 2), igual al Figma W06:
+/// "Tipo de limpieza", "Desde la fecha", "Sin mascotas" y el botón "Filtrar".
 ///
-/// Los cambios se aplican al instante; no hay botón de "aplicar".
-class PanelFiltrosSolicitudes extends ConsumerWidget {
+/// El tipo, la fecha y las mascotas se eligen primero y se aplican al tocar
+/// "Filtrar". Debajo están las zonas de la trabajadora como chips: esas se
+/// aplican al instante (si solo tiene una zona, no se muestran).
+class PanelFiltrosSolicitudes extends ConsumerStatefulWidget {
   const PanelFiltrosSolicitudes({super.key, required this.zonas});
 
   /// Zonas de la trabajadora (las que puede marcar/desmarcar).
   final List<Zona> zonas;
 
-  Future<void> _elegirFecha(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<PanelFiltrosSolicitudes> createState() =>
+      _PanelFiltrosSolicitudesState();
+}
+
+class _PanelFiltrosSolicitudesState
+    extends ConsumerState<PanelFiltrosSolicitudes> {
+  // Lo elegido pero todavía no aplicado con "Filtrar".
+  TipoLimpieza? _tipo;
+  DateTime? _fecha;
+  bool _sinMascotas = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _copiar(ref.read(filtroSolicitudesProvider));
+  }
+
+  void _copiar(FiltroSolicitudes filtro) {
+    _tipo = filtro.tipo;
+    _fecha = filtro.fecha;
+    _sinMascotas = filtro.sinMascotas;
+  }
+
+  Future<void> _elegirFecha() async {
     final hoy = DateTime.now();
-    final actual = ref.read(filtroSolicitudesProvider).fecha;
     final elegida = await showDatePicker(
       context: context,
-      initialDate: actual ?? hoy,
+      initialDate: _fecha ?? hoy,
       // Solo hay solicitudes futuras (HU-11 c1).
       firstDate: DateTime(hoy.year, hoy.month, hoy.day),
       lastDate: hoy.add(const Duration(days: 365)),
-      helpText: 'Filtrar por fecha',
+      helpText: 'Desde la fecha',
     );
-    if (elegida != null) {
-      ref.read(filtroSolicitudesProvider.notifier).elegirFecha(elegida);
-    }
+    if (elegida != null) setState(() => _fecha = elegida);
+  }
+
+  void _filtrar() {
+    ref.read(filtroSolicitudesProvider.notifier).aplicar(
+          tipo: _tipo,
+          fecha: _fecha,
+          sinMascotas: _sinMascotas,
+        );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final filtro = ref.watch(filtroSolicitudesProvider);
     final notificador = ref.read(filtroSolicitudesProvider.notifier);
+    final movil = Responsive.esMovil(context);
+
+    // Si los filtros cambian desde fuera ("Quitar filtros"), el formulario
+    // vuelve a mostrar lo que está aplicado.
+    ref.listen(filtroSolicitudesProvider, (_, nuevo) {
+      setState(() => _copiar(nuevo));
+    });
+
+    final tipo = _Campo(
+      etiqueta: 'Tipo de limpieza',
+      child: DropdownButtonFormField<TipoLimpieza?>(
+        key: ValueKey('filtro-tipo-$_tipo'),
+        initialValue: _tipo,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+        style: textos.bodyMedium?.copyWith(fontSize: 14),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('Todos')),
+          for (final t in TipoLimpieza.values)
+            DropdownMenuItem(value: t, child: Text(t.etiqueta)),
+        ],
+        onChanged: (valor) => setState(() => _tipo = valor),
+      ),
+    );
+
+    final fecha = _Campo(
+      etiqueta: 'Desde la fecha',
+      child: InkWell(
+        key: const Key('filtro-fecha'),
+        onTap: _elegirFecha,
+        borderRadius: BorderRadius.circular(12),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            suffixIcon: _fecha == null
+                ? const Icon(Icons.calendar_today_outlined, size: 18)
+                : IconButton(
+                    tooltip: 'Quitar fecha',
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => setState(() => _fecha = null),
+                  ),
+          ),
+          child: Text(
+            _fecha == null ? 'dd/mm/aaaa' : Formato.fechaNumerica(_fecha!),
+            style: textos.bodyMedium?.copyWith(
+              fontSize: 14,
+              color: _fecha == null
+                  ? AppColors.textoSecundario
+                  : AppColors.texto,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final mascotas = InkWell(
+      onTap: () => setState(() => _sinMascotas = !_sinMascotas),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: Checkbox(
+                key: const Key('filtro-sin-mascotas'),
+                value: _sinMascotas,
+                onChanged: (valor) =>
+                    setState(() => _sinMascotas = valor ?? false),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text('Sin mascotas', style: textos.bodySmall?.copyWith(fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+
+    final boton = OutlinedButton.icon(
+      key: const Key('boton-filtrar'),
+      onPressed: _filtrar,
+      icon: const Icon(Icons.search, size: 20),
+      label: const Text('Filtrar'),
+      style: OutlinedButton.styleFrom(minimumSize: const Size(96, 46)),
+    );
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(movil ? 16 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(child: Text('Filtros', style: textos.titleMedium)),
-                if (filtro.hayFiltros)
-                  TextButton(
-                    onPressed: notificador.limpiar,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(0, 32),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+            if (movil) ...[
+              tipo,
+              const SizedBox(height: 12),
+              fecha,
+              const SizedBox(height: 8),
+              Row(children: [mascotas, const Spacer(), boton]),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(flex: 5, child: tipo),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 4, child: fecha),
+                  const SizedBox(width: 12),
+                  mascotas,
+                  const Spacer(flex: 2),
+                  boton,
+                ],
+              ),
+            if (widget.zonas.length > 1) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text('Mis zonas:', style: textos.bodySmall?.copyWith(fontSize: 13)),
+                  for (final zona in widget.zonas)
+                    FilterChip(
+                      label: Text(zona.nombre),
+                      labelStyle: textos.labelMedium?.copyWith(fontSize: 13),
+                      selected: !filtro.zonasOcultas.contains(zona.id),
+                      onSelected: (_) => notificador.alternarZona(zona.id),
                     ),
-                    child: const Text('Limpiar'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text('Tipo de limpieza', style: textos.bodySmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _ChipFiltro(
-                  etiqueta: 'Todos',
-                  seleccionado: filtro.tipo == null,
-                  onTap: () => notificador.elegirTipo(null),
+                ],
+              ),
+            ],
+            if (filtro.hayFiltros)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: notificador.limpiar,
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 32)),
+                  child: const Text('Limpiar filtros'),
                 ),
-                for (final tipo in TipoLimpieza.values)
-                  _ChipFiltro(
-                    etiqueta: tipo.etiqueta,
-                    seleccionado: filtro.tipo == tipo,
-                    onTap: () => notificador.elegirTipo(tipo),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text('Fecha', style: textos.bodySmall),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _elegirFecha(context, ref),
-                    icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                    label: Text(
-                      filtro.fecha == null
-                          ? 'Cualquier fecha'
-                          : Formato.diaCorto(filtro.fecha!),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 40),
-                      alignment: Alignment.centerLeft,
-                      side: const BorderSide(color: AppColors.borde),
-                      foregroundColor: AppColors.texto,
-                    ),
-                  ),
-                ),
-                if (filtro.fecha != null)
-                  IconButton(
-                    tooltip: 'Quitar fecha',
-                    onPressed: () => notificador.elegirFecha(null),
-                    icon: const Icon(Icons.close, size: 18),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text('Mis zonas', style: textos.bodySmall),
-            const SizedBox(height: 4),
-            if (zonas.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'Aún no tienes zonas en tu perfil.',
-                  style: textos.bodySmall?.copyWith(fontSize: 13),
-                ),
-              )
-            else
-              for (final zona in zonas)
-                CheckboxListTile(
-                  value: !filtro.zonasOcultas.contains(zona.id),
-                  onChanged: (_) => notificador.alternarZona(zona.id),
-                  title: Text(
-                    zona.nombre,
-                    style: textos.bodyMedium?.copyWith(fontSize: 14),
-                  ),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  visualDensity: VisualDensity.compact,
-                ),
+              ),
           ],
         ),
       ),
@@ -140,32 +223,26 @@ class PanelFiltrosSolicitudes extends ConsumerWidget {
   }
 }
 
-/// Chip de opción: oscuro cuando está elegido, como en el Figma.
-class _ChipFiltro extends StatelessWidget {
-  const _ChipFiltro({
-    required this.etiqueta,
-    required this.seleccionado,
-    required this.onTap,
-  });
+/// Etiqueta pequeña arriba y el campo debajo (como `CampoTexto`).
+class _Campo extends StatelessWidget {
+  const _Campo({required this.etiqueta, required this.child});
 
   final String etiqueta;
-  final bool seleccionado;
-  final VoidCallback onTap;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-
-    return ChoiceChip(
-      label: Text(etiqueta),
-      selected: seleccionado,
-      onSelected: (_) => onTap(),
-      selectedColor: AppColors.texto,
-      labelStyle: textos.labelMedium?.copyWith(
-        fontSize: 13,
-        color: seleccionado ? Colors.white : AppColors.texto,
-      ),
-      side: BorderSide(color: seleccionado ? AppColors.texto : AppColors.borde),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          etiqueta,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
     );
   }
 }

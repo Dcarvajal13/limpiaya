@@ -24,6 +24,9 @@ abstract final class SolicitudModel {
       pagoOfrecido: (json['pago_ofrecido'] as num).toDouble(),
       metodoPago: MetodoPago.desdeDb(json['metodo_pago'] as String),
       numPostulantes: (json['num_postulantes'] as num?)?.toInt() ?? 0,
+      habitaciones: (json['habitaciones'] as num?)?.toInt() ?? 1,
+      banos: (json['banos'] as num?)?.toInt() ?? 1,
+      tieneMascotas: json['tiene_mascotas'] as bool? ?? false,
     );
   }
 

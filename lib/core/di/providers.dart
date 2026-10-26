@@ -3,9 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_perfil_repository.dart';
+import '../../data/repositories/supabase_reputacion_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
+import '../../domain/repositories/reputacion_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/services/registro_service.dart';
 import '../../domain/services/solicitud_service.dart';
@@ -33,6 +35,10 @@ final solicitudRepositoryProvider = Provider<SolicitudRepository>(
 
 final perfilRepositoryProvider = Provider<PerfilRepository>(
   (ref) => SupabasePerfilRepository(ref.watch(supabaseClientProvider)),
+);
+
+final reputacionRepositoryProvider = Provider<ReputacionRepository>(
+  (ref) => SupabaseReputacionRepository(ref.watch(supabaseClientProvider)),
 );
 
 final registroServiceProvider = Provider<RegistroService>(

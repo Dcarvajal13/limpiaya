@@ -41,6 +41,26 @@ abstract final class Formato {
   static String horario(DateTime inicio, double horasEstimadas) =>
       '${diaCorto(inicio)} · ${hora(inicio)} · ${horas(horasEstimadas)}';
 
+  /// "Sáb. 17 oct." (tarjeta de solicitud, Figma W06).
+  static String diaTarjeta(DateTime fecha) =>
+      '${_dias[fecha.weekday - 1]}. ${fecha.day} ${_meses[fecha.month - 1]}.';
+
+  /// "17/10/2026" (campo "Desde la fecha").
+  static String fechaNumerica(DateTime fecha) =>
+      '${fecha.day.toString().padLeft(2, '0')}/'
+      '${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+
+  /// 3 → "3 hab."
+  static String habitaciones(int cantidad) => '$cantidad hab.';
+
+  /// 1 → "1 baño", 2 → "2 baños".
+  static String banos(int cantidad) =>
+      '$cantidad ${cantidad == 1 ? 'baño' : 'baños'}';
+
+  /// 4.9 → "4,9" (promedio de estrellas).
+  static String promedio(double valor) =>
+      valor.toStringAsFixed(1).replaceAll('.', ',');
+
   /// "Buenos días" / "Buenas tardes" / "Buenas noches" según la hora.
   static String saludo(DateTime ahora) {
     if (ahora.hour < 12) return 'Buenos días';
