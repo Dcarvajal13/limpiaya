@@ -57,6 +57,30 @@ abstract final class Formato {
   static String banos(int cantidad) =>
       '$cantidad ${cantidad == 1 ? 'baño' : 'baños'}';
 
+  static const _diasCompletos = [
+    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo',
+  ];
+  static const _mesesCompletos = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  ];
+
+  /// "Sábado, 9:00 a. m." (tarjeta del cliente, Figma C05).
+  static String diaCompletoHora(DateTime fecha) =>
+      '${_diasCompletos[fecha.weekday - 1]}, ${hora(fecha)}';
+
+  /// "Sábado", "Martes", etc.
+  static String diaDeSemana(DateTime fecha) =>
+      _diasCompletos[fecha.weekday - 1];
+
+  /// "OCT" (tarjeta del cliente, cuadro de fecha).
+  static String mesMayus(DateTime fecha) =>
+      _meses[fecha.month - 1].toUpperCase();
+
+  /// "17 de octubre"
+  static String diaDeMes(DateTime fecha) =>
+      '${fecha.day} de ${_mesesCompletos[fecha.month - 1]}';
+
   /// 4.9 → "4,9" (promedio de estrellas).
   static String promedio(double valor) =>
       valor.toStringAsFixed(1).replaceAll('.', ',');

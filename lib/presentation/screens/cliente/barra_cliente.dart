@@ -32,6 +32,7 @@ class BarraCliente extends StatelessWidget {
     final pestanas = _Pestanas(
       ubicacion: ubicacion,
       onMisSolicitudes: () => context.go(Rutas.inicioCliente),
+      onPublicar: () => context.go(Rutas.publicarSolicitud),
       onProximamente: (nombre) => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -97,28 +98,38 @@ class _Pestanas extends StatelessWidget {
   const _Pestanas({
     required this.ubicacion,
     required this.onMisSolicitudes,
+    required this.onPublicar,
     required this.onProximamente,
   });
 
   final String ubicacion;
   final VoidCallback onMisSolicitudes;
+  final VoidCallback onPublicar;
   final void Function(String) onProximamente;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _Pestana(
-          etiqueta: 'Mis solicitudes',
-          activa: ubicacion == Rutas.inicioCliente,
-          onTap: onMisSolicitudes,
-        ),
-        _Pestana(
-          etiqueta: 'Mensajes',
-          onTap: () => onProximamente('Mensajes'),
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Pestana(
+            etiqueta: 'Mis solicitudes',
+            activa: ubicacion == Rutas.inicioCliente,
+            onTap: onMisSolicitudes,
+          ),
+          _Pestana(
+            etiqueta: 'Publicar',
+            activa: ubicacion == Rutas.publicarSolicitud,
+            onTap: onPublicar,
+          ),
+          _Pestana(
+            etiqueta: 'Mensajes',
+            onTap: () => onProximamente('Mensajes'),
+          ),
+        ],
+      ),
     );
   }
 }

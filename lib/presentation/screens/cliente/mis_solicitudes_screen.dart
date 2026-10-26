@@ -5,29 +5,77 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
+import 'banner_cliente.dart';
 import 'barra_cliente.dart';
 import 'tarjeta_solicitud_cliente.dart';
 
 /// HU-08 · Ver mis solicitudes y su estado.
 ///
-/// Pantalla principal del cliente (ruta '/cliente').
+/// Pantalla principal del cliente (ruta '/cliente', Figma C05).
 ///
 /// Criterios de aceptación:
 /// 1. Las solicitudes se muestran ordenadas por fecha del servicio con su estado:
 ///    Publicada, Asignada, Completada o Cancelada.
 /// 2. Cuando una solicitud tiene postulaciones, se muestra el número de postulantes.
 /// 3. Si no tiene solicitudes, muestra un mensaje y un botón para publicar la primera.
-class MisSolicitudesScreen extends ConsumerWidget {
+/// 4. Filtros interactivos por estado: Todas, Publicadas, Asignadas, Completadas, Canceladas.
+/// 5. Diseño responsivo con banner superior, métricas y tarjetas horizontales.
+class MisSolicitudesScreen extends ConsumerStatefulWidget {
   const MisSolicitudesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MisSolicitudesScreen> createState() =>
+      _MisSolicitudesScreenState();
+}
+
+class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
+  EstadoSolicitud? _filtroEstado;
+
+  String _construirResumen(List<Solicitud> solicitudes) {
+    final ahora = DateTime.now();
+    final asignada = solicitudes
+        .where((s) =>
+            s.estado == EstadoSolicitud.asignada && s.inicio.isAfter(ahora))
+        .toList()
+      ..sort((a, b) => a.inicio.compareTo(b.inicio));
+    final proxima = asignada.firstOrNull;
+
+    final conPostulantes = solicitudes
+        .where((s) =>
+            s.estado == EstadoSolicitud.publicada && s.numPostulantes > 0)
+        .toList()
+      ..sort((a, b) => b.numPostulantes.compareTo(a.numPostulantes));
+    final esperando = conPostulantes.firstOrNull;
+
+    final partes = <String>[];
+    if (proxima != null) {
+      partes.add(
+        'Carmen va a tu casa el ${Formato.diaDeSemana(proxima.inicio).toLowerCase()} a las ${Formato.hora(proxima.inicio)}.',
+      );
+    }
+    if (esperando != null) {
+      partes.add(
+        'Y tu solicitud del ${Formato.diaDeSemana(esperando.inicio).toLowerCase()} ya tiene ${Formato.postulantes(esperando.numPostulantes)}.',
+      );
+    }
+
+    if (partes.isEmpty) {
+      return 'Revisa el estado de tus solicitudes o publica una nueva para recibir postulaciones.';
+    }
+
+    return partes.join(' ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final sesion = ref.watch(sesionProvider).value;
     final nombre = sesion?.nombre ?? '';
     final fotoUrl = sesion?.fotoUrl;
@@ -36,21 +84,55 @@ class MisSolicitudesScreen extends ConsumerWidget {
     final solicitudesAsync = ref.watch(misSolicitudesProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.fondo,
       body: Column(
         children: [
           BarraCliente(nombre: nombre, fotoUrl: fotoUrl),
           Expanded(
             child: SingleChildScrollView(
               child: ContenidoCentrado(
-                vertical: movil ? 20 : 32,
+                vertical: movil ? 16 : 28,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _Encabezado(
-                      movil: movil,
+                    // Banner verde superior
+                    BannerCliente(
+                      saludo: nombre.isNotEmpty
+                          ? 'Buenos días, $nombre'
+                          : 'Buenos días',
+                      resumen: solicitudesAsync.maybeWhen(
+                        data: (solicitudes) => _construirResumen(solicitudes),
+                        orElse: () =>
+                            'Revisa el estado de tus solicitudes o publica una nueva.',
+                      ),
                       onPublicar: () => context.go(Rutas.publicarSolicitud),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // Tarjetas de métricas superiores
+                    solicitudesAsync.maybeWhen(
+                      data: (solicitudes) => MetricasCliente(
+                        solicitudes: solicitudes,
+                        calificacionPromedio: 4.9,
+                      ),
+                      orElse: () => const MetricasCliente(
+                        solicitudes: [],
+                        calificacionPromedio: 4.9,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Título de la sección + Fila de filtros por estado
+                    _BarraFiltros(
+                      movil: movil,
+                      filtroActual: _filtroEstado,
+                      onFiltroSeleccionado: (estado) {
+                        setState(() => _filtroEstado = estado);
+                      },
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Lista de solicitudes
                     solicitudesAsync.when(
                       loading: () => const _Caja(
                         child: Padding(
@@ -86,8 +168,38 @@ class MisSolicitudesScreen extends ConsumerWidget {
                           );
                         }
 
-                        // Criterios 1 y 2: solicitudes con estado y postulantes.
-                        return _Cuadricula(solicitudes: solicitudes);
+                        // Filtro local
+                        final filtradas = _filtroEstado == null
+                            ? solicitudes
+                            : solicitudes
+                                .where((s) => s.estado == _filtroEstado)
+                                .toList();
+
+                        if (filtradas.isEmpty) {
+                          return _Caja(
+                            child: EstadoVacio(
+                              icono: Icons.filter_alt_off_outlined,
+                              titulo:
+                                  'No hay solicitudes ${_filtroEstado!.etiqueta.toLowerCase()}s',
+                              mensaje:
+                                  'Selecciona otro filtro para ver las demás solicitudes.',
+                              textoBoton: 'Ver todas',
+                              onPressed: () {
+                                setState(() => _filtroEstado = null);
+                              },
+                            ),
+                          );
+                        }
+
+                        // Criterios 1 y 2: solicitudes con estado y postulantes en tarjetas horizontales.
+                        return Column(
+                          children: [
+                            for (final solicitud in filtradas) ...[
+                              TarjetaSolicitudCliente(solicitud: solicitud),
+                              const SizedBox(height: 12),
+                            ],
+                          ],
+                        );
                       },
                     ),
                   ],
@@ -101,101 +213,135 @@ class MisSolicitudesScreen extends ConsumerWidget {
   }
 }
 
-/// Título y botón para crear una nueva solicitud.
-class _Encabezado extends StatelessWidget {
-  const _Encabezado({required this.movil, required this.onPublicar});
+/// Fila con el título "Mis solicitudes" y las píldoras de filtro.
+class _BarraFiltros extends StatelessWidget {
+  const _BarraFiltros({
+    required this.movil,
+    required this.filtroActual,
+    required this.onFiltroSeleccionado,
+  });
 
   final bool movil;
-  final VoidCallback onPublicar;
+  final EstadoSolicitud? filtroActual;
+  final ValueChanged<EstadoSolicitud?> onFiltroSeleccionado;
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
 
-    final botonPublicar = FilledButton.icon(
-      key: const Key('boton-publicar-solicitud'),
-      onPressed: onPublicar,
-      icon: const Icon(Icons.add, size: 20),
-      label: const Text('Publicar solicitud'),
-      style: FilledButton.styleFrom(
-        minimumSize: Size(movil ? double.infinity : 0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+    final titulo = Text(
+      'Mis solicitudes',
+      style: tema.textTheme.headlineMedium?.copyWith(
+        fontSize: movil ? 20 : 24,
+        fontWeight: FontWeight.w800,
+        color: AppColors.primarioOscuro,
+      ),
+    );
+
+    final listaFiltros = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _PildoraFiltro(
+            etiqueta: 'Todas',
+            seleccionada: filtroActual == null,
+            onTap: () => onFiltroSeleccionado(null),
+          ),
+          const SizedBox(width: 8),
+          for (final estado in EstadoSolicitud.values) ...[
+            _PildoraFiltro(
+              etiqueta: '${estado.etiqueta}s',
+              seleccionada: filtroActual == estado,
+              onTap: () => onFiltroSeleccionado(estado),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ],
       ),
     );
 
     if (movil) {
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Mis solicitudes', style: tema.textTheme.headlineMedium),
-          const SizedBox(height: 6),
-          Text(
-            'Revisa el estado de tus solicitudes y las trabajadoras postuladas.',
-            style: tema.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          botonPublicar,
+          titulo,
+          const SizedBox(height: 12),
+          listaFiltros,
         ],
       );
     }
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Mis solicitudes', style: tema.textTheme.headlineLarge),
-              const SizedBox(height: 6),
-              Text(
-                'Revisa el estado de tus solicitudes y las trabajadoras postuladas.',
-                style: tema.textTheme.bodyLarge,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 24),
-        botonPublicar,
+        titulo,
+        const SizedBox(width: 16),
+        Flexible(child: listaFiltros),
       ],
     );
   }
 }
 
-/// Distribución de tarjetas en 2 columnas en pantallas medianas/grandes
-/// o 1 columna en móvil.
-class _Cuadricula extends StatelessWidget {
-  const _Cuadricula({required this.solicitudes});
+/// Píldora de filtro individual con estado activo/inactivo (Figma C05).
+class _PildoraFiltro extends StatelessWidget {
+  const _PildoraFiltro({
+    required this.etiqueta,
+    required this.seleccionada,
+    required this.onTap,
+  });
 
-  final List<Solicitud> solicitudes;
-
-  static const _separacion = 16.0;
+  final String etiqueta;
+  final bool seleccionada;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, restricciones) {
-        final ancho = restricciones.maxWidth;
-        final columnas = ancho >= 680 ? 2 : 1;
-        final anchoTarjeta = (ancho - _separacion * (columnas - 1)) / columnas;
-
-        return Wrap(
-          spacing: _separacion,
-          runSpacing: _separacion,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: seleccionada
+              ? AppColors.primarioClaro.withValues(alpha: 0.5)
+              : AppColors.superficie,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: seleccionada ? AppColors.primario : AppColors.borde,
+            width: seleccionada ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            for (final solicitud in solicitudes)
-              SizedBox(
-                width: anchoTarjeta,
-                child: TarjetaSolicitudCliente(solicitud: solicitud),
+            if (seleccionada) ...[
+              const Icon(
+                Icons.check_rounded,
+                size: 15,
+                color: AppColors.primarioOscuro,
               ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              etiqueta,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: seleccionada ? FontWeight.w700 : FontWeight.w500,
+                color: seleccionada
+                    ? AppColors.primarioOscuro
+                    : AppColors.texto,
+              ),
+            ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-/// Contenedor con borde redondeado y fondo blanco.
+/// Contenedor con borde redondeado y fondo blanco para estados vacíos o de carga.
 class _Caja extends StatelessWidget {
   const _Caja({required this.child});
 

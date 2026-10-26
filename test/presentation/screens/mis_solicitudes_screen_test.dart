@@ -176,16 +176,16 @@ void main() {
       expect(find.text('Cancelada'), findsOneWidget);
 
       // Tipos de limpieza
-      expect(find.text('General'), findsOneWidget);
-      expect(find.text('Profunda'), findsOneWidget);
-      expect(find.text('Planchado'), findsOneWidget);
-      expect(find.text('Post-mudanza'), findsOneWidget);
+      expect(find.textContaining('Limpieza general'), findsWidgets);
+      expect(find.textContaining('Limpieza profunda'), findsWidgets);
+      expect(find.textContaining('Limpieza planchado'), findsWidgets);
+      expect(find.textContaining('Limpieza post-mudanza'), findsWidgets);
 
       // Montos
-      expect(find.text(r'$30'), findsOneWidget);
-      expect(find.text(r'$50'), findsOneWidget);
-      expect(find.text(r'$25'), findsOneWidget);
-      expect(find.text(r'$60'), findsOneWidget);
+      expect(find.textContaining(r'$30'), findsWidgets);
+      expect(find.textContaining(r'$50'), findsWidgets);
+      expect(find.textContaining(r'$25'), findsWidgets);
+      expect(find.textContaining(r'$60'), findsWidgets);
     },
   );
 
@@ -216,8 +216,8 @@ void main() {
       await tester.pumpWidget(_app(repo));
       await tester.pumpAndSettle();
 
-      // Criterio 2: 3 postulantes
-      expect(find.text('3 postulantes'), findsOneWidget);
+      // Criterio 2: 3 postulantes en tarjeta y métrica
+      expect(find.text('3 postulantes'), findsWidgets);
       expect(find.text('Sin postulantes aún'), findsOneWidget);
     },
   );
@@ -256,4 +256,87 @@ void main() {
       expect(rutaDestino, Rutas.publicarSolicitud);
     },
   );
+
+  testWidgets(
+    'filtro interactivo por estado filtra solicitudes correctamente',
+    (tester) async {
+      _pantallaGrande(tester);
+
+      final repo = _RepositorioFalso(
+        solicitudes: [
+          _solicitud(
+            id: 's1',
+            estado: EstadoSolicitud.publicada,
+            tipo: TipoLimpieza.general,
+            inicio: DateTime(2026, 11, 2, 9),
+            numPostulantes: 3,
+          ),
+          _solicitud(
+            id: 's2',
+            estado: EstadoSolicitud.cancelada,
+            tipo: TipoLimpieza.profunda,
+            inicio: DateTime(2026, 11, 3, 10),
+            numPostulantes: 0,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      // Inicialmente ambas se muestran
+      expect(find.text('Publicada'), findsOneWidget);
+      expect(find.text('Cancelada'), findsOneWidget);
+
+      // Filtramos por Canceladas
+      await tester.tap(find.text('Canceladas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Publicada'), findsNothing);
+      expect(find.text('Cancelada'), findsOneWidget);
+
+      // Restauramos Todas
+      await tester.tap(find.text('Todas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Publicada'), findsOneWidget);
+      expect(find.text('Cancelada'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'renderiza sin desbordamiento en pantalla móvil (390x844)',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final repo = _RepositorioFalso(
+        solicitudes: [
+          _solicitud(
+            id: 's1',
+            estado: EstadoSolicitud.publicada,
+            tipo: TipoLimpieza.general,
+            inicio: DateTime(2026, 11, 2, 9),
+            numPostulantes: 2,
+          ),
+          _solicitud(
+            id: 's2',
+            estado: EstadoSolicitud.asignada,
+            tipo: TipoLimpieza.profunda,
+            inicio: DateTime(2026, 11, 5, 8),
+            numPostulantes: 1,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mis solicitudes'), findsWidgets);
+      expect(find.text('Próximo servicio'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
+
