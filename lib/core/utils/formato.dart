@@ -106,4 +106,12 @@ abstract final class Formato {
     if (items.length == 1) return items.first;
     return '${items.sublist(0, items.length - 1).join(', ')} y ${items.last}';
   }
+
+  /// "2 de octubre de 2026" (cuenta creada, panel del admin, HU-33).
+  static String fechaConAnio(DateTime fecha) =>
+      '${diaDeMes(fecha)} de ${fecha.year}';
+
+  /// "4 oct. · 9:20 a. m." (lista de verificaciones del admin, HU-33).
+  static String fechaHoraCorta(DateTime fecha) =>
+      '${fecha.day} ${_meses[fecha.month - 1]}. · ${hora(fecha)}';
 }
