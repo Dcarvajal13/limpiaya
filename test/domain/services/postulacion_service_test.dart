@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:limpiaya/domain/entities/estado_postulacion.dart';
 import 'package:limpiaya/domain/services/postulacion_service.dart';
 
 void main() {
@@ -98,6 +99,29 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  // HU-26 c2 · "Dado que mi postulación ya fue Aceptada, cuando la abro,
+  // entonces la opción 'Retirar' no está disponible".
+  group('HU-26 c2 · solo se retira una postulación pendiente', () {
+    test('pendiente se puede retirar', () {
+      expect(PostulacionService.puedeRetirar(EstadoPostulacion.pendiente), isTrue);
+    });
+
+    test('aceptada, no seleccionada, retirada o cancelada no', () {
+      for (final estado in [
+        EstadoPostulacion.aceptada,
+        EstadoPostulacion.noSeleccionada,
+        EstadoPostulacion.retirada,
+        EstadoPostulacion.solicitudCancelada,
+      ]) {
+        expect(
+          PostulacionService.puedeRetirar(estado),
+          isFalse,
+          reason: 'estado ${estado.etiqueta}',
+        );
+      }
     });
   });
 
