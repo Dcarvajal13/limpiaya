@@ -1,4 +1,5 @@
 import 'metodo_pago.dart';
+import 'quien_pone_productos.dart';
 import 'tipo_limpieza.dart';
 
 /// Solicitud publicada que una trabajadora puede ver (HU-11).
@@ -20,6 +21,7 @@ class SolicitudDisponible {
     this.habitaciones = 1,
     this.banos = 1,
     this.tieneMascotas = false,
+    this.productosPor = QuienPoneProductos.cliente,
   });
 
   final String id;
@@ -48,4 +50,8 @@ class SolicitudDisponible {
 
   /// Si en la casa hay mascotas (filtro "Sin mascotas").
   final bool tieneMascotas;
+
+  /// HU-43 · Quién lleva los productos de limpieza. La trabajadora lo ve en la
+  /// tarjeta antes de postularse.
+  final QuienPoneProductos productosPor;
 }

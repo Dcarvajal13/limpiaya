@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
+import '../../../domain/entities/quien_pone_productos.dart';
 import '../../../domain/entities/solicitud_disponible.dart';
 import '../../../domain/services/postulacion_service.dart';
 import '../../widgets/insignia_estado.dart';
@@ -21,6 +22,12 @@ import '../../widgets/insignia_estado.dart';
 ///
 /// TODO(HU-45): "Ver solicitud" debe abrir el detalle de la solicitud.
 class TarjetaSolicitud extends StatelessWidget {
+  /// HU-43 · Quién lleva los productos, dicho como lo lee la trabajadora.
+  String get _productos => switch (solicitud.productosPor) {
+        QuienPoneProductos.cliente => 'Cliente pone productos',
+        QuienPoneProductos.trabajadora => 'Tú pones productos',
+      };
+
   const TarjetaSolicitud({
     super.key,
     required this.solicitud,
@@ -168,6 +175,10 @@ class TarjetaSolicitud extends StatelessWidget {
                 _Dato(
                   icono: Icons.pets_outlined,
                   texto: solicitud.tieneMascotas ? 'Con mascotas' : 'Sin mascotas',
+                ),
+                _Dato(
+                  icono: Icons.cleaning_services_outlined,
+                  texto: _productos,
                 ),
               ],
             ),
