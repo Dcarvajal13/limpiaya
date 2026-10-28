@@ -1,3 +1,5 @@
+import '../entities/estado_postulacion.dart';
+
 /// Reglas de negocio de HU-12 · Postularme a una solicitud.
 ///
 /// Vive en el dominio y no conoce Supabase, igual que `filtro_solicitudes.dart`:
@@ -22,6 +24,26 @@ abstract final class PostulacionService {
   /// Mensaje de confirmación al enviar la postulación.
   static const mensajeEnviada =
       '¡Postulación enviada! El cliente ya puede verte en su lista.';
+
+  // --- HU-26 · Retirar una postulación -------------------------------------
+
+  /// c2 · Solo se retira mientras está Pendiente. Si ya la aceptaron, tiene
+  /// que cancelar el servicio (HU-28).
+  static const mensajeSoloPendiente =
+      'Solo puedes retirar una postulación pendiente';
+
+  /// Cualquier otro fallo al retirar (sin red, RLS, base de datos).
+  static const mensajeErrorRetirar =
+      'No pudimos retirar tu postulación. Intenta de nuevo.';
+
+  /// Mensaje de confirmación al retirar.
+  static const mensajeRetirada =
+      'Retiraste tu postulación. Puedes volver a postularte si el trabajo '
+      'sigue publicado.';
+
+  /// c2 · ¿Se puede retirar una postulación con este estado?
+  static bool puedeRetirar(EstadoPostulacion estado) =>
+      estado == EstadoPostulacion.pendiente;
 
   /// c4 · Su identidad está aprobada (`verificaciones.estado`).
   static bool identidadAprobada(String? verificacion) =>

@@ -7,8 +7,11 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/postulacion.dart';
+import '../../../domain/services/postulacion_service.dart';
 import '../../providers/mis_postulaciones_provider.dart';
+import '../../providers/retirar_postulacion_provider.dart';
 import '../../providers/sesion_provider.dart';
+import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import 'barra_trabajadora.dart';
@@ -119,6 +122,61 @@ class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
 class _ListaPostulaciones extends ConsumerWidget {
   const _ListaPostulaciones();
 
+  /// HU-26 · Pide confirmación y retira la postulación pendiente.
+  ///
+  /// Al terminar refresca las dos listas: la tarjeta sale de "Mis servicios"
+  /// y, si la solicitud sigue Publicada, el trabajo vuelve a ofrecer
+  /// "Postularme" en Trabajos (criterio 3).
+  Future<void> _retirar(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirar postulación'),
+        content: const Text(
+          'Tu postulación dejará de aparecer en la lista del cliente. '
+          'Si el trabajo sigue publicado, puedes volver a postularte.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('cancelar-retirar'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('confirmar-retirar'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Retirar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !context.mounted) return;
+
+    final error = await ref
+        .read(retirarPostulacionProvider.notifier)
+        .retirar(postulacion.id);
+    if (!context.mounted) return;
+
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    ref.invalidate(misPostulacionesProvider);
+    ref.invalidate(solicitudesDisponiblesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text(PostulacionService.mensajeRetirada)),
+      );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postulaciones = ref.watch(misPostulacionesProvider);
@@ -161,6 +219,8 @@ class _ListaPostulaciones extends ConsumerWidget {
                 // Criterio 3: la aceptada lleva al servicio agendado.
                 onTap: () =>
                     context.go(Rutas.servicioAgendado(p.solicitudId)),
+                // HU-26: solo las pendientes ofrecen retirarse.
+                onRetirar: () => _retirar(context, ref, p),
               ),
               const SizedBox(height: 14),
             ],

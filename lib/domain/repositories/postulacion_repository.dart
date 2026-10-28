@@ -10,6 +10,11 @@ abstract interface class PostulacionRepository {
   /// No seleccionada o Solicitud cancelada. Las retiradas (HU-26) no se listan.
   Future<List<Postulacion>> misPostulaciones();
 
+  /// HU-26 · Retirar una postulación Pendiente. Deja de contar para el cliente
+  /// y la trabajadora puede volver a postularse si la solicitud sigue
+  /// Publicada. Falla si ya no está Pendiente (por ejemplo, si la aceptaron).
+  Future<void> retirar(String postulacionId);
+
   /// HU-12 · Postularse a una solicitud Publicada, con un mensaje corto
   /// opcional (máximo 300 caracteres, lo valida la base de datos).
   ///

@@ -69,6 +69,9 @@ class _PostulacionesFalsas implements PostulacionRepository {
   Future<List<Postulacion>> misPostulaciones() async => existentes;
 
   @override
+  Future<void> retirar(String postulacionId) async {}
+
+  @override
   Future<void> postular({
     required String solicitudId,
     String? mensaje,

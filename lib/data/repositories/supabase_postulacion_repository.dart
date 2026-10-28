@@ -158,6 +158,34 @@ class SupabasePostulacionRepository implements PostulacionRepository {
     }
   }
 
+  @override
+  Future<void> retirar(String postulacionId) async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) {
+      throw const AppException(PostulacionService.mensajeSesion);
+    }
+
+    try {
+      // HU-26 · La política RLS solo deja pasar mis postulaciones pendientes y
+      // exige que queden en 'retirada'. Si no devuelve filas, es porque ya no
+      // está pendiente (la aceptaron) o no es mía.
+      final filas = await _client
+          .from('postulaciones')
+          .update({'estado': EstadoPostulacion.retirada.valorDb})
+          .eq('id', postulacionId)
+          .eq('trabajadora_id', usuario.id)
+          .eq('estado', EstadoPostulacion.pendiente.valorDb)
+          .select('id');
+      if (filas.isEmpty) {
+        throw const AppException(PostulacionService.mensajeSoloPendiente);
+      }
+    } on AppException {
+      rethrow;
+    } on Exception {
+      throw const AppException(PostulacionService.mensajeErrorRetirar);
+    }
+  }
+
   /// `timestamptz` de Postgres → fecha local de quien la mira.
   DateTime? _fecha(Object? valor) {
     if (valor is! String || valor.isEmpty) return null;

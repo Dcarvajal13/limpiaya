@@ -14,7 +14,8 @@ import '../../widgets/insignia_estado.dart';
 /// - Texto: Día/mes + Tipo + Zona (ej. "17 oct. · General · Los Palos Grandes").
 /// - Monto: "Recibes $X".
 /// - A la derecha:
-///   - Pendiente: "Retirar postulación" (HU-26).
+///   - Pendiente: "Retirar postulación" (HU-26, con confirmación en la
+///     pantalla).
 ///   - Aceptada: "Ver servicio" (HU-13 c3, lleva al servicio agendado).
 ///   - No seleccionada / Cancelada: sin botón.
 class TarjetaPostulacion extends StatelessWidget {
@@ -43,7 +44,7 @@ class TarjetaPostulacion extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         const SnackBar(
-          content: Text('Retirar postulación estará disponible pronto (HU-26)'),
+          content: Text('No pudimos abrir la retirada de la postulación'),
         ),
       );
   }
@@ -83,6 +84,7 @@ class TarjetaPostulacion extends StatelessWidget {
     Widget? accion;
     if (postulacion.estado == EstadoPostulacion.pendiente) {
       accion = TextButton(
+        key: Key('retirar-${postulacion.id}'),
         onPressed: () => _accionRetirar(context),
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primario,
