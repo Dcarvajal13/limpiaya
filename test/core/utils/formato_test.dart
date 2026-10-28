@@ -34,6 +34,13 @@ void main() {
     expect(Formato.horas(4.5), '4,5 horas');
   });
 
+  test('fechaLarga: igual al Figma de Mis servicios', () {
+    expect(
+      Formato.fechaLarga(DateTime(2026, 10, 24, 8, 30)),
+      'Sábado 24 de octubre',
+    );
+  });
+
   test('postulantes: singular y plural', () {
     expect(Formato.postulantes(0), '0 postulantes');
     expect(Formato.postulantes(1), '1 postulante');
