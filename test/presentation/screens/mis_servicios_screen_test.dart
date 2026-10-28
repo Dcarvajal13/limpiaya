@@ -22,12 +22,18 @@ class _RepositorioFalso implements PostulacionRepository {
 
   @override
   Future<List<Postulacion>> misPostulaciones() async => postulaciones;
+
+  @override
+  Future<void> postular({required String solicitudId, String? mensaje}) async {}
 }
 
 class _RepositorioConError implements PostulacionRepository {
   @override
   Future<List<Postulacion>> misPostulaciones() async =>
       throw Exception('sin red');
+
+  @override
+  Future<void> postular({required String solicitudId, String? mensaje}) async {}
 }
 
 class _SesionFalsa extends SesionNotifier {

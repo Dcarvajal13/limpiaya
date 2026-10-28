@@ -30,6 +30,10 @@ abstract final class Rutas {
   /// HU-13 · Mis servicios de la trabajadora (pestaña Postulaciones).
   static const misServicios = '/trabajadora/servicios';
 
+  /// HU-21 · Verificar mi identidad. HU-12 criterio 4 manda aquí cuando la
+  /// trabajadora todavía no tiene la identidad aprobada.
+  static const verificacionTrabajadora = '/trabajadora/verificacion';
+
   /// Detalle de un servicio agendado. Lo construye HU-16; mientras tanto la
   /// ruta existe para que HU-13 c3 pueda llevar hasta ahí.
   static const servicioAgendadoPatron = '/trabajadora/servicios/:id';

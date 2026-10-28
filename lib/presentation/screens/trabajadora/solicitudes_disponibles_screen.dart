@@ -5,11 +5,15 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/postulacion.dart';
 import '../../../domain/entities/solicitud_disponible.dart';
 import '../../../domain/entities/zona.dart';
+import '../../../domain/services/postulacion_service.dart';
+import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_postular.dart';
 import '../../widgets/estado_vacio.dart';
 import 'banner_trabajadora.dart';
 import 'barra_trabajadora.dart';
@@ -29,6 +33,8 @@ import 'tarjeta_solicitud.dart';
 ///    que lo cumplen (panel de filtros).
 /// 3. Si no hay solicitudes en sus zonas, se muestra
 ///    "No hay solicitudes en tus zonas por ahora".
+///
+/// HU-12 · Cada tarjeta permite postularse (ver `TarjetaSolicitud`).
 class SolicitudesDisponiblesScreen extends ConsumerWidget {
   const SolicitudesDisponiblesScreen({super.key});
 
@@ -117,12 +123,43 @@ class _Encabezado extends ConsumerWidget {
 class _ListaSolicitudes extends ConsumerWidget {
   const _ListaSolicitudes();
 
+  /// HU-12 · Abre el diálogo de postulación y, si se envió, refresca la lista
+  /// (el contador de postulantes sube y el botón queda en "Ya te postulaste")
+  /// y confirma con un mensaje.
+  Future<void> _postular(
+    BuildContext context,
+    WidgetRef ref,
+    SolicitudDisponible solicitud,
+  ) async {
+    final enviada = await showDialog<bool>(
+      context: context,
+      builder: (context) => DialogoPostular(solicitud: solicitud),
+    );
+    if (enviada != true || !context.mounted) return;
+
+    ref.invalidate(solicitudesDisponiblesProvider);
+    ref.invalidate(misPostulacionesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text(PostulacionService.mensajeEnviada)),
+      );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final zonas = ref.watch(misZonasProvider);
     final todas = ref.watch(solicitudesDisponiblesProvider);
     final filtradas = ref.watch(solicitudesFiltradasProvider);
     final hayFiltros = ref.watch(filtroSolicitudesProvider).hayFiltros;
+
+    // HU-12 c2 y c4: en qué tarjetas ya me postulé y si puedo postularme.
+    final misPostulaciones =
+        ref.watch(misPostulacionesProvider).value ?? const <Postulacion>[];
+    final postuladas = {for (final p in misPostulaciones) p.solicitudId};
+    final identidadVerificada = PostulacionService.identidadAprobada(
+      ref.watch(sesionProvider).value?.verificacion,
+    );
 
     if (zonas.isLoading || todas.isLoading) {
       return const _Caja(
@@ -191,15 +228,28 @@ class _ListaSolicitudes extends ConsumerWidget {
       );
     }
 
-    return _Cuadricula(solicitudes: visibles);
+    return _Cuadricula(
+      solicitudes: visibles,
+      yaPostuladas: postuladas,
+      identidadVerificada: identidadVerificada,
+      onPostular: (solicitud) => _postular(context, ref, solicitud),
+    );
   }
 }
 
 /// Reparte las tarjetas en 2 columnas (Figma W06), o 1 en pantallas angostas.
 class _Cuadricula extends StatelessWidget {
-  const _Cuadricula({required this.solicitudes});
+  const _Cuadricula({
+    required this.solicitudes,
+    this.yaPostuladas = const <String>{},
+    this.identidadVerificada = true,
+    this.onPostular,
+  });
 
   final List<SolicitudDisponible> solicitudes;
+  final Set<String> yaPostuladas;
+  final bool identidadVerificada;
+  final void Function(SolicitudDisponible)? onPostular;
 
   static const _separacion = 12.0;
 
@@ -218,7 +268,14 @@ class _Cuadricula extends StatelessWidget {
             for (final solicitud in solicitudes)
               SizedBox(
                 width: anchoTarjeta,
-                child: TarjetaSolicitud(solicitud: solicitud),
+                child: TarjetaSolicitud(
+                  solicitud: solicitud,
+                  yaPostulada: yaPostuladas.contains(solicitud.id),
+                  identidadVerificada: identidadVerificada,
+                  onPostular: onPostular == null
+                      ? null
+                      : () => onPostular!(solicitud),
+                ),
               ),
           ],
         );
