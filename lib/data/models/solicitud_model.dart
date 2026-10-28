@@ -31,6 +31,10 @@ abstract final class SolicitudModel {
       habitaciones: (json['habitaciones'] as num?)?.toInt() ?? 1,
       banos: (json['banos'] as num?)?.toInt() ?? 1,
       tieneMascotas: json['tiene_mascotas'] as bool? ?? false,
+      productosPor: QuienPoneProductos.desdeDb(
+        json['productos_por'] as String? ??
+            QuienPoneProductos.cliente.valorDb,
+      ),
     );
   }
 

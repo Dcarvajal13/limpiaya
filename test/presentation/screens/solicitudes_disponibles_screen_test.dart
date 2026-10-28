@@ -7,6 +7,7 @@ import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/direccion_cliente.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
+import 'package:limpiaya/domain/entities/quien_pone_productos.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/solicitud.dart';
@@ -70,6 +71,7 @@ SolicitudDisponible _solicitud(
   String id,
   TipoLimpieza tipo, {
   bool tieneMascotas = false,
+  QuienPoneProductos productosPor = QuienPoneProductos.cliente,
 }) {
   return SolicitudDisponible(
     id: id,
@@ -84,6 +86,7 @@ SolicitudDisponible _solicitud(
     habitaciones: 3,
     banos: 2,
     tieneMascotas: tieneMascotas,
+    productosPor: productosPor,
   );
 }
 
@@ -231,6 +234,39 @@ void main() {
     await tester.tap(find.text('Quitar filtros'));
     await tester.pumpAndSettle();
     expect(find.text(r'Recibes $28'), findsNWidgets(2));
+  });
+
+  // HU-43 c1 · "cuando indico habitaciones, baños, mascotas y productos,
+  // entonces esos datos aparecen en la tarjeta de la solicitud".
+  testWidgets('HU-43 c1: la tarjeta dice quién pone los productos', (
+    tester,
+  ) async {
+    _pantallaGrande(tester);
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(
+          zonas: const [Zona(id: 1, nombre: 'Chacao (casco)')],
+          solicitudes: [
+            _solicitud('a', TipoLimpieza.general),
+            _solicitud(
+              'b',
+              TipoLimpieza.profunda,
+              productosPor: QuienPoneProductos.trabajadora,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cliente pone productos'), findsOneWidget);
+    expect(find.text('Tú pones productos'), findsOneWidget);
+    // Y el resto de los detalles de la vivienda siguen a la vista en las dos
+    // tarjetas (el panel de filtros también dice "Sin mascotas", por eso no se
+    // cuenta aquí).
+    expect(find.text('3 hab.'), findsNWidgets(2));
+    expect(find.text('2 baños'), findsNWidgets(2));
   });
 
   testWidgets(
