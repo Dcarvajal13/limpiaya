@@ -58,4 +58,12 @@ void main() {
     expect(Formato.lista(['A', 'B']), 'A y B');
     expect(Formato.lista(['A', 'B', 'C']), 'A, B y C');
   });
+
+  test('HU-33: fecha con año y fecha con hora de la lista del admin', () {
+    expect(Formato.fechaConAnio(DateTime(2026, 10, 2)), '2 de octubre de 2026');
+    expect(
+      Formato.fechaHoraCorta(DateTime(2026, 10, 4, 9, 20)),
+      '4 oct. · 9:20 a. m.',
+    );
+  });
 }

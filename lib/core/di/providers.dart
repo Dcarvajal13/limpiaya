@@ -6,13 +6,16 @@ import '../../data/repositories/supabase_perfil_repository.dart';
 import '../../data/repositories/supabase_postulacion_repository.dart';
 import '../../data/repositories/supabase_reputacion_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
+import '../../data/repositories/supabase_verificacion_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/postulacion_repository.dart';
 import '../../domain/repositories/reputacion_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
+import '../../domain/repositories/verificacion_repository.dart';
 import '../../domain/services/registro_service.dart';
 import '../../domain/services/solicitud_service.dart';
+import '../../domain/services/verificacion_service.dart';
 /// "Inyección de dependencias": aquí se decide qué implementación
 /// usa cada contrato del dominio.
 ///
@@ -53,4 +56,12 @@ final registroServiceProvider = Provider<RegistroService>(
 
 final solicitudServiceProvider = Provider<SolicitudService>(
   (ref) => SolicitudService(ref.watch(solicitudRepositoryProvider)),
+);
+
+final verificacionRepositoryProvider = Provider<VerificacionRepository>(
+  (ref) => SupabaseVerificacionRepository(ref.watch(supabaseClientProvider)),
+);
+
+final verificacionServiceProvider = Provider<VerificacionService>(
+  (ref) => VerificacionService(ref.watch(verificacionRepositoryProvider)),
 );
