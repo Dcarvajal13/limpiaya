@@ -35,11 +35,20 @@ abstract final class SolicitudModel {
   }
 
   /// Una solicitud del cliente desde la base de datos o vista (HU-08).
-  static Solicitud solicitudDesdeJson(Map<String, dynamic> json) {
+  ///
+  /// [trabajadoraNombre] y [trabajadoraPromedio] se pasan desde el
+  /// repositorio, que los obtiene de `trabajadoras_publicas`.
+  static Solicitud solicitudDesdeJson(
+    Map<String, dynamic> json, {
+    String? trabajadoraNombre,
+    double? trabajadoraPromedio,
+  }) {
     return Solicitud(
       id: json['id'] as String,
       clienteId: json['cliente_id'] as String,
       trabajadoraId: json['trabajadora_id'] as String?,
+      trabajadoraNombre: trabajadoraNombre,
+      trabajadoraPromedio: trabajadoraPromedio,
       estado: EstadoSolicitud.desdeDb(json['estado'] as String),
       tipo: TipoLimpieza.desdeDb(json['tipo'] as String),
       zonaId: json['zona_id'] as int,
@@ -64,7 +73,7 @@ abstract final class SolicitudModel {
     );
   }
 
-    /// Una solicitud nueva convertida en la fila que se inserta en `solicitudes`.
+  /// Una solicitud nueva convertida en la fila que se inserta en `solicitudes`.
   /// Solo lleva las columnas que la base permite escribir.
   static Map<String, dynamic> nuevaAJson(
     NuevaSolicitud solicitud,

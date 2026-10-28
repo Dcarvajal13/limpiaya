@@ -7,6 +7,19 @@ import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
 import '../../widgets/insignia_estado.dart';
 
+/// "Carmen Pérez" → "CP"; "Ana" → "A".
+String _iniciales(String nombre) {
+  final partes = nombre
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((parte) => parte.isNotEmpty)
+      .toList();
+  if (partes.isEmpty) return '?';
+  if (partes.length == 1) return partes.first.substring(0, 1).toUpperCase();
+  return '${partes.first.substring(0, 1)}${partes.last.substring(0, 1)}'
+      .toUpperCase();
+}
+
 /// Tarjeta horizontal de solicitud del cliente (Figma C05).
 ///
 /// Muestra:
@@ -211,44 +224,52 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         );
 
       case EstadoSolicitud.asignada:
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 12,
-              backgroundColor: AppColors.primarioClaro,
-              child: Text(
-                'CP',
-                style: textos.labelSmall?.copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primarioOscuro,
+        {
+          final nombre = solicitud.trabajadoraNombre ?? 'Trabajadora asignada';
+          final promedio = solicitud.trabajadoraPromedio;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: AppColors.primarioClaro,
+                child: Text(
+                  _iniciales(nombre),
+                  style: textos.labelSmall?.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primarioOscuro,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Carmen Pérez',
-                  style: textos.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      nombre,
+                      style: textos.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      promedio != null
+                          ? '★ ${Formato.promedio(promedio)}'
+                          : 'Sin calificaciones aún',
+                      style: textos.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: AppColors.textoSecundario,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '★ 4,9',
-                  style: textos.bodySmall?.copyWith(
-                    fontSize: 11,
-                    color: AppColors.textoSecundario,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
+              ),
+            ],
+          );
+        }
 
       case EstadoSolicitud.cancelada:
         return Text(

@@ -70,7 +70,7 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
     }
   }
 
-    @override
+  @override
   Future<String> publicar(NuevaSolicitud solicitud) async {
     final usuario = _client.auth.currentUser;
     if (usuario == null) {
@@ -132,13 +132,42 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
           .eq('cliente_id', usuario.id)
           .order('inicio', ascending: true);
 
+      // La vista no incluye los datos de la trabajadora asignada. Se piden
+      // aparte a trabajadoras_publicas, una sola vez para todas las filas.
+      final idsTrabajadoras = <String>{
+        for (final fila in filas)
+          if (fila['trabajadora_id'] != null) fila['trabajadora_id'] as String,
+      };
+      final trabajadoras = <String, Map<String, dynamic>>{};
+      if (idsTrabajadoras.isNotEmpty) {
+        try {
+          final filasTrabajadoras = await _client
+              .from('trabajadoras_publicas')
+              .select('id, nombre, promedio')
+              .inFilter('id', idsTrabajadoras.toList());
+          for (final fila in filasTrabajadoras) {
+            trabajadoras[fila['id'] as String] =
+                Map<String, dynamic>.from(fila);
+          }
+        } on Exception {
+          // Es información complementaria: si falla, la tarjeta muestra un
+          // nombre genérico en vez de romper toda la pantalla.
+        }
+      }
+
       return [
         for (final fila in filas)
-          SolicitudModel.solicitudDesdeJson(Map<String, dynamic>.from(fila)),
+          SolicitudModel.solicitudDesdeJson(
+            Map<String, dynamic>.from(fila),
+            trabajadoraNombre:
+                trabajadoras[fila['trabajadora_id']]?['nombre'] as String?,
+            trabajadoraPromedio:
+                (trabajadoras[fila['trabajadora_id']]?['promedio'] as num?)
+                    ?.toDouble(),
+          ),
       ];
     } on Exception {
       throw const AppException('No pudimos cargar tus solicitudes.');
     }
   }
 }
-
