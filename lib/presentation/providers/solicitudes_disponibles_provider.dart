@@ -38,6 +38,17 @@ final solicitudesDisponiblesProvider =
       retry: (intentos, error) => null,
     );
 
+/// HU-45 · Una solicitud concreta para la pantalla de detalle.
+/// `null` cuando ya no existe (la borraron o la trabajadora no puede verla).
+final solicitudDetalleProvider =
+    FutureProvider.autoDispose.family<SolicitudDisponible?, String>((
+      ref,
+      id,
+    ) async {
+      await ref.watch(sesionProvider.future);
+      return ref.watch(solicitudRepositoryProvider).solicitudDisponible(id);
+    }, retry: (intentos, error) => null);
+
 /// Promedio de estrellas de la trabajadora para la insignia del banner,
 /// o null si todavía no tiene reseñas.
 final miPromedioProvider = FutureProvider<double?>(

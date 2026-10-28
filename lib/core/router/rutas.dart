@@ -30,6 +30,12 @@ abstract final class Rutas {
   /// HU-13 · Mis servicios de la trabajadora (pestaña Postulaciones).
   static const misServicios = '/trabajadora/servicios';
 
+  /// HU-45 · Detalle de una solicitud vista por la trabajadora. Nunca muestra
+  /// la dirección exacta del cliente.
+  static const detalleSolicitudPatron = '/trabajadora/solicitudes/:id';
+  static String detalleSolicitud(String solicitudId) =>
+      '/trabajadora/solicitudes/$solicitudId';
+
   /// HU-21 · Verificar mi identidad. HU-12 criterio 4 manda aquí cuando la
   /// trabajadora todavía no tiene la identidad aprobada.
   static const verificacionTrabajadora = '/trabajadora/verificacion';

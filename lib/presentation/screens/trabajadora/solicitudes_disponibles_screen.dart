@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
@@ -233,6 +235,8 @@ class _ListaSolicitudes extends ConsumerWidget {
       yaPostuladas: postuladas,
       identidadVerificada: identidadVerificada,
       onPostular: (solicitud) => _postular(context, ref, solicitud),
+      // HU-45 · "Ver solicitud" abre el detalle completo.
+      onVer: (solicitud) => context.go(Rutas.detalleSolicitud(solicitud.id)),
     );
   }
 }
@@ -244,12 +248,14 @@ class _Cuadricula extends StatelessWidget {
     this.yaPostuladas = const <String>{},
     this.identidadVerificada = true,
     this.onPostular,
+    this.onVer,
   });
 
   final List<SolicitudDisponible> solicitudes;
   final Set<String> yaPostuladas;
   final bool identidadVerificada;
   final void Function(SolicitudDisponible)? onPostular;
+  final void Function(SolicitudDisponible)? onVer;
 
   static const _separacion = 12.0;
 
@@ -275,6 +281,7 @@ class _Cuadricula extends StatelessWidget {
                   onPostular: onPostular == null
                       ? null
                       : () => onPostular!(solicitud),
+                  onTap: onVer == null ? null : () => onVer!(solicitud),
                 ),
               ),
           ],

@@ -11,6 +11,9 @@ abstract final class PostulacionService {
   /// c3 · Esa fecha y hora se cruzan con un servicio que ya tengo asignado.
   static const mensajeSolape = 'Ya tienes un servicio en ese horario';
 
+  /// HU-45 c3 · La solicitud se asignó o se canceló mientras la miraba.
+  static const mensajeNoDisponible = 'Esta solicitud ya no está disponible';
+
   /// c4 · Todavía no aprobó su verificación de identidad (HU-21).
   static const mensajeVerificacion = 'Verifica tu identidad para postularte';
 

@@ -32,6 +32,9 @@ class _RepositorioFalso implements SolicitudRepository {
 
   @override
   Future<List<Solicitud>> misSolicitudes() async => const [];
+
+  @override
+  Future<SolicitudDisponible?> solicitudDisponible(String id) async => null;
 }
 
 void main() {
