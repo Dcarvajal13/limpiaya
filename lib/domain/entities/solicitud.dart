@@ -12,6 +12,8 @@ class Solicitud {
     required this.id,
     required this.clienteId,
     this.trabajadoraId,
+    this.trabajadoraNombre,
+    this.trabajadoraPromedio,
     required this.estado,
     required this.tipo,
     required this.zonaId,
@@ -34,6 +36,13 @@ class Solicitud {
   final String id;
   final String clienteId;
   final String? trabajadoraId;
+
+  /// Nombre de la trabajadora asignada (HU-08), o null si aún no hay.
+  final String? trabajadoraNombre;
+
+  /// Promedio de la trabajadora asignada (1 a 5), o null si no tiene reseñas.
+  final double? trabajadoraPromedio;
+
   final EstadoSolicitud estado;
   final TipoLimpieza tipo;
   final int zonaId;

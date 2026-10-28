@@ -11,6 +11,7 @@ import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
+import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import 'banner_cliente.dart';
@@ -57,13 +58,19 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 
     final partes = <String>[];
     if (proxima != null) {
+      final dia = Formato.diaDeSemana(proxima.inicio).toLowerCase();
+      final hora = Formato.hora(proxima.inicio);
       partes.add(
-        'Carmen va a tu casa el ${Formato.diaDeSemana(proxima.inicio).toLowerCase()} a las ${Formato.hora(proxima.inicio)}.',
+        proxima.trabajadoraNombre != null
+            ? '${proxima.trabajadoraNombre} va a tu casa el $dia a las $hora'
+            : 'Tu servicio está agendado para el $dia a las $hora',
       );
     }
     if (esperando != null) {
+      final prefijo = proxima != null ? 'Y tu solicitud' : 'Tu solicitud';
       partes.add(
-        'Y tu solicitud del ${Formato.diaDeSemana(esperando.inicio).toLowerCase()} ya tiene ${Formato.postulantes(esperando.numPostulantes)}.',
+        '$prefijo del ${Formato.diaDeSemana(esperando.inicio).toLowerCase()} '
+        'ya tiene ${Formato.postulantes(esperando.numPostulantes)}.',
       );
     }
 
@@ -82,6 +89,8 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
     final movil = Responsive.esMovil(context);
 
     final solicitudesAsync = ref.watch(misSolicitudesProvider);
+    // Calificación real del cliente; null si todavía no tiene reseñas.
+    final calificacionPromedio = ref.watch(miPromedioProvider).value;
 
     return Scaffold(
       backgroundColor: AppColors.fondo,
@@ -113,11 +122,11 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                     solicitudesAsync.maybeWhen(
                       data: (solicitudes) => MetricasCliente(
                         solicitudes: solicitudes,
-                        calificacionPromedio: 4.9,
+                        calificacionPromedio: calificacionPromedio,
                       ),
-                      orElse: () => const MetricasCliente(
-                        solicitudes: [],
-                        calificacionPromedio: 4.9,
+                      orElse: () => MetricasCliente(
+                        solicitudes: const [],
+                        calificacionPromedio: calificacionPromedio,
                       ),
                     ),
                     const SizedBox(height: 28),
