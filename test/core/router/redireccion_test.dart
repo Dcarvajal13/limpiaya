@@ -126,6 +126,27 @@ void main() {
     });
   });
 
+  group('HD-06 · administrador', () {
+    test('al iniciar sesión entra al panel de administración', () {
+      expect(ir(Rutas.login, rol: RolUsuario.admin), Rutas.inicioAdmin);
+      expect(ir(Rutas.inicio, rol: RolUsuario.admin), Rutas.inicioAdmin);
+      expect(ir(Rutas.inicioAdmin, rol: RolUsuario.admin), isNull);
+    });
+
+    test('cliente y trabajadora no abren el panel por su URL', () {
+      expect(ir(Rutas.inicioAdmin, rol: RolUsuario.cliente), Rutas.inicioCliente);
+      expect(ir(Rutas.inicioAdmin, rol: RolUsuario.trabajadora),
+          Rutas.inicioTrabajadora);
+      expect(ir('${Rutas.inicioAdmin}/verificaciones', rol: RolUsuario.trabajadora),
+          Rutas.inicioTrabajadora);
+    });
+
+    test('el admin no entra a pantallas de cliente ni de trabajadora', () {
+      expect(ir(Rutas.inicioCliente, rol: RolUsuario.admin), Rutas.inicioAdmin);
+      expect(ir(Rutas.inicioTrabajadora, rol: RolUsuario.admin), Rutas.inicioAdmin);
+    });
+  });
+
   test('el sistema de diseño se ve siempre', () {
     expect(ir(Rutas.sistemaDiseno, haySesion: false), isNull);
     expect(ir(Rutas.sistemaDiseno, rol: RolUsuario.cliente), isNull);

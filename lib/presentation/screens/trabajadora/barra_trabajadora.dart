@@ -15,8 +15,7 @@ import '../../widgets/logo_limpiaya.dart';
 /// `appBar`) porque en móvil es más alta: las pestañas pasan a una segunda
 /// fila para que todo quepa.
 ///
-/// TODO(HU-26): "Mis servicios" todavía no tiene pantalla; por ahora avisa
-/// que llegará pronto.
+/// "Mis servicios" (HU-13) abre la pantalla con la pestaña Postulaciones.
 class BarraTrabajadora extends StatelessWidget {
   const BarraTrabajadora({
     super.key,
@@ -42,12 +41,8 @@ class BarraTrabajadora extends StatelessWidget {
 
     final pestanas = _Pestanas(
       ubicacion: ubicacion,
-      onProximamente: (nombre) => ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text('$nombre estará disponible pronto')),
-        ),
       onTrabajos: () => context.go(Rutas.inicioTrabajadora),
+      onMisServicios: () => context.go(Rutas.misServicios),
       onMiPerfil: () => context.go(Rutas.perfilTrabajadora),
     );
 
@@ -95,7 +90,12 @@ class BarraTrabajadora extends StatelessWidget {
               if (movil)
                 SizedBox(
                   height: _altoPestanas,
-                  child: ContenidoCentrado(child: pestanas),
+                  child: ContenidoCentrado(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: pestanas,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -108,15 +108,15 @@ class BarraTrabajadora extends StatelessWidget {
 class _Pestanas extends StatelessWidget {
   const _Pestanas({
     required this.ubicacion,
-    required this.onProximamente,
     required this.onTrabajos,
+    required this.onMisServicios,
     required this.onMiPerfil,
   });
 
   /// Dirección actual, para marcar la pestaña activa.
   final String ubicacion;
-  final void Function(String nombre) onProximamente;
   final VoidCallback onTrabajos;
+  final VoidCallback onMisServicios;
   final VoidCallback onMiPerfil;
 
   @override
@@ -131,7 +131,9 @@ class _Pestanas extends StatelessWidget {
         ),
         _Pestana(
           etiqueta: 'Mis servicios',
-          onTap: () => onProximamente('Mis servicios'),
+          activa: ubicacion == Rutas.misServicios ||
+              ubicacion.startsWith('${Rutas.misServicios}/'),
+          onTap: onMisServicios,
         ),
         _Pestana(
           etiqueta: 'Mi perfil',

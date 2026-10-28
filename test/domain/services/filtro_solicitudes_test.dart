@@ -9,6 +9,7 @@ SolicitudDisponible _solicitud(
   TipoLimpieza tipo = TipoLimpieza.general,
   int zonaId = 1,
   DateTime? inicio,
+  bool tieneMascotas = false,
 }) {
   return SolicitudDisponible(
     id: id,
@@ -20,6 +21,7 @@ SolicitudDisponible _solicitud(
     pagoOfrecido: 30,
     metodoPago: MetodoPago.pagoMovil,
     numPostulantes: 0,
+    tieneMascotas: tieneMascotas,
   );
 }
 
@@ -31,6 +33,7 @@ void main() {
       tipo: TipoLimpieza.profunda,
       zonaId: 2,
       inicio: DateTime(2026, 10, 19, 7),
+      tieneMascotas: true,
     ),
     _solicitud(
       'c',
@@ -52,8 +55,17 @@ void main() {
     expect(ids(const FiltroSolicitudes(tipo: TipoLimpieza.profunda)), ['b']);
   });
 
-  test('HU-11 c2: filtra por fecha (mismo día, sin importar la hora)', () {
-    expect(ids(FiltroSolicitudes(fecha: DateTime(2026, 10, 17))), ['a', 'c']);
+  test('HU-11 c2: "Desde la fecha" deja ese día y los siguientes', () {
+    // El 17 a las 14:00 también cuenta aunque la fecha elegida sea a las 0:00.
+    expect(ids(FiltroSolicitudes(fecha: DateTime(2026, 10, 17, 23))), ['a', 'b', 'c']);
+    expect(ids(FiltroSolicitudes(fecha: DateTime(2026, 10, 18))), ['b']);
+    expect(ids(FiltroSolicitudes(fecha: DateTime(2026, 10, 20))), isEmpty);
+  });
+
+  test('"Sin mascotas" oculta las casas con mascotas', () {
+    const filtro = FiltroSolicitudes(sinMascotas: true);
+    expect(ids(filtro), ['a', 'c']);
+    expect(filtro.hayFiltros, isTrue);
   });
 
   test('desmarcar una zona oculta sus solicitudes', () {
@@ -64,6 +76,7 @@ void main() {
     final filtro = FiltroSolicitudes(
       tipo: TipoLimpieza.planchado,
       fecha: DateTime(2026, 10, 17),
+      sinMascotas: true,
     );
     expect(ids(filtro), ['c']);
   });

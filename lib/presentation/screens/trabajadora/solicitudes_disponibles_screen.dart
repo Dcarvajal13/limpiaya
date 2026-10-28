@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/postulacion.dart';
 import '../../../domain/entities/solicitud_disponible.dart';
 import '../../../domain/entities/zona.dart';
+import '../../../domain/services/postulacion_service.dart';
+import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_postular.dart';
 import '../../widgets/estado_vacio.dart';
+import 'banner_trabajadora.dart';
 import 'barra_trabajadora.dart';
 import 'panel_filtros_solicitudes.dart';
 import 'tarjeta_solicitud.dart';
@@ -28,6 +35,8 @@ import 'tarjeta_solicitud.dart';
 ///    que lo cumplen (panel de filtros).
 /// 3. Si no hay solicitudes en sus zonas, se muestra
 ///    "No hay solicitudes en tus zonas por ahora".
+///
+/// HU-12 · Cada tarjeta permite postularse (ver `TarjetaSolicitud`).
 class SolicitudesDisponiblesScreen extends ConsumerWidget {
   const SolicitudesDisponiblesScreen({super.key});
 
@@ -39,7 +48,6 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
     final movil = Responsive.esMovil(context);
 
     final filtros = PanelFiltrosSolicitudes(zonas: zonas);
-    const lista = _ListaSolicitudes();
 
     return Scaffold(
       body: Column(
@@ -48,25 +56,15 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
           Expanded(
             child: SingleChildScrollView(
               child: ContenidoCentrado(
-                vertical: movil ? 24 : 40,
+                vertical: movil ? 16 : 24,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _Encabezado(nombre: nombre),
-                    const SizedBox(height: 28),
-                    if (movil) ...[
-                      filtros,
-                      const SizedBox(height: 16),
-                      lista,
-                    ] else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(width: 250, child: filtros),
-                          const SizedBox(width: 20),
-                          const Expanded(child: lista),
-                        ],
-                      ),
+                    SizedBox(height: movil ? 16 : 24),
+                    filtros,
+                    const SizedBox(height: 16),
+                    const _ListaSolicitudes(),
                   ],
                 ),
               ),
@@ -78,7 +76,7 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
   }
 }
 
-/// "Buenos días, Carmen" + resumen de la semana.
+/// Banner "Buenos días, Carmen" + resumen + insignia de identidad.
 class _Encabezado extends ConsumerWidget {
   const _Encabezado({required this.nombre});
 
@@ -86,24 +84,17 @@ class _Encabezado extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textos = Theme.of(context).textTheme;
     final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
     final saludo = Formato.saludo(DateTime.now());
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          primerNombre.isEmpty ? saludo : '$saludo, $primerNombre',
-          style: textos.headlineMedium,
-        ),
-        const SizedBox(height: 6),
-        Text(_resumen(ref), style: textos.bodyLarge?.copyWith(fontSize: 16)),
-      ],
+    return BannerTrabajadora(
+      saludo: primerNombre.isEmpty ? saludo : '$saludo, $primerNombre',
+      resumen: _resumen(ref),
     );
   }
 
-  /// "Hay 6 trabajos esta semana en Los Palos Grandes, Altamira y Chacao."
+  /// "Hay 6 trabajos disponibles en tus zonas. Elige los que se ajusten
+  /// mejor a tu horario."
   String _resumen(WidgetRef ref) {
     final zonas = ref.watch(misZonasProvider);
     final solicitudes = ref.watch(solicitudesDisponiblesProvider);
@@ -116,20 +107,16 @@ class _Encabezado extends ConsumerWidget {
       return 'Elige tus zonas de trabajo en tu perfil para ver solicitudes.';
     }
 
-    final nombresZonas = Formato.lista([
-      for (final zona in misZonas) zona.nombre,
-    ]);
-    final todas = solicitudes.value ?? const <SolicitudDisponible>[];
-    final limite = DateTime.now().add(const Duration(days: 7));
-    final estaSemana = todas.where((s) => s.inicio.isBefore(limite)).length;
-
-    if (todas.isEmpty) return 'Por ahora no hay trabajos en $nombresZonas.';
-    if (estaSemana == 0) {
-      return 'Hay ${todas.length} '
-          '${todas.length == 1 ? 'trabajo' : 'trabajos'} en $nombresZonas.';
+    final total = (solicitudes.value ?? const <SolicitudDisponible>[]).length;
+    if (total == 0) {
+      return 'Por ahora no hay trabajos en '
+          '${Formato.lista([for (final zona in misZonas) zona.nombre])}.';
     }
-    return 'Hay $estaSemana ${estaSemana == 1 ? 'trabajo' : 'trabajos'} '
-        'esta semana en $nombresZonas.';
+    final trabajos = total == 1
+        ? 'Hay 1 trabajo disponible'
+        : 'Hay $total trabajos disponibles';
+    return '$trabajos en tus zonas. '
+        'Elige los que se ajusten mejor a tu horario.';
   }
 }
 
@@ -138,12 +125,43 @@ class _Encabezado extends ConsumerWidget {
 class _ListaSolicitudes extends ConsumerWidget {
   const _ListaSolicitudes();
 
+  /// HU-12 · Abre el diálogo de postulación y, si se envió, refresca la lista
+  /// (el contador de postulantes sube y el botón queda en "Ya te postulaste")
+  /// y confirma con un mensaje.
+  Future<void> _postular(
+    BuildContext context,
+    WidgetRef ref,
+    SolicitudDisponible solicitud,
+  ) async {
+    final enviada = await showDialog<bool>(
+      context: context,
+      builder: (context) => DialogoPostular(solicitud: solicitud),
+    );
+    if (enviada != true || !context.mounted) return;
+
+    ref.invalidate(solicitudesDisponiblesProvider);
+    ref.invalidate(misPostulacionesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text(PostulacionService.mensajeEnviada)),
+      );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final zonas = ref.watch(misZonasProvider);
     final todas = ref.watch(solicitudesDisponiblesProvider);
     final filtradas = ref.watch(solicitudesFiltradasProvider);
     final hayFiltros = ref.watch(filtroSolicitudesProvider).hayFiltros;
+
+    // HU-12 c2 y c4: en qué tarjetas ya me postulé y si puedo postularme.
+    final misPostulaciones =
+        ref.watch(misPostulacionesProvider).value ?? const <Postulacion>[];
+    final postuladas = {for (final p in misPostulaciones) p.solicitudId};
+    final identidadVerificada = PostulacionService.identidadAprobada(
+      ref.watch(sesionProvider).value?.verificacion,
+    );
 
     if (zonas.isLoading || todas.isLoading) {
       return const _Caja(
@@ -212,24 +230,41 @@ class _ListaSolicitudes extends ConsumerWidget {
       );
     }
 
-    return _Cuadricula(solicitudes: visibles);
+    return _Cuadricula(
+      solicitudes: visibles,
+      yaPostuladas: postuladas,
+      identidadVerificada: identidadVerificada,
+      onPostular: (solicitud) => _postular(context, ref, solicitud),
+      // HU-45 · "Ver solicitud" abre el detalle completo.
+      onVer: (solicitud) => context.go(Rutas.detalleSolicitud(solicitud.id)),
+    );
   }
 }
 
-/// Reparte las tarjetas en 3, 2 o 1 columnas según el ancho disponible.
+/// Reparte las tarjetas en 2 columnas (Figma W06), o 1 en pantallas angostas.
 class _Cuadricula extends StatelessWidget {
-  const _Cuadricula({required this.solicitudes});
+  const _Cuadricula({
+    required this.solicitudes,
+    this.yaPostuladas = const <String>{},
+    this.identidadVerificada = true,
+    this.onPostular,
+    this.onVer,
+  });
 
   final List<SolicitudDisponible> solicitudes;
+  final Set<String> yaPostuladas;
+  final bool identidadVerificada;
+  final void Function(SolicitudDisponible)? onPostular;
+  final void Function(SolicitudDisponible)? onVer;
 
-  static const _separacion = 16.0;
+  static const _separacion = 12.0;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, restricciones) {
         final ancho = restricciones.maxWidth;
-        final columnas = ancho >= 720 ? 3 : (ancho >= 480 ? 2 : 1);
+        final columnas = ancho >= 640 ? 2 : 1;
         final anchoTarjeta = (ancho - _separacion * (columnas - 1)) / columnas;
 
         return Wrap(
@@ -239,7 +274,15 @@ class _Cuadricula extends StatelessWidget {
             for (final solicitud in solicitudes)
               SizedBox(
                 width: anchoTarjeta,
-                child: TarjetaSolicitud(solicitud: solicitud),
+                child: TarjetaSolicitud(
+                  solicitud: solicitud,
+                  yaPostulada: yaPostuladas.contains(solicitud.id),
+                  identidadVerificada: identidadVerificada,
+                  onPostular: onPostular == null
+                      ? null
+                      : () => onPostular!(solicitud),
+                  onTap: onVer == null ? null : () => onVer!(solicitud),
+                ),
               ),
           ],
         );

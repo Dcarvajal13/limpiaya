@@ -4,12 +4,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/core/di/providers.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/domain/entities/direccion_cliente.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
+import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
+import 'package:limpiaya/domain/entities/quien_pone_productos.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
+import 'package:limpiaya/domain/entities/solicitud.dart';
 import 'package:limpiaya/domain/entities/solicitud_disponible.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/entities/zona.dart';
+import 'package:limpiaya/domain/repositories/reputacion_repository.dart';
 import 'package:limpiaya/domain/repositories/solicitud_repository.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
@@ -17,50 +22,88 @@ import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponible
 class _RepositorioFalso implements SolicitudRepository {
   _RepositorioFalso({this.zonas = const [], this.solicitudes = const []});
 
-  final List<Zona> zonas;
+  /// Se puede cambiar en la prueba, como si la trabajadora editara su perfil.
+  List<Zona> zonas;
   final List<SolicitudDisponible> solicitudes;
 
   @override
   Future<List<Zona>> misZonas() async => zonas;
 
   @override
-  Future<List<SolicitudDisponible>> disponibles() async => solicitudes;
+  Future<List<SolicitudDisponible>> disponibles() async =>
+      zonas.isEmpty ? const [] : solicitudes;
+
+  @override
+  Future<String> publicar(NuevaSolicitud solicitud) async => 'id-de-prueba';
+
+  @override
+  Future<SolicitudDisponible?> solicitudDisponible(String id) async =>
+      solicitudes.where((s) => s.id == id).firstOrNull;
+
+  @override
+  Future<DireccionCliente?> miDireccion() async => null;
+
+  @override
+  Future<List<Solicitud>> misSolicitudes() async => const [];
+}
+
+class _ReputacionFalsa implements ReputacionRepository {
+  const _ReputacionFalsa(this.promedio);
+
+  final double? promedio;
+
+  @override
+  Future<double?> miPromedio() async => promedio;
 }
 
 class _SesionFalsa extends SesionNotifier {
+  _SesionFalsa(this.verificacion);
+
+  final String? verificacion;
+
   @override
-  Future<Sesion?> build() async => const Sesion(
+  Future<Sesion?> build() async => Sesion(
     id: 'u1',
     rol: RolUsuario.trabajadora,
     nombre: 'Carmen Pérez',
     perfilCompleto: true,
+    verificacion: verificacion,
   );
 }
 
 SolicitudDisponible _solicitud(
   String id,
   TipoLimpieza tipo, {
-  int zonaId = 1,
-  String zona = 'Chacao (casco)',
+  bool tieneMascotas = false,
+  QuienPoneProductos productosPor = QuienPoneProductos.cliente,
 }) {
   return SolicitudDisponible(
     id: id,
     tipo: tipo,
-    zonaId: zonaId,
-    zona: zona,
+    zonaId: 1,
+    zona: 'Chacao (casco)',
     inicio: DateTime.now().add(const Duration(days: 2)),
     horasEstimadas: 4,
     pagoOfrecido: 28,
     metodoPago: MetodoPago.transferencia,
     numPostulantes: 3,
+    habitaciones: 3,
+    banos: 2,
+    tieneMascotas: tieneMascotas,
+    productosPor: productosPor,
   );
 }
 
-Widget _app(_RepositorioFalso repositorio) {
+Widget _app(
+  _RepositorioFalso repositorio, {
+  String? verificacion = 'aprobada',
+  double? promedio = 4.9,
+}) {
   return ProviderScope(
     overrides: [
       solicitudRepositoryProvider.overrideWithValue(repositorio),
-      sesionProvider.overrideWith(_SesionFalsa.new),
+      reputacionRepositoryProvider.overrideWithValue(_ReputacionFalsa(promedio)),
+      sesionProvider.overrideWith(() => _SesionFalsa(verificacion)),
     ],
     child: MaterialApp(
       theme: AppTheme.claro,
@@ -69,15 +112,19 @@ Widget _app(_RepositorioFalso repositorio) {
   );
 }
 
+void _pantallaGrande(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1280, 1400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 void main() {
   setUpAll(() => AppFonts.usarGoogleFonts = false);
 
   testWidgets('HU-11 c3: sin solicitudes en sus zonas muestra el mensaje', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    _pantallaGrande(tester);
 
     await tester.pumpWidget(
       _app(_RepositorioFalso(zonas: const [Zona(id: 1, nombre: 'Altamira')])),
@@ -92,9 +139,7 @@ void main() {
   });
 
   testWidgets('cuenta nueva sin zonas: invita a elegirlas', (tester) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    _pantallaGrande(tester);
 
     await tester.pumpWidget(_app(_RepositorioFalso()));
     await tester.pumpAndSettle();
@@ -102,12 +147,54 @@ void main() {
     expect(find.text('Aún no tienes zonas de trabajo'), findsOneWidget);
   });
 
-  testWidgets('HU-11 c1/c2: muestra tarjetas y filtra por tipo', (
+  testWidgets('banner: insignia de identidad verificada con el promedio', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    _pantallaGrande(tester);
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(
+          zonas: const [Zona(id: 1, nombre: 'Chacao (casco)')],
+          solicitudes: [_solicitud('a', TipoLimpieza.general)],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Identidad verificada'), findsOneWidget);
+    expect(find.text('4,9'), findsOneWidget);
+    expect(
+      find.text(
+        'Hay 1 trabajo disponible en tus zonas. '
+        'Elige los que se ajusten mejor a tu horario.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('banner: sin verificar y sin reseñas no muestra estrellas', (
+    tester,
+  ) async {
+    _pantallaGrande(tester);
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(zonas: const [Zona(id: 1, nombre: 'Altamira')]),
+        verificacion: 'en_revision',
+        promedio: null,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Verificación en revisión'), findsOneWidget);
+    expect(find.byIcon(Icons.star_rounded), findsNothing);
+  });
+
+  testWidgets('HU-11 c1/c2: muestra tarjetas y filtra con "Filtrar"', (
+    tester,
+  ) async {
+    _pantallaGrande(tester);
 
     await tester.pumpWidget(
       _app(
@@ -115,22 +202,33 @@ void main() {
           zonas: const [Zona(id: 1, nombre: 'Chacao (casco)')],
           solicitudes: [
             _solicitud('a', TipoLimpieza.general),
-            _solicitud('b', TipoLimpieza.profunda),
+            _solicitud('b', TipoLimpieza.profunda, tieneMascotas: true),
           ],
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Las dos tarjetas (además de los chips "General"/"Profunda").
-    expect(find.text(r'$28'), findsNWidgets(2));
-    expect(find.text('Transferencia · 3 postulantes'), findsNWidgets(2));
+    expect(find.text(r'Recibes $28'), findsNWidgets(2));
+    expect(find.text('3 postulantes'), findsNWidgets(2));
+    expect(find.text('3 hab.'), findsNWidgets(2));
+    expect(find.text('2 baños'), findsNWidgets(2));
+    expect(find.text('Chacao (casco), Caracas'), findsNWidgets(2));
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Profunda'));
+    // Elegir "Profunda" no filtra hasta tocar "Filtrar".
+    await tester.tap(find.byType(DropdownButtonFormField<TipoLimpieza?>));
     await tester.pumpAndSettle();
-    expect(find.text(r'$28'), findsOneWidget);
+    await tester.tap(find.text('Profunda').last);
+    await tester.pumpAndSettle();
+    expect(find.text(r'Recibes $28'), findsNWidgets(2));
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Planchado'));
+    await tester.tap(find.byKey(const Key('boton-filtrar')));
+    await tester.pumpAndSettle();
+    expect(find.text(r'Recibes $28'), findsOneWidget);
+
+    // "Profunda" + "Sin mascotas": la única profunda tiene mascotas.
+    await tester.tap(find.byKey(const Key('filtro-sin-mascotas')));
+    await tester.tap(find.byKey(const Key('boton-filtrar')));
     await tester.pumpAndSettle();
     expect(
       find.text('Ninguna solicitud coincide con tus filtros'),
@@ -139,6 +237,70 @@ void main() {
 
     await tester.tap(find.text('Quitar filtros'));
     await tester.pumpAndSettle();
-    expect(find.text(r'$28'), findsNWidgets(2));
+    expect(find.text(r'Recibes $28'), findsNWidgets(2));
   });
+
+  // HU-43 c1 · "cuando indico habitaciones, baños, mascotas y productos,
+  // entonces esos datos aparecen en la tarjeta de la solicitud".
+  testWidgets('HU-43 c1: la tarjeta dice quién pone los productos', (
+    tester,
+  ) async {
+    _pantallaGrande(tester);
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(
+          zonas: const [Zona(id: 1, nombre: 'Chacao (casco)')],
+          solicitudes: [
+            _solicitud('a', TipoLimpieza.general),
+            _solicitud(
+              'b',
+              TipoLimpieza.profunda,
+              productosPor: QuienPoneProductos.trabajadora,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cliente pone productos'), findsOneWidget);
+    expect(find.text('Tú pones productos'), findsOneWidget);
+    // Y el resto de los detalles de la vivienda siguen a la vista en las dos
+    // tarjetas (el panel de filtros también dice "Sin mascotas", por eso no se
+    // cuenta aquí).
+    expect(find.text('3 hab.'), findsNWidgets(2));
+    expect(find.text('2 baños'), findsNWidgets(2));
+  });
+
+  testWidgets(
+    'al guardar el perfil con otras zonas, la lista usa las zonas nuevas',
+    (tester) async {
+      _pantallaGrande(tester);
+      final repositorio = _RepositorioFalso(
+        zonas: const [Zona(id: 1, nombre: 'Altamira')],
+      );
+
+      await tester.pumpWidget(_app(repositorio));
+      await tester.pumpAndSettle();
+      expect(find.text('Por ahora no hay trabajos en Altamira.'), findsOneWidget);
+
+      // HU-04 guarda las zonas nuevas y recarga la sesión.
+      repositorio.zonas = const [
+        Zona(id: 2, nombre: 'Chacao (casco)'),
+        Zona(id: 3, nombre: 'El Cafetal'),
+      ];
+      ProviderScope.containerOf(
+        tester.element(find.byType(SolicitudesDisponiblesScreen)),
+      ).invalidate(sesionProvider);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Por ahora no hay trabajos en Chacao (casco) y El Cafetal.'),
+        findsOneWidget,
+      );
+      expect(find.text('Altamira'), findsNothing);
+      expect(find.widgetWithText(FilterChip, 'El Cafetal'), findsOneWidget);
+    },
+  );
 }

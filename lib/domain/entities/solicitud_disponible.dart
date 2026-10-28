@@ -1,4 +1,5 @@
 import 'metodo_pago.dart';
+import 'quien_pone_productos.dart';
 import 'tipo_limpieza.dart';
 
 /// Solicitud publicada que una trabajadora puede ver (HU-11).
@@ -17,6 +18,10 @@ class SolicitudDisponible {
     required this.pagoOfrecido,
     required this.metodoPago,
     required this.numPostulantes,
+    this.habitaciones = 1,
+    this.banos = 1,
+    this.tieneMascotas = false,
+    this.productosPor = QuienPoneProductos.cliente,
   });
 
   final String id;
@@ -38,4 +43,15 @@ class SolicitudDisponible {
 
   /// Postulaciones pendientes o aceptadas (HU-12).
   final int numPostulantes;
+
+  /// Tamaño de la casa (por defecto 1 y 1, igual que en la tabla).
+  final int habitaciones;
+  final int banos;
+
+  /// Si en la casa hay mascotas (filtro "Sin mascotas").
+  final bool tieneMascotas;
+
+  /// HU-43 · Quién lleva los productos de limpieza. La trabajadora lo ve en la
+  /// tarjeta antes de postularse.
+  final QuienPoneProductos productosPor;
 }

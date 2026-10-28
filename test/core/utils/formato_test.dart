@@ -13,6 +13,16 @@ void main() {
     expect(Formato.horario(inicio, 5), 'Sáb 17 oct · 8:00 a. m. · 5 horas');
   });
 
+  test('tarjeta W06: día, casa, fecha numérica y promedio', () {
+    expect(Formato.diaTarjeta(DateTime(2026, 10, 17, 9)), 'Sáb. 17 oct.');
+    expect(Formato.fechaNumerica(DateTime(2026, 3, 7)), '07/03/2026');
+    expect(Formato.habitaciones(3), '3 hab.');
+    expect(Formato.banos(1), '1 baño');
+    expect(Formato.banos(2), '2 baños');
+    expect(Formato.promedio(4.9), '4,9');
+    expect(Formato.promedio(5), '5,0');
+  });
+
   test('hora: 12 h, mediodía y tarde', () {
     expect(Formato.hora(DateTime(2026, 10, 21, 14)), '2:00 p. m.');
     expect(Formato.hora(DateTime(2026, 10, 21, 12)), '12:00 p. m.');
@@ -22,6 +32,13 @@ void main() {
   test('horas: singular y decimales', () {
     expect(Formato.horas(1), '1 hora');
     expect(Formato.horas(4.5), '4,5 horas');
+  });
+
+  test('fechaLarga: igual al Figma de Mis servicios', () {
+    expect(
+      Formato.fechaLarga(DateTime(2026, 10, 24, 8, 30)),
+      'Sábado 24 de octubre',
+    );
   });
 
   test('postulantes: singular y plural', () {
@@ -40,5 +57,13 @@ void main() {
     expect(Formato.lista(['A']), 'A');
     expect(Formato.lista(['A', 'B']), 'A y B');
     expect(Formato.lista(['A', 'B', 'C']), 'A, B y C');
+  });
+
+  test('HU-33: fecha con año y fecha con hora de la lista del admin', () {
+    expect(Formato.fechaConAnio(DateTime(2026, 10, 2)), '2 de octubre de 2026');
+    expect(
+      Formato.fechaHoraCorta(DateTime(2026, 10, 4, 9, 20)),
+      '4 oct. · 9:20 a. m.',
+    );
   });
 }

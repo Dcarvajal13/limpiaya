@@ -23,9 +23,32 @@ abstract final class Rutas {
   /// cliente recién registrado completa su zona y dirección.
   static const perfilCliente = '/cliente/perfil';
 
+  /// HU-07 · Publicar una solicitud. Va dentro de /cliente, así que solo la
+  /// puede abrir un cliente.
+  static const publicarSolicitud = '/cliente/publicar';
+
   /// Perfil de la trabajadora (HU-04). Antes de ver solicitudes, la
   /// trabajadora recién registrada completa su perfil.
   static const perfilTrabajadora = '/trabajadora/perfil';
+
+  /// HU-13 · Mis servicios de la trabajadora (pestaña Postulaciones).
+  static const misServicios = '/trabajadora/servicios';
+
+  /// HU-45 · Detalle de una solicitud vista por la trabajadora. Nunca muestra
+  /// la dirección exacta del cliente.
+  static const detalleSolicitudPatron = '/trabajadora/solicitudes/:id';
+  static String detalleSolicitud(String solicitudId) =>
+      '/trabajadora/solicitudes/$solicitudId';
+
+  /// HU-21 · Verificar mi identidad. HU-12 criterio 4 manda aquí cuando la
+  /// trabajadora todavía no tiene la identidad aprobada.
+  static const verificacionTrabajadora = '/trabajadora/verificacion';
+
+  /// Detalle de un servicio agendado. Lo construye HU-16; mientras tanto la
+  /// ruta existe para que HU-13 c3 pueda llevar hasta ahí.
+  static const servicioAgendadoPatron = '/trabajadora/servicios/:id';
+  static String servicioAgendado(String solicitudId) =>
+      '$misServicios/$solicitudId';
 
   static const sistemaDiseno = '/diseno';
 

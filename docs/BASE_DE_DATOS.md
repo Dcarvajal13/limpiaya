@@ -173,6 +173,8 @@ Los **cambios de estado** no se pueden hacer directo desde la app; HD-04 debe de
 - Cancelar (HU-10, HU-28), completar (HU-17) y el cierre automático a las 48 horas.
 - Cruce de horarios al postularse o elegir (HU-12 c3, HU-15 c4).
 
+> **HU-13 (Ver mis postulaciones):** mientras HD-04 no cambie los estados en la base, la app deduce el estado que se muestra con `EstadoPostulacion.resolver` (`domain/entities/estado_postulacion.dart`) usando la solicitud: cancelada → *Solicitud cancelada*; asignada a otra trabajadora → *No seleccionada*; asignada a ella → *Aceptada*. Lee `postulaciones` + las vistas `solicitudes_publicas` y `perfiles_publicos` (sin migración nueva ni dirección exacta). Cuando HD-04 actualice `postulaciones.estado`, la regla sigue siendo válida.
+
 ## Cuenta de administrador (HD-06)
 
 1. Registrarse en la app como cliente con el correo del admin.
