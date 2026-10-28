@@ -16,6 +16,10 @@ abstract final class Formato {
   static String diaCorto(DateTime fecha) =>
       '${_dias[fecha.weekday - 1]} ${fecha.day} ${_meses[fecha.month - 1]}';
 
+  /// "17 oct." (pestaña Postulaciones, Figma W07).
+  static String diaMesCorto(DateTime fecha) =>
+      '${fecha.day} ${_meses[fecha.month - 1]}.';
+
   /// "8:00 a. m." / "2:00 p. m."
   static String hora(DateTime fecha) {
     final h12 = fecha.hour % 12 == 0 ? 12 : fecha.hour % 12;
@@ -80,6 +84,10 @@ abstract final class Formato {
   /// "17 de octubre"
   static String diaDeMes(DateTime fecha) =>
       '${fecha.day} de ${_mesesCompletos[fecha.month - 1]}';
+
+  /// "Sábado 24 de octubre" (Mis servicios, Figma W07).
+  static String fechaLarga(DateTime fecha) =>
+      '${diaDeSemana(fecha)} ${diaDeMes(fecha)}';
 
   /// 4.9 → "4,9" (promedio de estrellas).
   static String promedio(double valor) =>

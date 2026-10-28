@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show OutlinedButton, Text;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,8 +11,10 @@ import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
+import '../../presentation/screens/trabajadora/mis_servicios_screen.dart';
 import '../../presentation/screens/trabajadora/perfil_trabajadora_screen.dart';
 import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
+import '../../presentation/widgets/pantalla_en_construccion.dart';
 import '../di/providers.dart';
 import 'redireccion.dart';
 import 'rutas.dart';
@@ -66,6 +69,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.perfilTrabajadora,
         builder: (context, state) => const PerfilTrabajadoraScreen(),
+      ),
+      GoRoute(
+        path: Rutas.misServicios,
+        builder: (context, state) => const MisServiciosScreen(),
+      ),
+      GoRoute(
+        path: Rutas.servicioAgendadoPatron,
+        // TODO(HU-16): reemplazar por el detalle del servicio agendado.
+        builder: (context, state) => PantallaEnConstruccion(
+          titulo: 'Servicio agendado',
+          historia: 'HU-16',
+          acciones: [
+            OutlinedButton(
+              onPressed: () => context.go(Rutas.misServicios),
+              child: const Text('Volver a Mis servicios'),
+            ),
+          ],
+        ),
       ),
       GoRoute(
         path: Rutas.inicioAdmin,

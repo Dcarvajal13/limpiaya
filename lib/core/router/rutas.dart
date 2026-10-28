@@ -27,6 +27,15 @@ abstract final class Rutas {
   /// trabajadora recién registrada completa su perfil.
   static const perfilTrabajadora = '/trabajadora/perfil';
 
+  /// HU-13 · Mis servicios de la trabajadora (pestaña Postulaciones).
+  static const misServicios = '/trabajadora/servicios';
+
+  /// Detalle de un servicio agendado. Lo construye HU-16; mientras tanto la
+  /// ruta existe para que HU-13 c3 pueda llevar hasta ahí.
+  static const servicioAgendadoPatron = '/trabajadora/servicios/:id';
+  static String servicioAgendado(String solicitudId) =>
+      '$misServicios/$solicitudId';
+
   static const sistemaDiseno = '/diseno';
 
   /// Registro con el rol ya sugerido, desde los botones de la landing.
