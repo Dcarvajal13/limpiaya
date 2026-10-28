@@ -89,6 +89,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: Rutas.verificacionTrabajadora,
+        // TODO(HU-21): reemplazar por la pantalla real de verificación.
+        builder: (context, state) => PantallaEnConstruccion(
+          titulo: 'Verificación de identidad',
+          historia: 'HU-21',
+          acciones: [
+            OutlinedButton(
+              onPressed: () => context.go(Rutas.inicioTrabajadora),
+              child: const Text('Volver a mis trabajos'),
+            ),
+          ],
+        ),
+      ),
+      GoRoute(
         path: Rutas.inicioAdmin,
         builder: (context, state) => const AdminInicioScreen(),
       ),

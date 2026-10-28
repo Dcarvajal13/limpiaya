@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../domain/entities/solicitud_disponible.dart';
+import '../../../domain/services/postulacion_service.dart';
 import '../../widgets/insignia_estado.dart';
 
 /// Tarjeta de una solicitud disponible (HU-11), igual al Figma W06.
@@ -11,11 +14,33 @@ import '../../widgets/insignia_estado.dart';
 /// zona, tamaño de la casa, mascotas y método de pago. NUNCA muestra la
 /// dirección exacta (esa solo la ve la trabajadora elegida).
 ///
-/// TODO(HU-13): "Ver solicitud" debe abrir el detalle de la solicitud.
+/// HU-12 · Además ofrece "Postularme":
+/// - c2 · si ya se postuló, el botón dice "Ya te postulaste" y está apagado.
+/// - c4 · si su identidad no está aprobada, el botón sigue activo pero avisa
+///   "Verifica tu identidad para postularte" y lleva a HU-21.
+///
+/// TODO(HU-45): "Ver solicitud" debe abrir el detalle de la solicitud.
 class TarjetaSolicitud extends StatelessWidget {
-  const TarjetaSolicitud({super.key, required this.solicitud, this.onTap});
+  const TarjetaSolicitud({
+    super.key,
+    required this.solicitud,
+    this.yaPostulada = false,
+    this.identidadVerificada = true,
+    this.onPostular,
+    this.onTap,
+  });
 
   final SolicitudDisponible solicitud;
+
+  /// HU-12 c2 · Ya tiene una postulación viva para esta solicitud.
+  final bool yaPostulada;
+
+  /// HU-12 c4 · Su verificación de identidad está aprobada (HU-21).
+  final bool identidadVerificada;
+
+  /// Abre el diálogo de postulación. Lo pone la pantalla, que sabe refrescar.
+  final VoidCallback? onPostular;
+
   final VoidCallback? onTap;
 
   void _verSolicitud(BuildContext context) {
@@ -26,6 +51,47 @@ class TarjetaSolicitud extends StatelessWidget {
         const SnackBar(
           content: Text('El detalle de la solicitud estará disponible pronto'),
         ),
+      );
+  }
+
+  /// c4 · Avisa que falta verificar la identidad y lleva a HU-21.
+  Future<void> _avisarSinVerificar(BuildContext context) async {
+    final quiereVerificar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Antes de postularte'),
+        content: const Text(PostulacionService.mensajeVerificacion),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Ahora no'),
+          ),
+          FilledButton(
+            key: const Key('ir-a-verificacion'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Verificar mi identidad'),
+          ),
+        ],
+      ),
+    );
+    if (quiereVerificar == true && context.mounted) {
+      context.go(Rutas.verificacionTrabajadora);
+    }
+  }
+
+  void _postular(BuildContext context) {
+    if (!identidadVerificada) {
+      _avisarSinVerificar(context);
+      return;
+    }
+    if (onPostular != null) {
+      onPostular!();
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('No pudimos abrir la postulación')),
       );
   }
 
@@ -113,18 +179,30 @@ class TarjetaSolicitud extends StatelessWidget {
               icono: Icons.attach_money,
               child: Text(solicitud.metodoPago.etiqueta, style: detalle),
             ),
-            const SizedBox(height: 6),
-            FilledButton(
-              onPressed: () => _verSolicitud(context),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Ver solicitud'),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 18),
-                ],
-              ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _verSolicitud(context),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
+                    ),
+                    child: const Text('Ver solicitud'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    key: Key('postularme-${solicitud.id}'),
+                    onPressed: yaPostulada ? null : () => _postular(context),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
+                    ),
+                    child: Text(yaPostulada ? 'Ya te postulaste' : 'Postularme'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
