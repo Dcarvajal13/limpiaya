@@ -71,6 +71,25 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
   }
 
   @override
+  Future<SolicitudDisponible?> solicitudDisponible(String id) async {
+    try {
+      // La vista pública no trae la dirección exacta ni el punto de referencia
+      // (HU-45 c2), y RLS solo devuelve lo que esta trabajadora puede ver.
+      final fila = await _client
+          .from('solicitudes_publicas')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      if (fila == null) return null;
+      return SolicitudModel.disponibleDesdeJson(
+        Map<String, dynamic>.from(fila),
+      );
+    } on Exception {
+      throw const AppException('No pudimos cargar la solicitud.');
+    }
+  }
+
+  @override
   Future<String> publicar(NuevaSolicitud solicitud) async {
     final usuario = _client.auth.currentUser;
     if (usuario == null) {

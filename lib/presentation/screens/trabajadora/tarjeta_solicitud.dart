@@ -20,7 +20,8 @@ import '../../widgets/insignia_estado.dart';
 /// - c4 · si su identidad no está aprobada, el botón sigue activo pero avisa
 ///   "Verifica tu identidad para postularte" y lleva a HU-21.
 ///
-/// TODO(HU-45): "Ver solicitud" debe abrir el detalle de la solicitud.
+/// HU-45 · "Ver solicitud" abre el detalle de la solicitud (el `onTap` lo
+/// pone la pantalla, que sabe a dónde navegar).
 class TarjetaSolicitud extends StatelessWidget {
   /// HU-43 · Quién lleva los productos, dicho como lo lee la trabajadora.
   String get _productos => switch (solicitud.productosPor) {

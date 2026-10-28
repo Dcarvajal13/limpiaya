@@ -98,11 +98,13 @@ class SupabasePostulacionRepository implements PostulacionRepository {
       // inicio y el fin, que es todo lo que necesito para comparar horarios.
       final solicitud = await _client
           .from('solicitudes_publicas')
-          .select('inicio, fin, horas_estimadas')
+          .select('estado, inicio, fin, horas_estimadas')
           .eq('id', solicitudId)
           .maybeSingle();
-      if (solicitud == null) {
-        throw const AppException(PostulacionService.mensajeError);
+      // HU-45 c3 · Pudo asignarse o cancelarse mientras miraba el detalle.
+      if (solicitud == null ||
+          solicitud['estado'] != EstadoSolicitud.publicada.valorDb) {
+        throw const AppException(PostulacionService.mensajeNoDisponible);
       }
 
       // RLS: solo puedo leer las solicitudes que tengo asignadas (o publiqué).
@@ -153,6 +155,13 @@ class SupabasePostulacionRepository implements PostulacionRepository {
       });
     } on AppException {
       rethrow;
+    } on PostgrestException catch (e) {
+      // La política de la base rechaza la postulación si la solicitud dejó de
+      // estar Publicada entre la comprobación y el insert.
+      if (e.code == '42501') {
+        throw const AppException(PostulacionService.mensajeNoDisponible);
+      }
+      throw const AppException(PostulacionService.mensajeError);
     } on Exception {
       throw const AppException(PostulacionService.mensajeError);
     }

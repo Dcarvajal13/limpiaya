@@ -11,6 +11,7 @@ import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
+import '../../presentation/screens/trabajadora/detalle_solicitud_screen.dart';
 import '../../presentation/screens/trabajadora/mis_servicios_screen.dart';
 import '../../presentation/screens/trabajadora/perfil_trabajadora_screen.dart';
 import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
@@ -73,6 +74,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.misServicios,
         builder: (context, state) => const MisServiciosScreen(),
+      ),
+      GoRoute(
+        path: Rutas.detalleSolicitudPatron,
+        builder: (context, state) => DetalleSolicitudScreen(
+          solicitudId: state.pathParameters['id']!,
+        ),
       ),
       GoRoute(
         path: Rutas.servicioAgendadoPatron,

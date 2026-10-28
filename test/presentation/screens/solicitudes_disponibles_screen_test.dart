@@ -37,6 +37,10 @@ class _RepositorioFalso implements SolicitudRepository {
   Future<String> publicar(NuevaSolicitud solicitud) async => 'id-de-prueba';
 
   @override
+  Future<SolicitudDisponible?> solicitudDisponible(String id) async =>
+      solicitudes.where((s) => s.id == id).firstOrNull;
+
+  @override
   Future<DireccionCliente?> miDireccion() async => null;
 
   @override

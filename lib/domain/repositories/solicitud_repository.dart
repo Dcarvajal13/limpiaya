@@ -17,6 +17,11 @@ abstract interface class SolicitudRepository {
   /// trabajadora, ordenadas de la más próxima a la más lejana.
   Future<List<SolicitudDisponible>> disponibles();
 
+  /// HU-45 · Una solicitud concreta tal como la ve la trabajadora (fecha,
+  /// pago, zona, detalles de la vivienda… y NUNCA la dirección exacta).
+  /// `null` si no existe o no puede verla.
+  Future<SolicitudDisponible?> solicitudDisponible(String id);
+
   /// HU-07 · Publica una solicitud del cliente con sesión y devuelve su id.
   Future<String> publicar(NuevaSolicitud solicitud);
 
