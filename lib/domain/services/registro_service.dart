@@ -1,4 +1,5 @@
 import '../../core/errors/app_exception.dart';
+import '../../core/utils/mascara_telefono.dart';
 import '../../core/utils/validadores.dart';
 import '../entities/rol_usuario.dart';
 import '../repositories/auth_repository.dart';
@@ -30,16 +31,19 @@ class RegistroService {
       throw AppException('Debes aceptar los Términos y condiciones'); // HU-01 c5
     }
 
+    // Taller UX, H5: "04141234567" también vale; se guarda con el guion.
+    final telefonoConGuion = MascaraTelefono.formatear(telefono);
+
     final error = Validadores.requerido(nombre) ??
         Validadores.email(email) ??
-        Validadores.telefono(telefono) ??
+        Validadores.telefono(telefonoConGuion) ??
         Validadores.password(password);
     if (error != null) throw AppException(error); // HU-01 c3 y c4
 
     await _repositorio.registrarse(
       nombre: nombre.trim(),
       email: email.trim().toLowerCase(),
-      telefono: telefono.trim(),
+      telefono: telefonoConGuion,
       password: password,
       rol: rol,
     );

@@ -49,6 +49,12 @@ class _ClienteFalso implements ClienteRepository {
 /// Auth falso: hay sesión de cliente sin el perfil completo.
 class _AuthFalso implements AuthRepository {
   @override
+  Future<void> enviarRecuperacion(String email) async {}
+
+  @override
+  Future<void> cambiarPassword(String nueva) async {}
+
+  @override
   Usuario? get usuarioActual => const Usuario(id: 'u1', email: 'ana@correo.com');
 
   @override

@@ -35,4 +35,13 @@ abstract interface class AuthRepository {
 
   /// HU-03 · Cerrar sesión.
   Future<void> cerrarSesion();
+
+  /// HU-19 · Recuperar contraseña (taller UX, H3 y H9, severidad 3).
+  /// Envía al correo un enlace que abre la app en "Nueva contraseña".
+  /// No dice si el correo tiene cuenta, para no revelarlo.
+  Future<void> enviarRecuperacion(String email);
+
+  /// HU-19 · Cambia la contraseña de quien entró con el enlace de
+  /// recuperación.
+  Future<void> cambiarPassword(String nueva);
 }

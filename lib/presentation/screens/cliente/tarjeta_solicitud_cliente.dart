@@ -88,7 +88,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           Text(
             Formato.mesMayus(solicitud.inicio),
             style: textos.labelSmall?.copyWith(
-              color: AppColors.acento,
+              color: AppColors.acentoTexto,
               fontWeight: FontWeight.w800,
               fontSize: 11,
               letterSpacing: 0.5,
@@ -208,13 +208,13 @@ class TarjetaSolicitudCliente extends StatelessWidget {
               const Icon(
                 Icons.people_outline_rounded,
                 size: 16,
-                color: AppColors.acento,
+                color: AppColors.acentoTexto,
               ),
               const SizedBox(width: 4),
               Text(
                 Formato.postulantes(solicitud.numPostulantes),
                 style: textos.bodySmall?.copyWith(
-                  color: AppColors.acento,
+                  color: AppColors.acentoTexto,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),

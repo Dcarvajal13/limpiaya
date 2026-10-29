@@ -5,8 +5,17 @@ import 'package:limpiaya/domain/entities/rol_usuario.dart';
 
 void main() {
   String? ir(String ubicacion,
-          {bool haySesion = true, RolUsuario? rol, bool perfilCompleto = true}) =>
-      redirigir(ubicacion: ubicacion, haySesion: haySesion, rol: rol, perfilCompleto: perfilCompleto);
+          {bool haySesion = true,
+          RolUsuario? rol,
+          bool perfilCompleto = true,
+          bool recuperando = false}) =>
+      redirigir(
+        ubicacion: ubicacion,
+        haySesion: haySesion,
+        rol: rol,
+        perfilCompleto: perfilCompleto,
+        recuperandoContrasena: recuperando,
+      );
 
   group('sin sesión', () {
     test('puede ver la landing, el login y el registro', () {
@@ -150,5 +159,32 @@ void main() {
   test('el sistema de diseño se ve siempre', () {
     expect(ir(Rutas.sistemaDiseno, haySesion: false), isNull);
     expect(ir(Rutas.sistemaDiseno, rol: RolUsuario.cliente), isNull);
+  });
+
+  group('HU-19 · recuperar contraseña', () {
+    test('sin sesión se puede abrir "¿Olvidaste tu contraseña?"', () {
+      expect(ir(Rutas.recuperarContrasena, haySesion: false), isNull);
+    });
+
+    test('sin sesión no se puede abrir "Nueva contraseña"', () {
+      expect(ir(Rutas.nuevaContrasena, haySesion: false), Rutas.login);
+    });
+
+    test('con el enlace del correo va directo a "Nueva contraseña"', () {
+      for (final ubicacion in [Rutas.landing, Rutas.inicio, Rutas.inicioCliente]) {
+        expect(
+          ir(ubicacion, rol: RolUsuario.cliente, recuperando: true),
+          Rutas.nuevaContrasena,
+        );
+      }
+      expect(
+        ir(Rutas.nuevaContrasena, rol: RolUsuario.trabajadora, recuperando: true),
+        isNull,
+      );
+    });
+
+    test('después de guardarla ya no la obliga', () {
+      expect(ir(Rutas.inicio, rol: RolUsuario.cliente), Rutas.inicioCliente);
+    });
   });
 }

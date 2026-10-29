@@ -9,6 +9,12 @@ abstract final class Rutas {
   static const login = '/login';
   static const registro = '/registro';
 
+  /// HU-19 · "¿Olvidaste tu contraseña?": pide el correo (sin sesión).
+  static const recuperarContrasena = '/recuperar';
+
+  /// HU-19 · Se llega desde el enlace del correo, ya con sesión.
+  static const nuevaContrasena = '/nueva-contrasena';
+
   /// Reparte a cada quien a su inicio según su rol. Mientras se carga el
   /// rol, muestra una espera.
   static const inicio = '/inicio';
@@ -60,7 +66,7 @@ abstract final class Rutas {
   /// Pantallas que se pueden ver sin iniciar sesión.
   /// Si alguien con sesión entra a una de estas, se le manda a su inicio
   /// (HU-62, criterio 4).
-  static const publicas = {landing, login, registro};
+  static const publicas = {landing, login, registro, recuperarContrasena};
 
   /// Pantallas que se ven igual con o sin sesión (nunca redirigen).
   static const libres = {sistemaDiseno};

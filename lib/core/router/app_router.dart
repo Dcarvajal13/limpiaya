@@ -3,9 +3,12 @@ import 'package:flutter/material.dart' show OutlinedButton, Text;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../presentation/providers/recuperacion_provider.dart';
 import '../../presentation/providers/sesion_provider.dart';
 import '../../presentation/screens/admin/admin_inicio_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
+import '../../presentation/screens/auth/nueva_contrasena_screen.dart';
+import '../../presentation/screens/auth/recuperar_contrasena_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
@@ -33,6 +36,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   // su rol), el router vuelve a revisar las reglas.
   final refrescar = ValueNotifier<int>(0);
   ref.listen(sesionProvider, (anterior, siguiente) => refrescar.value++);
+  ref.listen(
+    recuperandoContrasenaProvider,
+    (anterior, siguiente) => refrescar.value++,
+  );
   ref.onDispose(refrescar.dispose);
 
   final router = GoRouter(
@@ -43,6 +50,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       haySesion: auth.usuarioActual != null,
       rol: ref.read(sesionProvider).value?.rol,
       perfilCompleto: ref.read(sesionProvider).value?.perfilCompleto ?? true,
+      recuperandoContrasena: ref.read(recuperandoContrasenaProvider),
     ),
     routes: [
       GoRoute(
@@ -56,6 +64,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.registro,
         builder: (context, state) => const RegistroScreen(),
+      ),
+      GoRoute(
+        path: Rutas.recuperarContrasena,
+        builder: (context, state) => const RecuperarContrasenaScreen(),
+      ),
+      GoRoute(
+        path: Rutas.nuevaContrasena,
+        builder: (context, state) => const NuevaContrasenaScreen(),
       ),
       GoRoute(
         path: Rutas.inicio,
