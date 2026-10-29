@@ -2,12 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_cliente_repository.dart';
 import '../../data/repositories/supabase_perfil_repository.dart';
 import '../../data/repositories/supabase_postulacion_repository.dart';
 import '../../data/repositories/supabase_reputacion_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../data/repositories/supabase_verificacion_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/cliente_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/postulacion_repository.dart';
 import '../../domain/repositories/reputacion_repository.dart';
@@ -36,6 +38,10 @@ final authRepositoryProvider = Provider<AuthRepository>(
 
 final solicitudRepositoryProvider = Provider<SolicitudRepository>(
   (ref) => SupabaseSolicitudRepository(ref.watch(supabaseClientProvider)),
+);
+
+final clienteRepositoryProvider = Provider<ClienteRepository>(
+  (ref) => SupabaseClienteRepository(ref.watch(supabaseClientProvider)),
 );
 
 final postulacionRepositoryProvider = Provider<PostulacionRepository>(

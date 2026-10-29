@@ -40,14 +40,36 @@ class BarraCliente extends StatelessWidget {
         ),
     );
 
+    // HU-05: tocar el avatar o el nombre abre "Mi perfil" (zona y dirección),
+    // como el botón de perfil del Figma.
+    final perfil = Tooltip(
+      message: 'Mi perfil',
+      child: InkWell(
+        onTap: () => context.go(Rutas.perfilCliente),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, tamano: 36),
+              if (!movil) ...[
+                const SizedBox(width: 10),
+                Text(
+                  primerNombre,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+
     final usuario = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, tamano: 36),
-        if (!movil) ...[
-          const SizedBox(width: 10),
-          Text(primerNombre, style: Theme.of(context).textTheme.labelMedium),
-        ],
+        perfil,
         const SizedBox(width: 8),
         const BotonCerrarSesion(),
       ],

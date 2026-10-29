@@ -19,10 +19,14 @@ abstract final class Rutas {
   static const inicioTrabajadora = '/trabajadora';
   static const inicioAdmin = '/admin';
 
+  /// Perfil del cliente (HU-05). Antes de publicar una solicitud, el
+  /// cliente recién registrado completa su zona y dirección.
+  static const perfilCliente = '/cliente/perfil';
 
   /// HU-07 · Publicar una solicitud. Va dentro de /cliente, así que solo la
   /// puede abrir un cliente.
   static const publicarSolicitud = '/cliente/publicar';
+
   /// Perfil de la trabajadora (HU-04). Antes de ver solicitudes, la
   /// trabajadora recién registrada completa su perfil.
   static const perfilTrabajadora = '/trabajadora/perfil';
