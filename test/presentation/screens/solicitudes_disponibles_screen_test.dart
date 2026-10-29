@@ -21,6 +21,12 @@ import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponible
 
 class _RepositorioFalso implements SolicitudRepository {
   @override
+  Future<Solicitud?> miSolicitud(String id) async => null;
+
+  @override
+  Future<void> editar(String id, NuevaSolicitud datos) async {}
+
+  @override
   Future<void> cancelar(String id, {String? motivo}) async {}
 
   _RepositorioFalso({this.zonas = const [], this.solicitudes = const []});

@@ -27,6 +27,11 @@ abstract final class Rutas {
   /// puede abrir un cliente.
   static const publicarSolicitud = '/cliente/publicar';
 
+  /// HU-09 · Editar una solicitud Publicada (misma pantalla que publicar).
+  static const editarSolicitudPatron = '/cliente/solicitudes/:id/editar';
+  static String editarSolicitud(String solicitudId) =>
+      '/cliente/solicitudes/$solicitudId/editar';
+
   /// Perfil de la trabajadora (HU-04). Antes de ver solicitudes, la
   /// trabajadora recién registrada completa su perfil.
   static const perfilTrabajadora = '/trabajadora/perfil';

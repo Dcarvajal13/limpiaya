@@ -22,6 +22,12 @@ import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/cliente/mis_solicitudes_screen.dart';
 
 class _RepositorioFalso implements SolicitudRepository {
+  @override
+  Future<Solicitud?> miSolicitud(String id) async => null;
+
+  @override
+  Future<void> editar(String id, NuevaSolicitud datos) async {}
+
   /// HU-10: ids cancelados y su motivo.
   final canceladas = <String, String?>{};
 

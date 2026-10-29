@@ -35,4 +35,11 @@ abstract interface class SolicitudRepository {
   /// HU-10 · Cancela una solicitud Publicada del cliente con sesión. Sus
   /// postulaciones pendientes pasan a "Solicitud cancelada".
   Future<void> cancelar(String id, {String? motivo});
+
+  /// HU-09 · Una solicitud del cliente con sesión, con su dirección, para
+  /// llenar el formulario de edición. Null si no existe o no es suya.
+  Future<Solicitud?> miSolicitud(String id);
+
+  /// HU-09 · Guarda los cambios de una solicitud que sigue Publicada.
+  Future<void> editar(String id, NuevaSolicitud datos);
 }

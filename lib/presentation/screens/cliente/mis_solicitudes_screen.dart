@@ -227,6 +227,11 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                             for (final solicitud in filtradas) ...[
                               TarjetaSolicitudCliente(
                                 solicitud: solicitud,
+                                // HU-09: la tarjeta solo ofrece "Editar"
+                                // mientras está Publicada (c2).
+                                onEditar: () => context.go(
+                                  Rutas.editarSolicitud(solicitud.id),
+                                ),
                                 onCancelar: () => _cancelar(solicitud),
                               ),
                               const SizedBox(height: 12),
