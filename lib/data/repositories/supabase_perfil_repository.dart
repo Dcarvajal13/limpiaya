@@ -34,7 +34,7 @@ class SupabasePerfilRepository implements PerfilRepository {
     try {
       final filas = await _client.from('zonas').select().order('nombre');
       return [
-        for (final fila in filas) Zona(id: fila['id'] as int, nombre: fila['nombre'] as String),
+        for (final fila in filas) Zona.desdeFila(fila),
       ];
     } on Exception {
       throw const AppException('No pudimos cargar las zonas.');
@@ -54,7 +54,7 @@ class SupabasePerfilRepository implements PerfilRepository {
           await _client.from('perfiles').select('foto_path').eq('id', uid).maybeSingle();
       final filasZonas = await _client
           .from('trabajadora_zonas')
-          .select('zonas(id, nombre)')
+          .select('zonas(id, nombre, municipio, parroquia)')
           .eq('trabajadora_id', uid);
       final filasServicios = await _client
           .from('trabajadora_servicios')
@@ -64,10 +64,7 @@ class SupabasePerfilRepository implements PerfilRepository {
       final zonas = [
         for (final fila in filasZonas)
           if (fila['zonas'] != null)
-            Zona(
-              id: (fila['zonas'] as Map)['id'] as int,
-              nombre: (fila['zonas'] as Map)['nombre'] as String,
-            ),
+            Zona.desdeFila(fila['zonas'] as Map),
       ]..sort((a, b) => a.nombre.compareTo(b.nombre));
 
       final fotoPath = perfil?['foto_path'] as String?;

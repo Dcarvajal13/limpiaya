@@ -8,6 +8,7 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._seguridad_rls.sql` | Perfil automático al registrarse, `mi_sesion()`, permisos y políticas RLS |
 | `..._vistas_publicas.sql` | Vistas con lo que un usuario puede ver de otros (sin datos privados) |
 | `..._storage.sql` | Buckets de fotos: `avatars` (pública) y `verificaciones` (privada) |
+| `..._zonas_parroquias.sql` | Agrega la parroquia a cada zona, para elegir Municipio → Parroquia → Urbanización |
 
 ## Diagrama entidad-relación
 
@@ -57,6 +58,7 @@ erDiagram
         smallint id PK
         text nombre
         text municipio
+        text parroquia
     }
     TRABAJADORA_ZONAS {
         uuid trabajadora_id PK

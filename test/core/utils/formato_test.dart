@@ -66,4 +66,12 @@ void main() {
       '4 oct. · 9:20 a. m.',
     );
   });
+
+  test('detalle de la solicitud: hora de fin y pago por hora', () {
+    expect(Formato.horaFin(DateTime(2026, 10, 29, 9), 4), '1:00 p. m.');
+    expect(Formato.horaFin(DateTime(2026, 10, 29, 8, 30), 4.5), '1:00 p. m.');
+    expect(Formato.porHora(30, 4), r'$7.50 por hora');
+    expect(Formato.porHora(36, 4), r'$9 por hora');
+    expect(Formato.porHora(30, 0), r'$30');
+  });
 }

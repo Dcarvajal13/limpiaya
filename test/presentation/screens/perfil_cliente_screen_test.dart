@@ -23,8 +23,18 @@ class _ClienteFalso implements ClienteRepository {
 
   @override
   Future<List<Zona>> zonasDisponibles() async => const [
-        Zona(id: 1, nombre: 'Sabana Grande'),
-        Zona(id: 2, nombre: 'Altamira'),
+        Zona(
+          id: 1,
+          nombre: 'Sabana Grande',
+          municipio: 'Libertador',
+          parroquia: 'El Recreo',
+        ),
+        Zona(
+          id: 2,
+          nombre: 'Altamira',
+          municipio: 'Chacao',
+          parroquia: 'Chacao',
+        ),
       ];
 
   @override
@@ -115,6 +125,25 @@ Widget _app(_ClienteFalso repo) {
   );
 }
 
+/// Campo de la dirección (el primer campo de texto ahora es la búsqueda de
+/// zona).
+final _campoDireccion =
+    find.widgetWithText(TextField, 'Av. Francisco de Miranda, Edificio…');
+
+/// Corrección de la revisión: la zona se elige Municipio → Parroquia →
+/// Urbanización. Libertador tiene una sola parroquia en estos datos, así que
+/// se elige sola.
+Future<void> _elegirSabanaGrande(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('zona-municipio')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Libertador').last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('zona-urbanizacion')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Sabana Grande').last);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(() => AppFonts.usarGoogleFonts = false);
 
@@ -123,6 +152,9 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
+    // El selector de zona ocupa más alto: se asegura que el botón se vea.
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -135,12 +167,12 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(DropdownButtonFormField<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sabana Grande').last);
-    await tester.pumpAndSettle();
+    await _elegirSabanaGrande(tester);
 
-    await tester.enterText(find.byType(TextField).first, 'test');
+    await tester.enterText(_campoDireccion, 'test');
+    // El selector de zona ocupa más alto: se asegura que el botón se vea.
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -153,14 +185,14 @@ void main() {
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    // Elegir la zona en el menú desplegable.
-    await tester.tap(find.byType(DropdownButtonFormField<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sabana Grande').last);
-    await tester.pumpAndSettle();
+    // Municipio → (parroquia sola, es la única) → urbanización.
+    await _elegirSabanaGrande(tester);
 
     await tester.enterText(
-        find.byType(TextField).first, 'Av. Francisco de Miranda');
+        _campoDireccion, 'Av. Francisco de Miranda');
+    // El selector de zona ocupa más alto: se asegura que el botón se vea.
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
@@ -168,5 +200,40 @@ void main() {
     expect(repo.ultimaDireccion, 'Av. Francisco de Miranda');
     // Al guardar vuelve a Mis solicitudes (no se queda en el formulario).
     expect(find.text('Inicio cliente'), findsOneWidget);
+  });
+
+  testWidgets('revisión: la zona se elige por municipio, parroquia y '
+      'urbanización', (tester) async {
+    final repo = _ClienteFalso();
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('zona-municipio')), findsOneWidget);
+    expect(find.byKey(const Key('zona-parroquia')), findsOneWidget);
+    expect(find.byKey(const Key('zona-urbanizacion')), findsOneWidget);
+
+    await _elegirSabanaGrande(tester);
+    // La parroquia se completó sola (Libertador solo tiene El Recreo aquí).
+    expect(find.text('El Recreo'), findsWidgets);
+  });
+
+  testWidgets('búsqueda: al escribir sugiere la urbanización y la elige',
+      (tester) async {
+    final repo = _ClienteFalso();
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('buscar-zona')), 'sabana');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('opcion-zona-1')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_campoDireccion, 'Av. Francisco de Miranda');
+    await tester.ensureVisible(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(repo.ultimoZonaId, 1);
   });
 }

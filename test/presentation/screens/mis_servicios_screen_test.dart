@@ -14,6 +14,7 @@ import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/repositories/postulacion_repository.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/mis_servicios_screen.dart';
+import 'package:limpiaya/presentation/screens/trabajadora/tarjeta_postulacion.dart';
 
 class _RepositorioFalso implements PostulacionRepository {
   _RepositorioFalso(this.postulaciones);
@@ -110,8 +111,9 @@ void main() {
     expect(find.text('Solicitud cancelada'), findsOneWidget);
     // Contador de la pestaña.
     expect(find.text('4'), findsOneWidget);
-    // Datos reales, formato compacto (Figma W07 - Postulaciones).
-    expect(find.textContaining('24 oct.'), findsWidgets);
+    // Datos reales: día, hora, horas, cliente y pago.
+    expect(find.textContaining('Sábado, 8:30 a. m. · 5 horas'), findsWidgets);
+    expect(find.text('Cliente: María Alejandra'), findsWidgets);
     expect(find.textContaining('Recibes \$36'), findsWidgets);
     expect(find.textContaining('Los Palos Grandes'), findsWidgets);
     expect(find.text('Retirar postulación'), findsOneWidget);
@@ -217,5 +219,103 @@ void main() {
 
     expect(find.text('Mis servicios'), findsWidgets);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('revisión: el estado va a la derecha de la tarjeta',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(_RepositorioFalso([_postulacion('1', EstadoPostulacion.pendiente)])),
+    );
+    await tester.pumpAndSettle();
+
+    final tarjeta = tester.getRect(find.byType(TarjetaPostulacion));
+    final estado = tester.getRect(find.text('Pendiente'));
+    final titulo = tester.getRect(
+      find.text('Limpieza profunda · Los Palos Grandes'),
+    );
+    expect(estado.left, greaterThan(titulo.right));
+    expect(estado.center.dx, greaterThan(tarjeta.center.dx));
+    expect(tarjeta.right - estado.right, lessThan(40));
+  });
+
+  testWidgets('revisión: en móvil el estado también va a la derecha',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _app(_RepositorioFalso([_postulacion('1', EstadoPostulacion.pendiente)])),
+    );
+    await tester.pumpAndSettle();
+
+    final tarjeta = tester.getRect(find.byType(TarjetaPostulacion));
+    final estado = tester.getRect(find.text('Pendiente'));
+    expect(estado.center.dx, greaterThan(tarjeta.center.dx));
+  });
+
+  testWidgets('revisión: resumen por estado al lado de la lista',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([
+          _postulacion('1', EstadoPostulacion.pendiente),
+          _postulacion('2', EstadoPostulacion.pendiente),
+          _postulacion('3', EstadoPostulacion.noSeleccionada),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resumen'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('resumen-Pendientes'))).data,
+      '2',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const Key('resumen-No seleccionadas'))).data,
+      '1',
+    );
+    expect(find.text('Cómo funciona'), findsOneWidget);
+    // El panel está a la derecha de las tarjetas.
+    expect(
+      tester.getTopLeft(find.text('Resumen')).dx,
+      greaterThan(tester.getRect(find.byType(TarjetaPostulacion).first).right),
+    );
+  });
+
+  testWidgets('revisión: una pendiente permite ver la solicitud',
+      (tester) async {
+    _pantallaGrande(tester);
+    final router = GoRouter(
+      initialLocation: Rutas.misServicios,
+      routes: [
+        GoRoute(
+          path: Rutas.misServicios,
+          builder: (context, state) => const MisServiciosScreen(),
+        ),
+        GoRoute(
+          path: Rutas.detalleSolicitudPatron,
+          builder: (context, state) => Scaffold(
+            body: Text('Solicitud ${state.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([_postulacion('1', EstadoPostulacion.pendiente)]),
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('ver-solicitud-p-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Solicitud s-1'), findsOneWidget);
   });
 }

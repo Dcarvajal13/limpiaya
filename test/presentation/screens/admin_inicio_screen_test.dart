@@ -132,34 +132,78 @@ void main() {
     expect(find.text('Andreína Silva'), findsNWidgets(2));
   });
 
-  testWidgets('HU-33 c3: rechazar sin motivo muestra "Indica el motivo"',
+  testWidgets('el campo del motivo ya no está siempre en la tarjeta',
       (tester) async {
     _pantallaGrande(tester);
-    final repo = _RepositorioFalso(lista);
-    await tester.pumpWidget(_app(repo));
+    await tester.pumpWidget(_app(_RepositorioFalso(lista)));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Rechazar'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Indica el motivo'), findsOneWidget);
-    expect(find.text('¿Rechazar esta verificación?'), findsNothing);
-    expect(repo.rechazadas, isEmpty);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Motivo (obligatorio si rechazas)'), findsNothing);
   });
 
-  testWidgets('rechazar con motivo pide confirmación y guarda el motivo',
+  testWidgets('los botones Rechazar y Aprobar están centrados en la tarjeta',
       (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(_app(_RepositorioFalso(lista)));
+    await tester.pumpAndSettle();
+
+    final rechazar = tester.getRect(find.widgetWithText(FilledButton, 'Rechazar'));
+    final aprobar =
+        tester.getRect(find.widgetWithText(FilledButton, 'Aprobar identidad'));
+    // Las dos fotos ocupan cada una media tarjeta: el punto medio entre
+    // sus etiquetas es el centro de la tarjeta.
+    final cedula = tester.getCenter(find.text('Foto de la cédula'));
+    final selfie = tester.getCenter(find.text('Selfie sosteniendo la cédula'));
+    final centroTarjeta = (cedula.dx + selfie.dx) / 2;
+    final centroBotones = (rechazar.left + aprobar.right) / 2;
+    expect((centroBotones - centroTarjeta).abs(), lessThan(2));
+  });
+
+  testWidgets('HU-33 c3: en el pop-up, rechazar sin motivo muestra '
+      '"Indica el motivo"', (tester) async {
     _pantallaGrande(tester);
     final repo = _RepositorioFalso(lista);
     await tester.pumpWidget(_app(repo));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField), 'La cédula no se lee');
     await tester.tap(find.text('Rechazar'));
     await tester.pumpAndSettle();
     expect(find.text('¿Rechazar esta verificación?'), findsOneWidget);
 
-    await tester.tap(find.text('Confirmar'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Rechazar').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Indica el motivo'), findsOneWidget);
+    expect(repo.rechazadas, isEmpty);
+  });
+
+  testWidgets('"Volver" en el pop-up no rechaza nada', (tester) async {
+    _pantallaGrande(tester);
+    final repo = _RepositorioFalso(lista);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rechazar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Volver'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Rechazar esta verificación?'), findsNothing);
+    expect(repo.rechazadas, isEmpty);
+  });
+
+  testWidgets('rechazar con motivo en el pop-up guarda el motivo',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo = _RepositorioFalso(lista);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Rechazar'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'La cédula no se lee');
+    await tester.tap(find.widgetWithText(FilledButton, 'Rechazar').last);
     await tester.pumpAndSettle();
 
     expect(repo.rechazadas, {'v1': 'La cédula no se lee'});

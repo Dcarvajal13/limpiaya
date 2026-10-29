@@ -114,4 +114,14 @@ abstract final class Formato {
   /// "4 oct. · 9:20 a. m." (lista de verificaciones del admin, HU-33).
   static String fechaHoraCorta(DateTime fecha) =>
       '${fecha.day} ${_meses[fecha.month - 1]}. · ${hora(fecha)}';
+
+  /// Hora en que termina un servicio: 9:00 a. m. + 4 horas → "1:00 p. m."
+  static String horaFin(DateTime inicio, double horasEstimadas) =>
+      hora(inicio.add(Duration(minutes: (horasEstimadas * 60).round())));
+
+  /// Pago entre horas: $30 en 4 horas → "$7.50 por hora".
+  static String porHora(double pago, double horasEstimadas) =>
+      horasEstimadas <= 0
+          ? dinero(pago)
+          : '${dinero(pago / horasEstimadas)} por hora';
 }

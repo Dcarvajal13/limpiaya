@@ -6,6 +6,7 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/estado_postulacion.dart';
 import '../../../domain/entities/postulacion.dart';
 import '../../../domain/services/postulacion_service.dart';
 import '../../providers/mis_postulaciones_provider.dart';
@@ -211,7 +212,7 @@ class _ListaPostulaciones extends ConsumerWidget {
             ),
           );
         }
-        return Column(
+        final tarjetas = Column(
           children: [
             for (final Postulacion p in lista) ...[
               TarjetaPostulacion(
@@ -221,12 +222,142 @@ class _ListaPostulaciones extends ConsumerWidget {
                     context.go(Rutas.servicioAgendado(p.solicitudId)),
                 // HU-26: solo las pendientes ofrecen retirarse.
                 onRetirar: () => _retirar(context, ref, p),
+                onVerSolicitud: () =>
+                    context.go(Rutas.detalleSolicitud(p.solicitudId)),
               ),
               const SizedBox(height: 14),
             ],
           ],
         );
+
+        // Corrección de la revisión: la página se veía vacía. Al lado de la
+        // lista va un resumen por estado y cómo sigue el proceso.
+        final resumen = _PanelResumen(postulaciones: lista);
+
+        if (Responsive.esMovil(context)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [tarjetas, const SizedBox(height: 6), resumen],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: tarjetas),
+            const SizedBox(width: 24),
+            SizedBox(width: 300, child: resumen),
+          ],
+        );
       },
+    );
+  }
+}
+
+/// Resumen de las postulaciones por estado y los pasos del proceso.
+class _PanelResumen extends StatelessWidget {
+  const _PanelResumen({required this.postulaciones});
+
+  final List<Postulacion> postulaciones;
+
+  int _cuantas(EstadoPostulacion estado) =>
+      postulaciones.where((p) => p.estado == estado).length;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final filas = [
+      ('Pendientes', _cuantas(EstadoPostulacion.pendiente), AppColors.aviso),
+      ('Aceptadas', _cuantas(EstadoPostulacion.aceptada), AppColors.exito),
+      (
+        'No seleccionadas',
+        _cuantas(EstadoPostulacion.noSeleccionada),
+        AppColors.insigniaGrisTexto,
+      ),
+      (
+        'Canceladas por el cliente',
+        _cuantas(EstadoPostulacion.solicitudCancelada),
+        AppColors.error,
+      ),
+    ];
+    const pasos = [
+      'Te postulas a un trabajo de tus zonas.',
+      'El cliente revisa los perfiles y elige a una trabajadora.',
+      'Si te elige, verás la dirección y el servicio en Próximos.',
+    ];
+
+    return _Caja(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Resumen',
+              style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            for (final (etiqueta, cantidad, color) in filas)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(etiqueta, style: textos.bodyMedium)),
+                    Text(
+                      '$cantidad',
+                      key: Key('resumen-$etiqueta'),
+                      style: textos.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const Divider(height: 28),
+            Text(
+              'Cómo funciona',
+              style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            for (var i = 0; i < pasos.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 11,
+                      backgroundColor: AppColors.primarioClaro,
+                      child: Text(
+                        '${i + 1}',
+                        style: textos.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primario,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(pasos[i], style: textos.bodySmall)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              onPressed: () => context.go(Rutas.inicioTrabajadora),
+              icon: const Icon(Icons.search, size: 18),
+              label: const Text('Buscar más trabajos'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
