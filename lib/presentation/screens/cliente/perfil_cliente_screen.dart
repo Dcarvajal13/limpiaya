@@ -9,9 +9,11 @@ import '../../../core/utils/validadores.dart';
 import '../../../domain/entities/perfil_cliente.dart';
 import '../../providers/perfil_cliente_provider.dart';
 import '../../providers/sesion_provider.dart';
-import '../../widgets/boton_cerrar_sesion.dart';
 import '../../widgets/campo_texto.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/seccion_cuenta.dart';
+import '../../widgets/selector_zona.dart';
+import 'barra_cliente.dart';
 
 /// HU-05 · Crear mi perfil de cliente.
 ///
@@ -106,106 +108,131 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
     final textoError =
         textos.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error);
 
+    final sesion = ref.watch(sesionProvider).value;
+
+    // Corrección de la revisión: misma barra que el resto de pantallas del
+    // cliente; "Cerrar sesión" está al final del perfil.
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi perfil'),
-        actions: const [BotonCerrarSesion()],
-      ),
-      body: SingleChildScrollView(
-        child: ContenidoCentrado(
-          vertical: 32,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Completa tu perfil', style: textos.headlineSmall),
-                const SizedBox(height: 4),
-                Text(
-                  'Hola, $nombre. Necesitamos tu zona y dirección para que '
-                  'puedas publicar solicitudes.',
-                  style: textos.bodySmall,
-                ),
-                const SizedBox(height: 24),
-                if (perfil.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else ...[
-                  Text('¿En qué zona estás?', style: textos.titleSmall),
-                  const SizedBox(height: 8),
-                  if (zonasAsync.hasError)
-                    Text('No pudimos cargar las zonas. Recarga la página.',
-                        style: textoError)
-                  else
-                    DropdownButtonFormField<int>(
-                      initialValue: _zonaElegida,
-                      decoration: const InputDecoration(
-                        labelText: 'Zona',
-                        hintText: 'Selecciona una zona',
+      body: Column(
+        children: [
+          BarraCliente(
+            nombre: sesion?.nombre ?? nombre,
+            fotoUrl: sesion?.fotoUrl,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: ContenidoCentrado(
+                vertical: 32,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Completa tu perfil', style: textos.headlineSmall),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Hola, $nombre. Necesitamos tu zona y dirección para '
+                        'que puedas publicar solicitudes.',
+                        style: textos.bodySmall,
                       ),
-                      items: [
-                        for (final zona in zonasAsync.value ?? const [])
-                          DropdownMenuItem(
-                            value: zona.id,
-                            child: Text(zona.nombre),
+                      const SizedBox(height: 24),
+                      if (perfil.isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else ...[
+                        Text('¿En qué zona estás?', style: textos.titleSmall),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Elige el municipio, luego la parroquia y por último '
+                          'tu urbanización.',
+                          style: textos.bodySmall?.copyWith(
+                            color: AppColors.textoSecundario,
                           ),
-                      ],
-                      onChanged: (valor) =>
-                          setState(() => _zonaElegida = valor),
-                      validator: (_) =>
-                          _zonaElegida == null ? 'Elige tu zona' : null,
-                    ),
-                  const SizedBox(height: 20),
-                  CampoTexto(
-                    etiqueta: 'Dirección',
-                    pista: 'Av. Francisco de Miranda, Edificio…',
-                    controller: _direccion,
-                    validator: Validadores.direccion,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Solo la ve la trabajadora que elijas.',
-                    style: textos.bodySmall,
-                  ),
-                  const SizedBox(height: 20),
-                  CampoTexto(
-                    etiqueta: 'Punto de referencia (opcional)',
-                    pista: 'Al lado del farmatodo',
-                    controller: _punto,
-                    validator: Validadores.maximo(200),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_errorGeneral != null) ...[
-                    Text(_errorGeneral!, style: textoError),
-                    const SizedBox(height: 12),
-                  ],
-                  FilledButton(
-                    onPressed: _guardando ? null : _guardar,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(54),
-                    ),
-                    child: _guardando
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                        const SizedBox(height: 12),
+                        if (zonasAsync.hasError)
+                          Text(
+                            'No pudimos cargar las zonas. Recarga la página.',
+                            style: textoError,
                           )
-                        : const Text('Guardar'),
+                        else if (zonasAsync.isLoading)
+                          const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else
+                          // Corrección de la revisión: Municipio →
+                          // Parroquia → Urbanización.
+                          SelectorZona(
+                            zonas: zonasAsync.value ?? const [],
+                            valor: _zonaElegida,
+                            onChanged: (valor) => setState(() {
+                              _zonaElegida = valor;
+                              _errorGeneral = null;
+                            }),
+                            validator: (_) =>
+                                _zonaElegida == null ? 'Elige tu zona' : null,
+                          ),
+                        const SizedBox(height: 20),
+                        CampoTexto(
+                          etiqueta: 'Dirección',
+                          pista: 'Av. Francisco de Miranda, Edificio…',
+                          controller: _direccion,
+                          validator: Validadores.direccion,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Solo la ve la trabajadora que elijas.',
+                          style: textos.bodySmall,
+                        ),
+                        const SizedBox(height: 20),
+                        CampoTexto(
+                          etiqueta: 'Punto de referencia (opcional)',
+                          pista: 'Al lado del farmatodo',
+                          controller: _punto,
+                          validator: Validadores.maximo(200),
+                        ),
+                        const SizedBox(height: 24),
+                        if (_errorGeneral != null) ...[
+                          Text(_errorGeneral!, style: textoError),
+                          const SizedBox(height: 12),
+                        ],
+                        FilledButton(
+                          onPressed: _guardando ? null : _guardar,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(54),
+                          ),
+                          child: _guardando
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : const Text('Guardar'),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: Text(
+                            'Puedes cambiarlos cuando quieras.',
+                            style: textos.bodySmall?.copyWith(
+                              color: AppColors.textoSecundario,
+                            ),
+                          ),
+                        ),
+                        const SeccionCuenta(),
+                        const SizedBox(height: 24),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'Puedes cambiarlos cuando quieras.',
-                      style: textos.bodySmall?.copyWith(color: AppColors.textoSecundario),
-                    ),
-                  ),
-                ],
-              ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

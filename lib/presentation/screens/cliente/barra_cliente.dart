@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
-import '../../widgets/avatar_usuario.dart';
-import '../../widgets/boton_cerrar_sesion.dart';
+import '../../widgets/acceso_perfil.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
@@ -26,7 +25,6 @@ class BarraCliente extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final movil = Responsive.esMovil(context);
-    final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
     final ubicacion = GoRouter.maybeOf(context)?.state.uri.toString() ?? '';
 
     final pestanas = _Pestanas(
@@ -40,39 +38,12 @@ class BarraCliente extends StatelessWidget {
         ),
     );
 
-    // HU-05: tocar el avatar o el nombre abre "Mi perfil" (zona y dirección),
-    // como el botón de perfil del Figma.
-    final perfil = Tooltip(
-      message: 'Mi perfil',
-      child: InkWell(
-        onTap: () => context.go(Rutas.perfilCliente),
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, tamano: 36),
-              if (!movil) ...[
-                const SizedBox(width: 10),
-                Text(
-                  primerNombre,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-
-    final usuario = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        perfil,
-        const SizedBox(width: 8),
-        const BotonCerrarSesion(),
-      ],
+    // Corrección del review: el avatar con el nombre abre el perfil, y
+    // "Cerrar sesión" está dentro del perfil.
+    final usuario = AccesoPerfil(
+      nombre: nombre,
+      fotoUrl: fotoUrl,
+      rutaPerfil: Rutas.perfilCliente,
     );
 
     return Material(
@@ -92,10 +63,13 @@ class BarraCliente extends StatelessWidget {
                   child: Row(
                     children: [
                       LogoLimpiaYa(tamano: 36, soloMarca: movil),
+                      // Las pestañas usan el espacio que queda entre el
+                      // logo y el nombre; si no caben, se desplazan en vez
+                      // de desbordar la barra (ventanas de ~800 px).
                       if (!movil) ...[
-                        const Spacer(),
-                        pestanas,
-                        const Spacer(),
+                        const SizedBox(width: 16),
+                        Expanded(child: Center(child: pestanas)),
+                        const SizedBox(width: 16),
                       ] else
                         const Spacer(),
                       usuario,

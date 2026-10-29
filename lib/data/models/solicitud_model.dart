@@ -12,7 +12,7 @@ import '../../domain/entities/nueva_solicitud.dart';
 abstract final class SolicitudModel {
   /// Una fila de la tabla `zonas`.
   static Zona zonaDesdeJson(Map<String, dynamic> json) {
-    return Zona(id: json['id'] as int, nombre: json['nombre'] as String);
+    return Zona.desdeFila(json);
   }
 
   /// Una fila de la vista `solicitudes_publicas`.

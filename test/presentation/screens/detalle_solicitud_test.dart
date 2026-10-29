@@ -263,4 +263,53 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('revisión: en escritorio el pago va en una columna a la derecha',
+      (tester) async {
+    _pantallaGrande(tester);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('LO QUE RECIBES'), findsOneWidget);
+    expect(find.text('Limpieza profunda en Chacao (casco)'), findsOneWidget);
+    final pago = tester.getTopLeft(find.text('LO QUE RECIBES'));
+    final cuando = tester.getTopRight(find.text('Cuándo'));
+    expect(pago.dx, greaterThan(cuando.dx));
+    // El botón está en la misma columna que el pago.
+    final boton = tester.getTopLeft(find.byKey(const Key('postularme-detalle')));
+    expect((boton.dx - pago.dx).abs(), lessThan(40));
+  });
+
+  testWidgets('revisión: la página trae más contexto para decidir', (
+    tester,
+  ) async {
+    _pantallaGrande(tester);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Termina cerca de la 1:00 p. m.'), findsOneWidget);
+    expect(find.text(r'$7.50 por hora'), findsOneWidget);
+    expect(find.text('Antes de postularte'), findsOneWidget);
+    // Lleva sus productos: se le recuerda.
+    expect(
+      find.text('En este trabajo llevas tú los productos de limpieza.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('revisión: en móvil queda en una columna sin desbordes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('LO QUE RECIBES'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

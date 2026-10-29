@@ -26,7 +26,7 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
       // RLS: la trabajadora solo lee sus propias filas de trabajadora_zonas.
       final filas = await _client
           .from('trabajadora_zonas')
-          .select('zonas(id, nombre)')
+          .select('zonas(id, nombre, municipio, parroquia)')
           .eq('trabajadora_id', usuario.id);
 
       final zonas = [

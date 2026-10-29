@@ -29,7 +29,7 @@ class SupabaseClienteRepository implements ClienteRepository {
     try {
       final filas = await _client.from('zonas').select().order('nombre');
       return [
-        for (final fila in filas) Zona(id: fila['id'] as int, nombre: fila['nombre'] as String),
+        for (final fila in filas) Zona.desdeFila(fila),
       ];
     } on Exception {
       throw const AppException('No pudimos cargar las zonas.');
@@ -52,10 +52,10 @@ class SupabaseClienteRepository implements ClienteRepository {
       if (zonaId != null) {
         final z = await _client
             .from('zonas')
-            .select('id, nombre')
+            .select('id, nombre, municipio, parroquia')
             .eq('id', zonaId)
             .maybeSingle();
-        if (z != null) zona = Zona(id: z['id'] as int, nombre: z['nombre'] as String);
+        if (z != null) zona = Zona.desdeFila(z);
       }
 
       return PerfilCliente(

@@ -13,6 +13,8 @@ import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/campo_texto.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/seccion_cuenta.dart';
+import '../../widgets/selector_zonas_multiple.dart';
 import 'barra_trabajadora.dart';
 import 'tarjeta_verificacion_perfil.dart';
 
@@ -228,24 +230,17 @@ class _PerfilTrabajadoraScreenState
                           style: textoError,
                         )
                       else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final Zona zona in zonasAsync.value ?? const <Zona>[])
-                              FilterChip(
-                                label: Text(zona.nombre),
-                                selected: _zonasElegidas.contains(zona.id),
-                                onSelected: (elegida) => setState(() {
-                                  if (elegida) {
-                                    _zonasElegidas.add(zona.id);
-                                  } else {
-                                    _zonasElegidas.remove(zona.id);
-                                  }
-                                  _errorSeleccion = null;
-                                }),
-                              ),
-                          ],
+                        // Corrección de la revisión: lista por
+                        // Municipio → Parroquia → Urbanizaciones.
+                        SelectorZonasMultiple(
+                          zonas: zonasAsync.value ?? const <Zona>[],
+                          seleccionadas: _zonasElegidas,
+                          onChanged: (nuevas) => setState(() {
+                            _zonasElegidas
+                              ..clear()
+                              ..addAll(nuevas);
+                            _errorSeleccion = null;
+                          }),
                         ),
                       if (_errorSeleccion != null) ...[
                         const SizedBox(height: 8),
@@ -347,6 +342,10 @@ class _PerfilTrabajadoraScreenState
                               )
                             : const Text('Guardar cambios'),
                       ),
+                      // Corrección del review: "Cerrar sesión" va dentro
+                      // del perfil, no en la barra.
+                      const SeccionCuenta(),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),

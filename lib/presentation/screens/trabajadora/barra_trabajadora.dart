@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
-import '../../widgets/avatar_usuario.dart';
-import '../../widgets/boton_cerrar_sesion.dart';
+import '../../widgets/acceso_perfil.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
@@ -34,7 +33,6 @@ class BarraTrabajadora extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final movil = Responsive.esMovil(context);
-    final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
     // maybeOf por si la barra se muestra fuera de un router (pruebas):
     // en ese caso ninguna pestaña queda activa.
     final ubicacion = GoRouter.maybeOf(context)?.state.uri.toString() ?? '';
@@ -43,20 +41,14 @@ class BarraTrabajadora extends StatelessWidget {
       ubicacion: ubicacion,
       onTrabajos: () => context.go(Rutas.inicioTrabajadora),
       onMisServicios: () => context.go(Rutas.misServicios),
-      onMiPerfil: () => context.go(Rutas.perfilTrabajadora),
     );
 
-    final usuario = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-      AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, tamano: 36),
-        if (!movil) ...[
-          const SizedBox(width: 10),
-          Text(primerNombre, style: Theme.of(context).textTheme.labelMedium),
-        ],
-        const SizedBox(width: 8),
-        const BotonCerrarSesion(),
-      ],
+    // Corrección del review: "Mi perfil" y el nombre eran lo mismo. Ahora
+    // el avatar con el nombre abre el perfil, y "Cerrar sesión" está dentro.
+    final usuario = AccesoPerfil(
+      nombre: nombre,
+      fotoUrl: fotoUrl,
+      rutaPerfil: Rutas.perfilTrabajadora,
     );
 
     return Material(
@@ -76,10 +68,13 @@ class BarraTrabajadora extends StatelessWidget {
                   child: Row(
                     children: [
                       LogoLimpiaYa(tamano: 36, soloMarca: movil),
+                      // Las pestañas usan el espacio que queda entre el
+                      // logo y el nombre; si no caben, se desplazan en vez
+                      // de desbordar la barra (ventanas de ~800 px).
                       if (!movil) ...[
-                        const Spacer(),
-                        pestanas,
-                        const Spacer(),
+                        const SizedBox(width: 16),
+                        Expanded(child: Center(child: pestanas)),
+                        const SizedBox(width: 16),
                       ] else
                         const Spacer(),
                       usuario,
@@ -110,14 +105,12 @@ class _Pestanas extends StatelessWidget {
     required this.ubicacion,
     required this.onTrabajos,
     required this.onMisServicios,
-    required this.onMiPerfil,
   });
 
   /// Dirección actual, para marcar la pestaña activa.
   final String ubicacion;
   final VoidCallback onTrabajos;
   final VoidCallback onMisServicios;
-  final VoidCallback onMiPerfil;
 
   @override
   Widget build(BuildContext context) {
@@ -134,11 +127,6 @@ class _Pestanas extends StatelessWidget {
           activa: ubicacion == Rutas.misServicios ||
               ubicacion.startsWith('${Rutas.misServicios}/'),
           onTap: onMisServicios,
-        ),
-        _Pestana(
-          etiqueta: 'Mi perfil',
-          activa: ubicacion == Rutas.perfilTrabajadora,
-          onTap: onMiPerfil,
         ),
       ],
     );

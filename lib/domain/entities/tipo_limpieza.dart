@@ -13,6 +13,12 @@ enum TipoLimpieza {
   /// Texto que ve la persona en pantalla.
   final String etiqueta;
 
+  /// Nombre del servicio para títulos: "Limpieza profunda", "Planchado".
+  String get servicio => switch (this) {
+        TipoLimpieza.planchado => 'Planchado',
+        _ => 'Limpieza ${etiqueta.toLowerCase()}',
+      };
+
   static TipoLimpieza desdeDb(String valor) =>
       TipoLimpieza.values.firstWhere((tipo) => tipo.valorDb == valor);
 }

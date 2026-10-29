@@ -15,6 +15,7 @@ import '../../../domain/entities/zona.dart';
 import '../../../domain/services/solicitud_service.dart';
 import '../../providers/publicar_solicitud_provider.dart';
 import '../../widgets/estado_vacio.dart';
+import '../../widgets/selector_zona.dart';
 
 /// HU-07 · Publicar una solicitud de limpieza (incluye HU-43 y HU-52).
 ///
@@ -327,36 +328,37 @@ class _PublicarSolicitudScreenState
             const Divider(height: 40),
             Text('Lugar', style: tema.textTheme.titleLarge),
             const SizedBox(height: 16),
-            _DosColumnas(
-              izquierda: zonas.when(
-                data: (lista) => _SelectorZona(
-                  zonas: lista,
-                  valor: _zonaId,
-                  mostrarError: _intentoEnviar && _zonaId == null,
-                  onCambio: (id) => setState(() => _zonaId = id),
-                ),
-                loading: () => const LinearProgressIndicator(),
-                error: (_, _) => Row(
-                  children: [
-                    const Expanded(child: Text('No pudimos cargar las zonas.')),
-                    // H9: el error trae su solución.
-                    TextButton(
-                      onPressed: () => ref.invalidate(zonasCatalogoProvider),
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
-                ),
+            // Corrección de la revisión: la zona se elige en orden
+            // Municipio → Parroquia → Urbanización.
+            zonas.when(
+              data: (lista) => SelectorZona(
+                zonas: lista,
+                valor: _zonaId,
+                onChanged: (id) => setState(() => _zonaId = id),
+                validator: (_) => _zonaId == null ? 'Elige una zona' : null,
               ),
-              derecha: TextFormField(
-                controller: _direccion,
-                decoration: const InputDecoration(
-                  labelText: 'Dirección',
-                  helperText: 'Privada hasta que elijas a una trabajadora',
-                ),
-                validator: (v) => (v == null || v.trim().length < 5)
-                    ? 'Escribe la dirección completa'
-                    : null,
+              loading: () => const LinearProgressIndicator(),
+              error: (_, _) => Row(
+                children: [
+                  const Expanded(child: Text('No pudimos cargar las zonas.')),
+                  // H9: el error trae su solución.
+                  TextButton(
+                    onPressed: () => ref.invalidate(zonasCatalogoProvider),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _direccion,
+              decoration: const InputDecoration(
+                labelText: 'Dirección',
+                helperText: 'Privada hasta que elijas a una trabajadora',
+              ),
+              validator: (v) => (v == null || v.trim().length < 5)
+                  ? 'Escribe la dirección completa'
+                  : null,
             ),
             const SizedBox(height: 16),
             _DosColumnas(
@@ -841,40 +843,6 @@ class _Opciones<T> extends StatelessWidget {
         ),
         if (error != null) _TextoError(texto: error!),
       ],
-    );
-  }
-}
-
-class _SelectorZona extends StatelessWidget {
-  const _SelectorZona({
-    required this.zonas,
-    required this.valor,
-    required this.mostrarError,
-    required this.onCambio,
-  });
-
-  final List<Zona> zonas;
-  final int? valor;
-  final bool mostrarError;
-  final ValueChanged<int?> onCambio;
-
-  @override
-  Widget build(BuildContext context) {
-    final existe = zonas.any((z) => z.id == valor);
-    return DropdownButtonFormField<int>(
-      // La clave hace que el selector muestre la zona precargada (HU-05 c2).
-      key: ValueKey(existe ? valor : null),
-      initialValue: existe ? valor : null,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: 'Zona',
-        errorText: mostrarError ? 'Elige una zona' : null,
-      ),
-      items: [
-        for (final zona in zonas)
-          DropdownMenuItem(value: zona.id, child: Text(zona.nombre)),
-      ],
-      onChanged: onCambio,
     );
   }
 }

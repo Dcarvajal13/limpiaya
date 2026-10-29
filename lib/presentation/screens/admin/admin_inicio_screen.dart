@@ -31,34 +31,12 @@ class AdminInicioScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
-  final _motivo = TextEditingController();
   String? _seleccionada;
-  String? _errorMotivo;
   bool _guardando = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _motivo.addListener(() {
-      if (_errorMotivo != null && _motivo.text.trim().isNotEmpty) {
-        setState(() => _errorMotivo = null);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _motivo.dispose();
-    super.dispose();
-  }
 
   void _elegir(VerificacionPendiente verificacion) {
     if (_guardando) return;
-    setState(() {
-      _seleccionada = verificacion.id;
-      _motivo.clear();
-      _errorMotivo = null;
-    });
+    setState(() => _seleccionada = verificacion.id);
   }
 
   Future<void> _aprobar(VerificacionPendiente verificacion) async {
@@ -73,24 +51,19 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
     );
   }
 
+  /// Corrección del review: el motivo ya no está siempre en la tarjeta;
+  /// "Rechazar" abre un pop-up para escribirlo (HU-33 c3 sigue igual: sin
+  /// motivo muestra "Indica el motivo" y no rechaza).
   Future<void> _rechazar(VerificacionPendiente verificacion) async {
-    // HU-33 c3: sin motivo no se abre la confirmación.
-    final error = VerificacionService.validarMotivo(_motivo.text);
-    if (error != null) {
-      setState(() => _errorMotivo = error);
-      return;
-    }
-    final confirmado = await _confirmar(
-      titulo: '¿Rechazar esta verificación?',
-      mensaje: 'La trabajadora recibirá el motivo y podrá enviar documentos '
-          'nuevos.',
-      peligro: true,
+    final motivo = await showDialog<String>(
+      context: context,
+      builder: (context) => _DialogoRechazo(nombre: verificacion.nombre),
     );
-    if (!confirmado) return;
+    if (motivo == null) return;
     await _guardar(
       () => ref
           .read(verificacionServiceProvider)
-          .rechazar(verificacion.id, _motivo.text),
+          .rechazar(verificacion.id, motivo),
       'Verificación rechazada.',
     );
   }
@@ -100,9 +73,7 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
     setState(() => _guardando = true);
     try {
       await accion();
-      _motivo.clear();
       _seleccionada = null;
-      _errorMotivo = null;
       ref.invalidate(verificacionesPendientesProvider);
       mensajes.showSnackBar(SnackBar(content: Text(exito)));
     } on AppException catch (e) {
@@ -259,8 +230,6 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
 
     final detalle = _DetalleVerificacion(
       verificacion: actual,
-      motivo: _motivo,
-      errorMotivo: _errorMotivo,
       guardando: _guardando,
       movil: movil,
       onAprobar: () => _aprobar(actual),
@@ -454,12 +423,10 @@ class _FilaVerificacion extends StatelessWidget {
   }
 }
 
-/// Tarjeta con los datos, las dos fotos, el motivo y los botones.
+/// Tarjeta con los datos, las dos fotos y los botones (centrados).
 class _DetalleVerificacion extends StatelessWidget {
   const _DetalleVerificacion({
     required this.verificacion,
-    required this.motivo,
-    required this.errorMotivo,
     required this.guardando,
     required this.movil,
     required this.onAprobar,
@@ -467,8 +434,6 @@ class _DetalleVerificacion extends StatelessWidget {
   });
 
   final VerificacionPendiente verificacion;
-  final TextEditingController motivo;
-  final String? errorMotivo;
   final bool guardando;
   final bool movil;
   final VoidCallback onAprobar;
@@ -563,29 +528,21 @@ class _DetalleVerificacion extends StatelessWidget {
                 Expanded(child: documentos[1]),
               ],
             ),
-          const SizedBox(height: 25),
-          CampoTexto(
-            etiqueta: 'Motivo (obligatorio si rechazas)',
-            pista: 'Explica claramente el motivo…',
-            controller: motivo,
-            enabled: !guardando,
-          ),
-          if (errorMotivo != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              errorMotivo!,
-              style: textos.bodySmall?.copyWith(color: AppColors.error),
-            ),
-          ],
-          const SizedBox(height: 30),
+          const SizedBox(height: 32),
           if (movil)
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [rechazar, const SizedBox(height: 10), aprobar],
+              children: [aprobar, const SizedBox(height: 10), rechazar],
             )
           else
+            // Corrección del review: los botones centrados en la tarjeta.
             Row(
-              children: [rechazar, const SizedBox(width: 10), aprobar],
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(width: 200, child: rechazar),
+                const SizedBox(width: 16),
+                SizedBox(width: 200, child: aprobar),
+              ],
             ),
         ],
       ),
@@ -673,6 +630,86 @@ class _Documento extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(etiqueta, style: textos.bodySmall, textAlign: TextAlign.center),
+      ],
+    );
+  }
+}
+
+/// Pop-up para escribir el motivo del rechazo (corrección del review).
+/// Devuelve el motivo, o null si el admin elige "Volver".
+class _DialogoRechazo extends StatefulWidget {
+  const _DialogoRechazo({required this.nombre});
+
+  final String nombre;
+
+  @override
+  State<_DialogoRechazo> createState() => _DialogoRechazoState();
+}
+
+class _DialogoRechazoState extends State<_DialogoRechazo> {
+  final _motivo = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _motivo.dispose();
+    super.dispose();
+  }
+
+  void _confirmar() {
+    // HU-33 c3: sin motivo no se rechaza.
+    final error = VerificacionService.validarMotivo(_motivo.text);
+    if (error != null) {
+      setState(() => _error = error);
+      return;
+    }
+    Navigator.of(context).pop(_motivo.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    return AlertDialog(
+      title: const Text('¿Rechazar esta verificación?'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 380, maxWidth: 460),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${widget.nombre} recibirá el motivo y podrá enviar documentos '
+              'nuevos.',
+              style: textos.bodyMedium,
+            ),
+            const SizedBox(height: 18),
+            CampoTexto(
+              etiqueta: 'Motivo del rechazo',
+              pista: 'Ej.: la foto de la cédula no se lee',
+              controller: _motivo,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _confirmar(),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _error!,
+                style: textos.bodySmall?.copyWith(color: AppColors.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Volver'),
+        ),
+        FilledButton(
+          style: AppTheme.botonPeligro,
+          onPressed: _confirmar,
+          child: const Text('Rechazar'),
+        ),
       ],
     );
   }
