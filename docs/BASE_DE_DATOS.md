@@ -177,14 +177,33 @@ Los **cambios de estado** no se pueden hacer directo desde la app; HD-04 debe de
 
 ## Cuenta de administrador (HD-06)
 
-1. Registrarse en la app como cliente con el correo del admin.
-2. En Supabase → **SQL Editor**:
+1. En Supabase → **Authentication** → **Users** → **Add user** → **Create new user**
+   (marcar **Auto Confirm User**).
+2. En el **SQL Editor**:
    ```sql
-   update public.perfiles set rol = 'admin'
-    where id = (select id from auth.users where email = 'CORREO_DEL_ADMIN');
-   delete from public.clientes
-    where id = (select id from auth.users where email = 'CORREO_DEL_ADMIN');
+   select public.hacer_admin('CORREO_DEL_ADMIN');
    ```
+   La función está en la migración `20261027200000_cuenta_admin.sql` y no se
+   puede llamar desde la app.
+
+## Datos de prueba para las demos (HD-07)
+
+`supabase/datos_de_prueba.sql` crea 3 clientes, 5 trabajadoras verificadas,
+10 solicitudes en varias zonas (con postulaciones, una asignada y una
+cancelada). Todas las cuentas terminan en `@demo.limpiaya.app`:
+
+| Rol | Correos |
+|---|---|
+| Cliente | maria@, luis@, gabriela@ |
+| Trabajadora | carmen@, yelitza@, marisol@, andreina@, josefina@ |
+
+1. Abrir el archivo y cambiar la contraseña de la línea «CAMBIA AQUÍ»
+   (no subirla al repositorio; se pasa al equipo por privado).
+2. Pegarlo completo en el **SQL Editor** y darle a **Run**.
+
+Se puede correr otra vez antes de cada review: borra las cuentas de prueba
+anteriores y todo lo suyo, y lo vuelve a crear con fechas a partir de hoy.
+No es una migración: no se aplica con `supabase db push`.
 
 ## Cómo agregar un cambio a la base
 
