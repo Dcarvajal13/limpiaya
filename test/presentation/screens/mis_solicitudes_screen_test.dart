@@ -22,6 +22,13 @@ import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/cliente/mis_solicitudes_screen.dart';
 
 class _RepositorioFalso implements SolicitudRepository {
+  /// HU-10: ids cancelados y su motivo.
+  final canceladas = <String, String?>{};
+
+  @override
+  Future<void> cancelar(String id, {String? motivo}) async =>
+      canceladas[id] = motivo;
+
   _RepositorioFalso({this.solicitudes = const []});
 
   final List<Solicitud> solicitudes;
@@ -73,6 +80,7 @@ Solicitud _solicitud({
   double pagoOfrecido = 30,
   String? trabajadoraNombre,
   double? trabajadoraPromedio,
+  String? motivoCancelacion,
 }) {
   return Solicitud(
     id: id,
@@ -91,6 +99,7 @@ Solicitud _solicitud({
     habitaciones: 2,
     banos: 1,
     tieneMascotas: false,
+    motivoCancelacion: motivoCancelacion,
   );
 }
 
@@ -409,4 +418,97 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  group('HU-10 · cancelar una solicitud sin asignar', () {
+    _RepositorioFalso repoConPublicada() => _RepositorioFalso(
+          solicitudes: [
+            _solicitud(
+              id: 's1',
+              estado: EstadoSolicitud.publicada,
+              tipo: TipoLimpieza.general,
+              inicio: DateTime(2026, 11, 2, 9),
+              numPostulantes: 2,
+            ),
+            _solicitud(
+              id: 's2',
+              estado: EstadoSolicitud.asignada,
+              tipo: TipoLimpieza.profunda,
+              inicio: DateTime(2026, 11, 5, 8),
+              numPostulantes: 1,
+              trabajadoraNombre: 'Ana Gómez',
+            ),
+          ],
+        );
+
+    testWidgets('solo la solicitud Publicada tiene "Cancelar"', (tester) async {
+      _pantallaGrande(tester);
+      await tester.pumpWidget(_app(repoConPublicada()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cancelar'), findsOneWidget);
+    });
+
+    testWidgets('c2: si en la confirmación elijo "No", no se cancela',
+        (tester) async {
+      _pantallaGrande(tester);
+      final repo = repoConPublicada();
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Cancelar esta solicitud?'), findsOneWidget);
+      expect(
+        find.text('Las 2 trabajadoras que se postularon verán que la cancelaste.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('No'));
+      await tester.pumpAndSettle();
+
+      expect(repo.canceladas, isEmpty);
+      expect(find.text('Publicada'), findsOneWidget);
+    });
+
+    testWidgets('c1: al confirmar se cancela con el motivo elegido',
+        (tester) async {
+      _pantallaGrande(tester);
+      final repo = repoConPublicada();
+      await tester.pumpWidget(_app(repo));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Selecciona un motivo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cambio de planes').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sí, cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(repo.canceladas, {'s1': 'Cambio de planes'});
+      expect(find.text('Solicitud cancelada.'), findsOneWidget);
+    });
+
+    testWidgets('la tarjeta Cancelada muestra el motivo guardado',
+        (tester) async {
+      _pantallaGrande(tester);
+      await tester.pumpWidget(_app(_RepositorioFalso(
+        solicitudes: [
+          _solicitud(
+            id: 's1',
+            estado: EstadoSolicitud.cancelada,
+            tipo: TipoLimpieza.general,
+            inicio: DateTime(2026, 11, 2, 9),
+            numPostulantes: 0,
+            motivoCancelacion: 'Ya no necesito el servicio',
+          ),
+        ],
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Motivo: Ya no necesito el servicio'), findsOneWidget);
+      expect(find.text('Cancelar'), findsNothing);
+    });
+  });
 }

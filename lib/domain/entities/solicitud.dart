@@ -31,6 +31,7 @@ class Solicitud {
     this.puntoReferencia,
     this.notas,
     this.createdAt,
+    this.motivoCancelacion,
   });
 
   final String id;
@@ -71,4 +72,7 @@ class Solicitud {
   final String? puntoReferencia;
   final String? notas;
   final DateTime? createdAt;
+
+  /// Motivo que eligió el cliente al cancelarla (HU-10), si eligió uno.
+  final String? motivoCancelacion;
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/core/errors/app_exception.dart';
 import 'package:limpiaya/domain/entities/direccion_cliente.dart';
+import 'package:limpiaya/domain/entities/estado_solicitud.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/quien_pone_productos.dart';
@@ -13,6 +14,9 @@ import 'package:limpiaya/domain/services/solicitud_service.dart';
 
 /// Repositorio falso: no habla con Supabase, solo cuenta las publicaciones.
 class _RepositorioFalso implements SolicitudRepository {
+  @override
+  Future<void> cancelar(String id, {String? motivo}) async {}
+
   int publicadas = 0;
 
   @override
@@ -99,5 +103,40 @@ void main() {
   test('HU-52: la tarifa es el 10 % y el total la suma', () {
     expect(SolicitudService.tarifa(30), 3);
     expect(SolicitudService.total(30), 33);
+  });
+
+  group('HU-10 · cancelar', () {
+    Solicitud conEstado(EstadoSolicitud estado) => Solicitud(
+          id: 's1',
+          clienteId: 'c1',
+          estado: estado,
+          tipo: TipoLimpieza.general,
+          zonaId: 1,
+          zona: 'Chacao',
+          inicio: DateTime(2026, 10, 24, 9),
+          horasEstimadas: 4,
+          pagoOfrecido: 30,
+          metodoPago: MetodoPago.pagoMovil,
+          numPostulantes: 0,
+        );
+
+    test('solo se puede cancelar una solicitud Publicada', () {
+      expect(SolicitudService.sePuedeCancelar(
+          conEstado(EstadoSolicitud.publicada)), isTrue);
+      for (final estado in [
+        EstadoSolicitud.asignada,
+        EstadoSolicitud.completada,
+        EstadoSolicitud.cancelada,
+      ]) {
+        expect(SolicitudService.sePuedeCancelar(conEstado(estado)), isFalse);
+      }
+    });
+
+    test('cancelar una asignada da error', () {
+      expect(
+        () => servicio.cancelar(conEstado(EstadoSolicitud.asignada)),
+        throwsA(isA<AppException>()),
+      );
+    });
   });
 }

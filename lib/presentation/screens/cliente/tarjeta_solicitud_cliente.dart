@@ -35,11 +35,15 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     required this.solicitud,
     this.onTap,
     this.onEditar,
+    this.onCancelar,
   });
 
   final Solicitud solicitud;
   final VoidCallback? onTap;
   final VoidCallback? onEditar;
+
+  /// HU-10 · Cancelar la solicitud (solo si está Publicada).
+  final VoidCallback? onCancelar;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -272,8 +276,12 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         }
 
       case EstadoSolicitud.cancelada:
+        final motivo = solicitud.motivoCancelacion;
+        if (motivo == null || motivo.trim().isEmpty) {
+          return const SizedBox.shrink();
+        }
         return Text(
-          'Motivo: ${solicitud.notas ?? 'Cambio de planes'}',
+          'Motivo: $motivo',
           style: textos.bodySmall?.copyWith(
             fontSize: 12,
             color: AppColors.textoSecundario,
@@ -307,22 +315,39 @@ class TarjetaSolicitudCliente extends StatelessWidget {
               child: const Text('Ver postulantes'),
             ),
             const SizedBox(height: 4),
-            TextButton(
-              onPressed: () {
-                if (onEditar != null) return onEditar!();
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text('Editar solicitud estará disponible pronto (HU-09)'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    if (onEditar != null) return onEditar!();
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Editar solicitud estará disponible pronto (HU-09)',
+                          ),
+                        ),
+                      );
+                  },
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 32),
+                    foregroundColor: AppColors.primario,
+                  ),
+                  child: const Text('Editar'),
+                ),
+                if (onCancelar != null)
+                  TextButton(
+                    onPressed: onCancelar,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(0, 32),
+                      foregroundColor: AppColors.error,
                     ),
-                  );
-              },
-              style: TextButton.styleFrom(
-                minimumSize: const Size(0, 32),
-                foregroundColor: AppColors.primario,
-              ),
-              child: const Text('Editar'),
+                    child: const Text('Cancelar'),
+                  ),
+              ],
             ),
           ],
         );
