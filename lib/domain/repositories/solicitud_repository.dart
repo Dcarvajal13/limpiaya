@@ -31,4 +31,8 @@ abstract interface class SolicitudRepository {
   /// HU-08 · Solicitudes del cliente con sesión, ordenadas por fecha de servicio
   /// con su estado actual (Publicada, Asignada, Completada o Cancelada).
   Future<List<Solicitud>> misSolicitudes();
+
+  /// HU-10 · Cancela una solicitud Publicada del cliente con sesión. Sus
+  /// postulaciones pendientes pasan a "Solicitud cancelada".
+  Future<void> cancelar(String id, {String? motivo});
 }

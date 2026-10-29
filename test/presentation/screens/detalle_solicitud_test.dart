@@ -39,6 +39,9 @@ SolicitudDisponible _solicitud() => SolicitudDisponible(
 );
 
 class _SolicitudesFalsas implements SolicitudRepository {
+  @override
+  Future<void> cancelar(String id, {String? motivo}) async {}
+
   _SolicitudesFalsas({this.detalle});
 
   /// Lo que devuelve `solicitudDisponible(id)`; null = ya no está.

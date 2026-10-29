@@ -20,6 +20,9 @@ import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
 
 class _RepositorioFalso implements SolicitudRepository {
+  @override
+  Future<void> cancelar(String id, {String? motivo}) async {}
+
   _RepositorioFalso({this.zonas = const [], this.solicitudes = const []});
 
   /// Se puede cambiar en la prueba, como si la trabajadora editara su perfil.

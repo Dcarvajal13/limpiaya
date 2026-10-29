@@ -25,6 +25,9 @@ import 'package:limpiaya/presentation/screens/trabajadora/solicitudes_disponible
 
 class _SolicitudesFalsas implements SolicitudRepository {
   @override
+  Future<void> cancelar(String id, {String? motivo}) async {}
+
+  @override
   Future<List<Zona>> misZonas() async => const [
     Zona(id: 1, nombre: 'Chacao (casco)'),
   ];

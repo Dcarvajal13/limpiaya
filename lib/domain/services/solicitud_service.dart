@@ -1,8 +1,11 @@
 import '../../core/errors/app_exception.dart';
+import '../entities/estado_solicitud.dart';
 import '../entities/nueva_solicitud.dart';
+import '../entities/solicitud.dart';
 import '../repositories/solicitud_repository.dart';
 
-/// Reglas de negocio de HU-07 · Publicar una solicitud de limpieza.
+/// Reglas de negocio de HU-07 · Publicar una solicitud de limpieza y
+/// HU-10 · Cancelar una solicitud sin asignar.
 class SolicitudService {
   SolicitudService(this._repositorio, {DateTime Function()? ahora})
       : _ahora = ahora ?? DateTime.now;
@@ -46,5 +49,23 @@ class SolicitudService {
       throw const AppException('Revisa las habitaciones y los baños');
     }
     return _repositorio.publicar(solicitud);
+  }
+
+  /// Motivos que se ofrecen al cancelar (Figma, modal "Cancelar servicio").
+  static const motivosCancelacion = [
+    'Cambio de planes',
+    'Ya no necesito el servicio',
+    'Otro',
+  ];
+
+  /// HU-10 · Solo se cancela una solicitud Publicada (sin trabajadora).
+  static bool sePuedeCancelar(Solicitud solicitud) =>
+      solicitud.estado == EstadoSolicitud.publicada;
+
+  Future<void> cancelar(Solicitud solicitud, {String? motivo}) {
+    if (!sePuedeCancelar(solicitud)) {
+      throw const AppException('Solo puedes cancelar solicitudes publicadas');
+    }
+    return _repositorio.cancelar(solicitud.id, motivo: motivo);
   }
 }

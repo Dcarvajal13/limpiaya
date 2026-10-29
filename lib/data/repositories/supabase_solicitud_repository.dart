@@ -189,4 +189,27 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
       throw const AppException('No pudimos cargar tus solicitudes.');
     }
   }
+
+  @override
+  Future<void> cancelar(String id, {String? motivo}) async {
+    try {
+      // Función cancelar_solicitud (migración de HU-10): solo cancela si es
+      // del cliente y sigue Publicada, y avisa a las postulantes (c3).
+      await _client.rpc(
+        'cancelar_solicitud',
+        params: {'p_solicitud': id, 'p_motivo': motivo},
+      );
+    } on PostgrestException catch (e) {
+      if (e.message.contains('Solo puedes cancelar')) {
+        throw const AppException(
+          'Esta solicitud ya no está publicada. Actualiza la lista.',
+        );
+      }
+      throw const AppException('No pudimos cancelar la solicitud. Intenta de nuevo.');
+    } on Exception {
+      throw const AppException(
+        'No pudimos cancelar la solicitud. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
 }

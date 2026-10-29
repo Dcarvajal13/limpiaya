@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/di/providers.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
@@ -16,6 +17,7 @@ import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import 'banner_cliente.dart';
 import 'barra_cliente.dart';
+import 'dialogo_cancelar_solicitud.dart';
 import 'tarjeta_solicitud_cliente.dart';
 
 /// HU-08 · Ver mis solicitudes y su estado.
@@ -39,6 +41,25 @@ class MisSolicitudesScreen extends ConsumerStatefulWidget {
 
 class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
   EstadoSolicitud? _filtroEstado;
+
+  /// HU-10 · Pide confirmación y cancela. Con "No" no cambia nada (c2).
+  Future<void> _cancelar(Solicitud solicitud) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    final confirmacion =
+        await mostrarDialogoCancelarSolicitud(context, solicitud);
+    if (confirmacion == null || !mounted) return;
+    try {
+      await ref
+          .read(solicitudServiceProvider)
+          .cancelar(solicitud, motivo: confirmacion.motivo);
+      ref.invalidate(misSolicitudesProvider);
+      mensajes.showSnackBar(
+        const SnackBar(content: Text('Solicitud cancelada.')),
+      );
+    } on AppException catch (e) {
+      mensajes.showSnackBar(SnackBar(content: Text(e.mensaje)));
+    }
+  }
 
   String _construirResumen(List<Solicitud> solicitudes) {
     final ahora = DateTime.now();
@@ -204,7 +225,10 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                         return Column(
                           children: [
                             for (final solicitud in filtradas) ...[
-                              TarjetaSolicitudCliente(solicitud: solicitud),
+                              TarjetaSolicitudCliente(
+                                solicitud: solicitud,
+                                onCancelar: () => _cancelar(solicitud),
+                              ),
                               const SizedBox(height: 12),
                             ],
                           ],
