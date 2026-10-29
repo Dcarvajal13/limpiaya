@@ -5,6 +5,7 @@ import '../entities/solicitud.dart';
 import '../repositories/solicitud_repository.dart';
 
 /// Reglas de negocio de HU-07 · Publicar una solicitud de limpieza y
+/// HU-09 · Editar una solicitud publicada y
 /// HU-10 · Cancelar una solicitud sin asignar.
 class SolicitudService {
   SolicitudService(this._repositorio, {DateTime Function()? ahora})
@@ -29,6 +30,12 @@ class SolicitudService {
 
   /// Valida la solicitud y la publica. Devuelve el id de la solicitud.
   Future<String> publicar(NuevaSolicitud solicitud) async {
+    _validar(solicitud);
+    return _repositorio.publicar(solicitud);
+  }
+
+  /// Reglas comunes a publicar (HU-07) y editar (HU-09).
+  void _validar(NuevaSolicitud solicitud) {
     if (!solicitud.inicio.isAfter(_ahora())) {
       throw const AppException('La fecha debe ser futura'); // HU-07 c2
     }
@@ -48,7 +55,6 @@ class SolicitudService {
     if (solicitud.habitaciones < 0 || solicitud.banos < 0) {
       throw const AppException('Revisa las habitaciones y los baños');
     }
-    return _repositorio.publicar(solicitud);
   }
 
   /// Motivos que se ofrecen al cancelar (Figma, modal "Cancelar servicio").
@@ -67,5 +73,26 @@ class SolicitudService {
       throw const AppException('Solo puedes cancelar solicitudes publicadas');
     }
     return _repositorio.cancelar(solicitud.id, motivo: motivo);
+  }
+
+  /// HU-09 c2 · Solo se edita mientras está Publicada (sin trabajadora).
+  static bool sePuedeEditar(Solicitud solicitud) =>
+      solicitud.estado == EstadoSolicitud.publicada;
+
+  /// HU-09 c3 · ¿Cambió la fecha, la hora o el pago? Si la solicitud tiene
+  /// postulantes, la app pide confirmar antes de guardar.
+  static bool cambiaFechaHoraOPago(Solicitud original, NuevaSolicitud nueva) =>
+      !original.inicio.isAtSameMomentAs(nueva.inicio) ||
+      original.pagoOfrecido != nueva.pagoOfrecido;
+
+  /// HU-09 · Valida y guarda los cambios (c1).
+  Future<void> editar(Solicitud original, NuevaSolicitud nueva) async {
+    if (!sePuedeEditar(original)) {
+      throw const AppException(
+        'Esta solicitud ya no se puede editar porque dejó de estar publicada.',
+      );
+    }
+    _validar(nueva);
+    await _repositorio.editar(original.id, nueva);
   }
 }

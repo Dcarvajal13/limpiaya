@@ -212,4 +212,75 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
       );
     }
   }
+
+  @override
+  Future<Solicitud?> miSolicitud(String id) async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) return null;
+    try {
+      // RLS: el cliente lee sus solicitudes completas (con la dirección).
+      final fila = await _client
+          .from('solicitudes')
+          .select()
+          .eq('id', id)
+          .eq('cliente_id', usuario.id)
+          .maybeSingle();
+      if (fila == null) return null;
+
+      // La tabla no trae el conteo de postulantes; la vista sí (HU-09 c3).
+      final conteo = await _client
+          .from('solicitudes_publicas')
+          .select('num_postulantes')
+          .eq('id', id)
+          .maybeSingle();
+
+      return SolicitudModel.solicitudDesdeJson({
+        ...fila,
+        'num_postulantes': conteo?['num_postulantes'] ?? 0,
+      });
+    } on Exception {
+      throw const AppException('No pudimos cargar la solicitud.');
+    }
+  }
+
+  @override
+  Future<void> editar(String id, NuevaSolicitud datos) async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) {
+      throw const AppException('Tu sesión expiró. Inicia sesión de nuevo.');
+    }
+
+    final cambios = SolicitudModel.nuevaAJson(datos, usuario.id)
+      ..remove('cliente_id'); // no se puede cambiar de dueño
+
+    final List<dynamic> filas;
+    try {
+      // RLS "el cliente edita mientras está publicada": si ya se asignó, no
+      // se actualiza ninguna fila (HU-09 c2).
+      filas = await _client
+          .from('solicitudes')
+          .update(cambios)
+          .eq('id', id)
+          .eq('estado', 'publicada')
+          .select('id');
+    } on PostgrestException catch (e) {
+      // El trigger rechaza mover la solicitud a una fecha pasada.
+      if (e.message.contains('La fecha debe ser futura')) {
+        throw const AppException('La fecha debe ser futura');
+      }
+      throw const AppException(
+        'No pudimos guardar los cambios. Revisa los datos e intenta de nuevo.',
+      );
+    } on Exception {
+      throw const AppException(
+        'No pudimos guardar los cambios. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+
+    if (filas.isEmpty) {
+      throw const AppException(
+        'Esta solicitud ya no se puede editar porque dejó de estar publicada.',
+      );
+    }
+  }
 }

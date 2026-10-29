@@ -117,6 +117,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Rutas.publicarSolicitud,
         builder: (context, state) => const PublicarSolicitudScreen(),
       ),
+      GoRoute(
+        path: Rutas.editarSolicitudPatron,
+        builder: (context, state) => PublicarSolicitudScreen(
+          solicitudId: state.pathParameters['id'],
+        ),
+      ),
     ],
   );
   ref.onDispose(router.dispose);

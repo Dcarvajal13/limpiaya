@@ -40,6 +40,12 @@ SolicitudDisponible _solicitud() => SolicitudDisponible(
 
 class _SolicitudesFalsas implements SolicitudRepository {
   @override
+  Future<Solicitud?> miSolicitud(String id) async => null;
+
+  @override
+  Future<void> editar(String id, NuevaSolicitud datos) async {}
+
+  @override
   Future<void> cancelar(String id, {String? motivo}) async {}
 
   _SolicitudesFalsas({this.detalle});

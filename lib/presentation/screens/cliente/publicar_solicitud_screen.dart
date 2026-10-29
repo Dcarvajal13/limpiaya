@@ -7,15 +7,24 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
 import '../../../domain/entities/metodo_pago.dart';
 import '../../../domain/entities/nueva_solicitud.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/quien_pone_productos.dart';
+import '../../../domain/entities/solicitud.dart';
 import '../../../domain/entities/tipo_limpieza.dart';
 import '../../../domain/entities/zona.dart';
 import '../../../domain/services/solicitud_service.dart';
 import '../../providers/publicar_solicitud_provider.dart';
+import '../../widgets/estado_vacio.dart';
 
 /// HU-07 · Publicar una solicitud de limpieza (incluye HU-43 y HU-52).
+///
+/// Con [solicitudId] es HU-09 · Editar una solicitud publicada (Figma:
+/// "Editar solicitud", mismo formulario con "Guardar cambios").
 class PublicarSolicitudScreen extends ConsumerStatefulWidget {
-  const PublicarSolicitudScreen({super.key});
+  const PublicarSolicitudScreen({super.key, this.solicitudId});
+
+  /// Id de la solicitud a editar, o null para publicar una nueva.
+  final String? solicitudId;
 
   @override
   ConsumerState<PublicarSolicitudScreen> createState() =>
@@ -40,6 +49,11 @@ class _PublicarSolicitudScreenState
   MetodoPago _metodo = MetodoPago.pagoMovil;
   bool _intentoEnviar = false;
 
+  /// HU-09: la solicitud tal como estaba antes de editarla.
+  Solicitud? _original;
+
+  bool get _editando => widget.solicitudId != null;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +61,23 @@ class _PublicarSolicitudScreenState
     _fecha = DateTime(manana.year, manana.month, manana.day);
     _direccion.addListener(() => setState(() {}));
     _pago.addListener(() => setState(() {}));
+
+    // HU-09: al editar, el formulario se llena cuando llega la solicitud.
+    // Se hace aquí y no en build porque cambiar el texto de un campo avisa
+    // a sus listeners, y eso no se puede durante build.
+    if (_editando) {
+      ref.listenManual(
+        solicitudParaEditarProvider(widget.solicitudId!),
+        (anterior, actual) {
+          final solicitud = actual.value;
+          if (solicitud == null || _original != null || !mounted) return;
+          _sembrar(solicitud);
+          setState(() {});
+        },
+        fireImmediately: true,
+      );
+      return;
+    }
 
     // HU-05 c2: zona y dirección precargadas, y se pueden cambiar.
     ref.read(direccionGuardadaProvider.future).then((guardada) {
@@ -65,6 +96,56 @@ class _PublicarSolicitudScreenState
     _direccion.dispose();
     _pago.dispose();
     super.dispose();
+  }
+
+  /// HU-09 · Llena el formulario con la solicitud a editar (una sola vez).
+  void _sembrar(Solicitud solicitud) {
+    if (_original != null) return;
+    _original = solicitud;
+    final inicio = solicitud.inicio;
+    _fecha = DateTime(inicio.year, inicio.month, inicio.day);
+    _hora = TimeOfDay(hour: inicio.hour, minute: inicio.minute);
+    _horas = solicitud.horasEstimadas.round();
+    _tipo = solicitud.tipo;
+    _zonaId = solicitud.zonaId;
+    _direccion.text = solicitud.direccion ?? '';
+    final pago = solicitud.pagoOfrecido;
+    _pago.text = pago == pago.roundToDouble()
+        ? pago.toStringAsFixed(0)
+        : pago.toStringAsFixed(2);
+    _habitaciones = solicitud.habitaciones;
+    _banos = solicitud.banos;
+    _mascotas = solicitud.tieneMascotas;
+    _productos = solicitud.productosPor;
+    _metodo = solicitud.metodoPago;
+  }
+
+  /// HU-09 c3 · Confirmar cuando las postulantes verán otra fecha, hora o pago.
+  Future<bool> _confirmarCambios(int postulantes) async {
+    final respuesta = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Guardar los cambios?'),
+        content: Text(
+          postulantes == 1
+              ? 'Ya tienes 1 postulante. Verá la fecha, la hora o el pago '
+                  'nuevos.'
+              : 'Ya tienes $postulantes postulantes. Verán la fecha, la hora '
+                  'o el pago nuevos.',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Guardar cambios'),
+          ),
+        ],
+      ),
+    );
+    return respuesta ?? false;
   }
 
   DateTime get _inicio =>
@@ -107,7 +188,32 @@ class _PublicarSolicitudScreenState
       banos: _banos,
       tieneMascotas: _mascotas,
       productosPor: _productos,
+      // Al editar se conservan los datos que este formulario no muestra.
+      puntoReferencia: _original?.puntoReferencia,
+      notas: _original?.notas,
     );
+
+    final original = _original;
+    if (_editando && original != null) {
+      if (original.numPostulantes > 0 &&
+          SolicitudService.cambiaFechaHoraOPago(original, solicitud) &&
+          !await _confirmarCambios(original.numPostulantes)) {
+        return;
+      }
+      final guardado = await ref
+          .read(publicarSolicitudProvider.notifier)
+          .editar(original, solicitud);
+      if (!mounted || !guardado) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cambios guardados. Las trabajadoras ya ven la versión actualizada.',
+          ),
+        ),
+      );
+      context.go(Rutas.inicioCliente);
+      return;
+    }
 
     final ok =
         await ref.read(publicarSolicitudProvider.notifier).publicar(solicitud);
@@ -126,6 +232,44 @@ class _PublicarSolicitudScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (_editando) {
+      final cargada = ref.watch(solicitudParaEditarProvider(widget.solicitudId!));
+      final aviso = switch (cargada) {
+        AsyncLoading() => const Center(child: CircularProgressIndicator()),
+        AsyncError(:final error) => EstadoVacio(
+            icono: Icons.wifi_off_rounded,
+            titulo: error is AppException
+                ? error.mensaje
+                : 'No pudimos cargar la solicitud.',
+            textoBoton: 'Volver a Mis solicitudes',
+            onPressed: () => context.go(Rutas.inicioCliente),
+          ),
+        AsyncData(:final value) when value == null => EstadoVacio(
+            icono: Icons.search_off_rounded,
+            titulo: 'No encontramos esta solicitud',
+            textoBoton: 'Volver a Mis solicitudes',
+            onPressed: () => context.go(Rutas.inicioCliente),
+          ),
+        // HU-09 c2: con trabajadora asignada ya no se puede editar.
+        AsyncData(:final value)
+            when value != null && !SolicitudService.sePuedeEditar(value) =>
+          EstadoVacio(
+            icono: Icons.lock_outline_rounded,
+            titulo: 'Esta solicitud ya no se puede editar',
+            mensaje: 'Solo se editan las solicitudes publicadas, antes de '
+                'elegir trabajadora.',
+            textoBoton: 'Volver a Mis solicitudes',
+            onPressed: () => context.go(Rutas.inicioCliente),
+          ),
+        _ => null,
+      };
+      if (aviso != null) return Scaffold(body: SafeArea(child: aviso));
+      // Mientras el formulario se llena (un instante).
+      if (_original == null) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+    }
+
     final estado = ref.watch(publicarSolicitudProvider);
     final zonas = ref.watch(zonasCatalogoProvider);
     final tema = Theme.of(context);
@@ -301,6 +445,11 @@ class _PublicarSolicitudScreenState
       cargando: estado.isLoading,
       error: estado.hasError ? _mensajeDeError(estado.error!) : null,
       onPublicar: _publicar,
+      textoBoton: _editando ? 'Guardar cambios' : 'Publicar solicitud',
+      // Figma: "Las postulantes verán los datos nuevos".
+      aviso: _editando && (_original?.numPostulantes ?? 0) > 0
+          ? 'Las postulantes verán los datos nuevos'
+          : null,
     );
 
     return Scaffold(
@@ -320,7 +469,7 @@ class _PublicarSolicitudScreenState
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Publica una solicitud',
+                    _editando ? 'Editar solicitud' : 'Publica una solicitud',
                     style: tema.textTheme.headlineLarge,
                   ),
                   const SizedBox(height: 4),
@@ -396,6 +545,8 @@ class _VistaPrevia extends StatelessWidget {
     required this.cargando,
     required this.error,
     required this.onPublicar,
+    this.textoBoton = 'Publicar solicitud',
+    this.aviso,
   });
 
   final TipoLimpieza tipo;
@@ -409,6 +560,10 @@ class _VistaPrevia extends StatelessWidget {
   final bool cargando;
   final String? error;
   final VoidCallback onPublicar;
+  final String textoBoton;
+
+  /// Aviso ámbar sobre el botón (HU-09: hay postulantes).
+  final String? aviso;
 
   @override
   Widget build(BuildContext context) {
@@ -489,6 +644,22 @@ class _VistaPrevia extends StatelessWidget {
               ),
             ),
           ],
+          if (aviso != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.insigniaAmbarFondo,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                aviso!,
+                style: tema.textTheme.bodySmall?.copyWith(
+                  color: AppColors.aviso,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: cargando ? null : onPublicar,
@@ -501,7 +672,7 @@ class _VistaPrevia extends StatelessWidget {
                     height: 22,
                     child: CircularProgressIndicator(strokeWidth: 2.5),
                   )
-                : const Text('Publicar solicitud'),
+                : Text(textoBoton),
           ),
         ],
       ),

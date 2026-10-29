@@ -14,6 +14,16 @@ import 'package:limpiaya/domain/services/solicitud_service.dart';
 
 /// Repositorio falso: no habla con Supabase, solo cuenta las publicaciones.
 class _RepositorioFalso implements SolicitudRepository {
+  /// HU-09: ids editados.
+  final editadas = <String>[];
+
+  @override
+  Future<Solicitud?> miSolicitud(String id) async => null;
+
+  @override
+  Future<void> editar(String id, NuevaSolicitud datos) async =>
+      editadas.add(id);
+
   @override
   Future<void> cancelar(String id, {String? motivo}) async {}
 
@@ -137,6 +147,66 @@ void main() {
         () => servicio.cancelar(conEstado(EstadoSolicitud.asignada)),
         throwsA(isA<AppException>()),
       );
+    });
+  });
+
+  group('HU-09 · editar', () {
+    Solicitud original({
+      EstadoSolicitud estado = EstadoSolicitud.publicada,
+      double pago = 30,
+    }) =>
+        Solicitud(
+          id: 's1',
+          clienteId: 'c1',
+          estado: estado,
+          tipo: TipoLimpieza.general,
+          zonaId: 1,
+          zona: 'Chacao',
+          inicio: DateTime(2026, 10, 24, 9),
+          horasEstimadas: 4,
+          pagoOfrecido: pago,
+          metodoPago: MetodoPago.pagoMovil,
+          numPostulantes: 2,
+        );
+
+    test('c1: una solicitud Publicada se guarda', () async {
+      await servicio.editar(original(), solicitud());
+      expect(repo.editadas, ['s1']);
+    });
+
+    test('c2: una solicitud Asignada no se puede editar', () async {
+      expect(SolicitudService.sePuedeEditar(
+          original(estado: EstadoSolicitud.asignada)), isFalse);
+      await expectLater(
+        servicio.editar(original(estado: EstadoSolicitud.asignada), solicitud()),
+        throwsA(isA<AppException>()),
+      );
+      expect(repo.editadas, isEmpty);
+    });
+
+    test('al editar también se exige una fecha futura', () async {
+      await expectLater(
+        servicio.editar(original(), solicitud(inicio: DateTime(2026, 10, 19))),
+        throwsA(isA<AppException>()
+            .having((e) => e.mensaje, 'mensaje', 'La fecha debe ser futura')),
+      );
+    });
+
+    test('c3: detecta cambios de fecha, hora o pago', () {
+      final base = original();
+      expect(SolicitudService.cambiaFechaHoraOPago(base, solicitud()), isFalse);
+      expect(
+        SolicitudService.cambiaFechaHoraOPago(
+            base, solicitud(inicio: DateTime(2026, 10, 24, 10))),
+        isTrue,
+      );
+      expect(
+          SolicitudService.cambiaFechaHoraOPago(base, solicitud(pago: 35)),
+          isTrue);
+      // Cambiar solo las horas no pide confirmación.
+      expect(
+          SolicitudService.cambiaFechaHoraOPago(base, solicitud(horas: 6)),
+          isFalse);
     });
   });
 }
