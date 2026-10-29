@@ -13,6 +13,7 @@ String? redirigir({
   required bool haySesion,
   required RolUsuario? rol,
   bool perfilCompleto = true,
+  bool recuperandoContrasena = false,
 }) {
   if (Rutas.libres.contains(ubicacion)) return null;
 
@@ -20,6 +21,12 @@ String? redirigir({
 
   // Sin sesión: solo landing, login y registro (HU-03, criterio 2).
   if (!haySesion) return esPublica ? null : Rutas.login;
+
+  // HU-19: quien entró con el enlace de "¿Olvidaste tu contraseña?" crea
+  // su contraseña nueva antes de seguir.
+  if (recuperandoContrasena) {
+    return ubicacion == Rutas.nuevaContrasena ? null : Rutas.nuevaContrasena;
+  }
 
   // HU-05, criterio 1: el cliente recién registrado completa su zona y
   // dirección antes de publicar solicitudes. Se revisa ANTES de mandarlo

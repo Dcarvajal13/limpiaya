@@ -9,6 +9,13 @@ import 'package:limpiaya/domain/services/registro_service.dart';
 /// Repositorio falso: no habla con Supabase, solo cuenta las llamadas.
 class _RepositorioFalso implements AuthRepository {
   int registros = 0;
+  String? ultimoTelefono;
+
+  @override
+  Future<void> enviarRecuperacion(String email) async {}
+
+  @override
+  Future<void> cambiarPassword(String nueva) async {}
 
   @override
   Usuario? get usuarioActual => null;
@@ -25,6 +32,7 @@ class _RepositorioFalso implements AuthRepository {
     required RolUsuario rol,
   }) async {
     registros++;
+    ultimoTelefono = telefono;
   }
 
   @override
@@ -70,8 +78,15 @@ void main() {
     expect(repo.registros, 1);
   });
 
-  test('HU-01 c3: rechaza un teléfono sin formato 04XX-XXXXXXX', () {
-    expect(registrar(telefono: '04141234567'), throwsA(isA<AppException>()));
+  test('HU-01 c3: rechaza un teléfono incompleto o que no empieza por 04', () {
+    expect(registrar(telefono: '0414-123'), throwsA(isA<AppException>()));
+    expect(registrar(telefono: '02121234567'), throwsA(isA<AppException>()));
+  });
+
+  test('taller UX (H5): el teléfono sin guion se acepta y se guarda con él',
+      () async {
+    await registrar(telefono: '04141234567');
+    expect(repo.ultimoTelefono, '0414-1234567');
   });
 
   test('HU-01 c4: rechaza contraseñas de menos de 8 caracteres', () {

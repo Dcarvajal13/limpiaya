@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/utils/mascara_telefono.dart';
 import '../../../core/utils/validadores.dart';
 import '../../../domain/entities/rol_usuario.dart';
 import '../../providers/registro_provider.dart';
@@ -172,8 +173,12 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Teléfono',
                           hintText: '04XX-XXXXXXX',
+                          helperText: 'Escribe solo los números; el guion '
+                              'se pone solo',
                         ),
                         keyboardType: TextInputType.phone,
+                        // Taller UX, H5 (severidad 3): máscara automática.
+                        inputFormatters: const [MascaraTelefono()],
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.telephoneNumber],
                         validator: Validadores.telefono,

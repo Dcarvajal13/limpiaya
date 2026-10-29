@@ -334,7 +334,7 @@ class _ItemVerificaciones extends StatelessWidget {
         : Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
             decoration: BoxDecoration(
-              color: AppColors.acento,
+              color: AppColors.acentoTexto, // texto blanco encima (WCAG)
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(

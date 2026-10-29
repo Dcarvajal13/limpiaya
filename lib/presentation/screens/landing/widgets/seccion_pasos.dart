@@ -56,7 +56,7 @@ class _Paso extends StatelessWidget {
     final movil = Responsive.esMovil(context);
 
     final estiloNumero = textos.labelLarge?.copyWith(
-      color: AppColors.acento,
+      color: AppColors.acentoTexto,
       fontWeight: FontWeight.w800,
     );
     final tituloTexto = Text(titulo, style: textos.titleLarge?.copyWith(fontSize: movil ? 18 : 20));
