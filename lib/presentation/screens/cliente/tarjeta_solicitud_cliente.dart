@@ -306,7 +306,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
             FilledButton(
               onPressed: () => _accion(
                 context,
-                'La revisión de postulaciones estará disponible pronto (HU-13)',
+                'La revisión de postulaciones estará disponible pronto',
               ),
               style: FilledButton.styleFrom(
                 minimumSize: Size(movil ? double.infinity : 150, 44),
