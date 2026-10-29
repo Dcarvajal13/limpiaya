@@ -6,6 +6,8 @@ import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
+import 'package:limpiaya/domain/entities/archivo_foto.dart';
+import 'package:limpiaya/domain/entities/mi_verificacion.dart';
 import 'package:limpiaya/domain/entities/verificacion_pendiente.dart';
 import 'package:limpiaya/domain/repositories/verificacion_repository.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
@@ -32,6 +34,14 @@ class _RepositorioFalso implements VerificacionRepository {
     rechazadas[id] = motivo;
     lista = [for (final v in lista) if (v.id != id) v];
   }
+  @override
+  Future<MiVerificacion?> miUltima() async => null;
+
+  @override
+  Future<void> enviar({
+    required ArchivoFoto cedula,
+    required ArchivoFoto selfie,
+  }) async {}
 }
 
 class _SesionAdmin extends SesionNotifier {

@@ -16,6 +16,7 @@ import '../../presentation/screens/trabajadora/detalle_solicitud_screen.dart';
 import '../../presentation/screens/trabajadora/mis_servicios_screen.dart';
 import '../../presentation/screens/trabajadora/perfil_trabajadora_screen.dart';
 import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
+import '../../presentation/screens/trabajadora/verificacion_identidad_screen.dart';
 import '../../presentation/widgets/pantalla_en_construccion.dart';
 import '../di/providers.dart';
 import 'redireccion.dart';
@@ -102,17 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Rutas.verificacionTrabajadora,
-        // TODO(HU-21): reemplazar por la pantalla real de verificación.
-        builder: (context, state) => PantallaEnConstruccion(
-          titulo: 'Verificación de identidad',
-          historia: 'HU-21',
-          acciones: [
-            OutlinedButton(
-              onPressed: () => context.go(Rutas.inicioTrabajadora),
-              child: const Text('Volver a mis trabajos'),
-            ),
-          ],
-        ),
+        builder: (context, state) => const VerificacionIdentidadScreen(),
       ),
       GoRoute(
         path: Rutas.inicioAdmin,
