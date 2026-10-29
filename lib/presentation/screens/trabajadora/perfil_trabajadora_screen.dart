@@ -14,6 +14,7 @@ import '../../widgets/avatar_usuario.dart';
 import '../../widgets/campo_texto.dart';
 import '../../widgets/contenido_centrado.dart';
 import 'barra_trabajadora.dart';
+import 'tarjeta_verificacion_perfil.dart';
 
 /// HU-04 · Crear mi perfil de trabajadora.
 ///
@@ -185,6 +186,9 @@ class _PerfilTrabajadoraScreenState
                         'Así te ven los clientes cuando eligen.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      const SizedBox(height: 16),
+                      // HU-21: insignia o estado de la verificación.
+                      const TarjetaVerificacionPerfil(),
                       const SizedBox(height: 24),
 
                       // ---- Foto ----

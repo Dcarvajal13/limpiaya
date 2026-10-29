@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/core/errors/app_exception.dart';
+import 'package:limpiaya/domain/entities/archivo_foto.dart';
+import 'package:limpiaya/domain/entities/mi_verificacion.dart';
 import 'package:limpiaya/domain/entities/verificacion_pendiente.dart';
 import 'package:limpiaya/domain/repositories/verificacion_repository.dart';
 import 'package:limpiaya/domain/services/verificacion_service.dart';
@@ -18,7 +20,22 @@ class _RepositorioFalso implements VerificacionRepository {
   @override
   Future<void> rechazar(String id, String motivo) async =>
       rechazadas[id] = motivo;
+
+  int enviadas = 0;
+
+  @override
+  Future<MiVerificacion?> miUltima() async => null;
+
+  @override
+  Future<void> enviar({
+    required ArchivoFoto cedula,
+    required ArchivoFoto selfie,
+  }) async =>
+      enviadas++;
 }
+
+ArchivoFoto _foto(String nombre, {int bytes = 1000}) =>
+    ArchivoFoto(bytes: List.filled(bytes, 1), nombre: nombre);
 
 void main() {
   late _RepositorioFalso repo;
@@ -65,5 +82,43 @@ void main() {
       throwsA(isA<AppException>()),
     );
     expect(repo.rechazadas, isEmpty);
+  });
+
+  group('HU-21 · enviar la verificación', () {
+    test('c1: con cédula y selfie válidas se envía', () async {
+      await servicio.enviar(
+        cedula: _foto('cedula.jpg'),
+        selfie: _foto('selfie.PNG'),
+      );
+      expect(repo.enviadas, 1);
+    });
+
+    test('sin cédula pide subirla', () async {
+      await expectLater(
+        servicio.enviar(selfie: _foto('selfie.jpg')),
+        throwsA(isA<AppException>().having(
+            (e) => e.mensaje, 'mensaje', 'Sube la foto de tu cédula')),
+      );
+      expect(repo.enviadas, 0);
+    });
+
+    test('sin selfie pide subirla', () async {
+      await expectLater(
+        servicio.enviar(cedula: _foto('cedula.jpg')),
+        throwsA(isA<AppException>().having((e) => e.mensaje, 'mensaje',
+            'Sube la selfie sosteniendo tu cédula')),
+      );
+    });
+
+    test('solo acepta JPG o PNG de hasta 5 MB', () {
+      expect(VerificacionService.validarFoto(_foto('a.jpeg')), isNull);
+      expect(VerificacionService.validarFoto(_foto('a.pdf')),
+          'La foto debe ser JPG o PNG');
+      expect(
+        VerificacionService.validarFoto(
+            _foto('a.jpg', bytes: 5 * 1024 * 1024 + 1)),
+        'La foto no puede pasar de 5 MB',
+      );
+    });
   });
 }
