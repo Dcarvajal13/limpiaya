@@ -6,6 +6,7 @@ import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/tipo_limpieza.dart';
 import '../../../domain/entities/zona.dart';
+import '../../../domain/services/arbol_zonas.dart';
 import '../../../domain/services/filtro_solicitudes.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 
@@ -72,6 +73,9 @@ class _PanelFiltrosSolicitudesState
     final filtro = ref.watch(filtroSolicitudesProvider);
     final notificador = ref.read(filtroSolicitudesProvider.notifier);
     final movil = Responsive.esMovil(context);
+    // Corrección de la revisión: las zonas se agrupan por municipio, como en
+    // el perfil, en vez de una fila suelta de urbanizaciones.
+    final arbol = ArbolZonas(widget.zonas);
 
     // Si los filtros cambian desde fuera ("Quitar filtros"), el formulario
     // vuelve a mostrar lo que está aplicado.
@@ -191,21 +195,34 @@ class _PanelFiltrosSolicitudesState
               ),
             if (widget.zonas.length > 1) ...[
               const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text('Mis zonas:', style: textos.bodySmall?.copyWith(fontSize: 13)),
-                  for (final zona in widget.zonas)
-                    FilterChip(
-                      label: Text(zona.nombre),
-                      labelStyle: textos.labelMedium?.copyWith(fontSize: 13),
-                      selected: !filtro.zonasOcultas.contains(zona.id),
-                      onSelected: (_) => notificador.alternarZona(zona.id),
-                    ),
-                ],
-              ),
+              Text('Mis zonas:', style: textos.bodySmall?.copyWith(fontSize: 13)),
+              for (final municipio in arbol.municipios)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        municipio,
+                        style: textos.labelMedium?.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textoSecundario,
+                        ),
+                      ),
+                      for (final zona in arbol.zonasDelMunicipio(municipio))
+                        FilterChip(
+                          label: Text(zona.nombre),
+                          labelStyle:
+                              textos.labelMedium?.copyWith(fontSize: 13),
+                          selected: !filtro.zonasOcultas.contains(zona.id),
+                          onSelected: (_) => notificador.alternarZona(zona.id),
+                        ),
+                    ],
+                  ),
+                ),
             ],
             if (filtro.hayFiltros)
               Align(
