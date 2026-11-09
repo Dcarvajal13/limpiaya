@@ -163,10 +163,13 @@ void main() {
     (tester) async {
       _pantallaGrande(tester);
 
-      final fecha1 = DateTime(2026, 11, 1, 9);
-      final fecha2 = DateTime(2026, 11, 5, 8);
-      final fecha3 = DateTime(2026, 11, 10, 14);
-      final fecha4 = DateTime(2026, 11, 15, 10);
+            // Fechas lejanas en el futuro: el resumen solo anuncia servicios que
+      // todavía no pasaron, así la prueba no "vence" con el calendario.
+      // 3/11/2030 es domingo y 7/11/2030 es jueves, como espera el texto.
+      final fecha1 = DateTime(2030, 11, 3, 9);
+      final fecha2 = DateTime(2030, 11, 7, 8);
+      final fecha3 = DateTime(2030, 11, 10, 14);
+      final fecha4 = DateTime(2030, 11, 15, 10);
 
       final repo = _RepositorioFalso(
         solicitudes: [

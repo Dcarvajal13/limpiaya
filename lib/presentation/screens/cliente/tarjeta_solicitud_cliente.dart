@@ -30,13 +30,16 @@ String _iniciales(String nombre) {
 /// - Postulantes (con ícono rojo/terracota), trabajadora asignada o motivo de cancelación.
 /// - Botones de acción a la derecha ("Ver postulantes", "Ver servicio", "Calificar", "Editar").
 class TarjetaSolicitudCliente extends StatelessWidget {
-  const TarjetaSolicitudCliente({
+    const TarjetaSolicitudCliente({
     super.key,
     required this.solicitud,
     this.onTap,
     this.onEditar,
     this.onCancelar,
+    this.onVerPostulantes,
   });
+
+  
 
   final Solicitud solicitud;
   final VoidCallback? onTap;
@@ -44,6 +47,9 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
   /// HU-10 · Cancelar la solicitud (solo si está Publicada).
   final VoidCallback? onCancelar;
+  
+  /// HU-14 · Abrir la lista de postulantes (solo si está Publicada).
+  final VoidCallback? onVerPostulantes;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -303,11 +309,14 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           crossAxisAlignment:
               movil ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
           children: [
-            FilledButton(
-              onPressed: () => _accion(
-                context,
-                'La revisión de postulaciones estará disponible pronto',
-              ),
+              FilledButton(
+              onPressed: () {
+                if (onVerPostulantes != null) return onVerPostulantes!();
+                _accion(
+                  context,
+                  'La revisión de postulaciones estará disponible pronto',
+                );
+              },
               style: FilledButton.styleFrom(
                 minimumSize: Size(movil ? double.infinity : 150, 44),
                 backgroundColor: AppColors.primarioOscuro,

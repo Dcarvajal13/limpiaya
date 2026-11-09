@@ -12,6 +12,8 @@ import '../../presentation/screens/auth/recuperar_contrasena_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
+import '../../presentation/screens/cliente/postulantes_screen.dart';
+import '../../presentation/screens/cliente/publicar_solicitud_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
@@ -24,7 +26,7 @@ import '../../presentation/widgets/pantalla_en_construccion.dart';
 import '../di/providers.dart';
 import 'redireccion.dart';
 import 'rutas.dart';
-import '../../presentation/screens/cliente/publicar_solicitud_screen.dart';
+
 /// Rutas de la app y protección de pantallas.
 ///
 /// Las reglas de a dónde puede entrar cada quien están en redireccion.dart.
@@ -137,6 +139,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Rutas.editarSolicitudPatron,
         builder: (context, state) => PublicarSolicitudScreen(
           solicitudId: state.pathParameters['id'],
+        ),
+      ),
+      // HU-14 · Postulantes de una solicitud del cliente.
+      GoRoute(
+        path: Rutas.postulantesPatron,
+        builder: (context, state) =>
+            PostulantesScreen(solicitudId: state.pathParameters['id']!),
+      ),
+      // TODO(HU-06): reemplazar por la pantalla del perfil público.
+      GoRoute(
+        path: Rutas.perfilPublicoTrabajadoraPatron,
+        builder: (context, state) => PantallaEnConstruccion(
+          titulo: 'Perfil de la trabajadora',
+          historia: 'HU-06',
+          acciones: const [],
         ),
       ),
     ],

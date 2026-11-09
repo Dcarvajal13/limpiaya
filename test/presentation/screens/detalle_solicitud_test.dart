@@ -10,6 +10,7 @@ import 'package:limpiaya/domain/entities/estado_postulacion.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/postulacion.dart';
+import 'package:limpiaya/domain/entities/postulante.dart';
 import 'package:limpiaya/domain/entities/quien_pone_productos.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
@@ -96,6 +97,9 @@ class _PostulacionesFalsas implements PostulacionRepository {
 
   @override
   Future<void> retirar(String postulacionId) async {}
+
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
 }
 
 class _SesionFalsa extends SesionNotifier {

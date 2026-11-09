@@ -1,4 +1,5 @@
 import '../entities/postulacion.dart';
+  import '../entities/postulante.dart';
 
 /// Contrato de postulaciones: QUÉ se puede pedir, sin decir CÓMO.
 ///
@@ -23,4 +24,6 @@ abstract interface class PostulacionRepository {
   /// - c2 · ya se postuló a esa solicitud.
   /// - c3 · se cruza con un servicio que ya tiene asignado.
   Future<void> postular({required String solicitudId, String? mensaje});
+
+   Future<List<Postulante>> postulantesDe(String solicitudId);
 }

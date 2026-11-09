@@ -12,6 +12,7 @@ import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/repositories/postulacion_repository.dart';
+import 'package:limpiaya/domain/entities/postulante.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/mis_servicios_screen.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/tarjeta_postulacion.dart';
@@ -27,6 +28,10 @@ class _RepositorioFalso implements PostulacionRepository {
   @override
   Future<void> retirar(String postulacionId) async {}
 
+  
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
+
   @override
   Future<void> postular({required String solicitudId, String? mensaje}) async {}
 }
@@ -38,6 +43,10 @@ class _RepositorioConError implements PostulacionRepository {
 
   @override
   Future<void> retirar(String postulacionId) async {}
+
+  
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
 
   @override
   Future<void> postular({required String solicitudId, String? mensaje}) async {}
