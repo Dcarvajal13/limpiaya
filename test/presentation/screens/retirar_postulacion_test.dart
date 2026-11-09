@@ -7,6 +7,7 @@ import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/estado_postulacion.dart';
 import 'package:limpiaya/domain/entities/postulacion.dart';
+import 'package:limpiaya/domain/entities/postulante.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
@@ -38,6 +39,9 @@ class _RepositorioFalso implements PostulacionRepository {
     if (error != null) throw AppException(error!);
     postulaciones.removeWhere((p) => p.id == postulacionId);
   }
+
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
 }
 
 class _SesionFalsa extends SesionNotifier {

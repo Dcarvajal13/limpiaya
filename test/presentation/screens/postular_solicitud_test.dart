@@ -10,6 +10,7 @@ import 'package:limpiaya/domain/entities/estado_postulacion.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/postulacion.dart';
+import 'package:limpiaya/domain/entities/postulante.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/solicitud.dart';
@@ -91,6 +92,9 @@ class _PostulacionesFalsas implements PostulacionRepository {
     llamadas.add((solicitudId: solicitudId, mensaje: mensaje));
     if (error != null) throw AppException(error!);
   }
+
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
 }
 
 class _ReputacionFalsa implements ReputacionRepository {

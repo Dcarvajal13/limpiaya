@@ -38,6 +38,17 @@ abstract final class Rutas {
   static String editarSolicitud(String solicitudId) =>
       '/cliente/solicitudes/$solicitudId/editar';
 
+  
+    /// HU-14 · Postulantes de una solicitud del cliente.
+  static const postulantesPatron = '/cliente/solicitudes/:id/postulantes';
+  static String postulantes(String solicitudId) =>
+      '/cliente/solicitudes/$solicitudId/postulantes';
+
+  /// HU-06 · Perfil público de una trabajadora, visto por el cliente.
+  static const perfilPublicoTrabajadoraPatron = '/cliente/trabajadoras/:id';
+  static String perfilPublicoTrabajadora(String trabajadoraId) =>
+      '/cliente/trabajadoras/$trabajadoraId';
+
   /// Perfil de la trabajadora (HU-04). Antes de ver solicitudes, la
   /// trabajadora recién registrada completa su perfil.
   static const perfilTrabajadora = '/trabajadora/perfil';

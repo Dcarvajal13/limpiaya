@@ -7,6 +7,8 @@ import '../../domain/entities/postulacion.dart';
 import '../../domain/repositories/postulacion_repository.dart';
 import '../../domain/services/postulacion_service.dart';
 import '../models/postulacion_model.dart';
+import '../../domain/entities/postulante.dart';
+import '../models/postulante_model.dart';
 
 /// Implementación de PostulacionRepository usando Supabase.
 ///
@@ -192,6 +194,70 @@ class SupabasePostulacionRepository implements PostulacionRepository {
       rethrow;
     } on Exception {
       throw const AppException(PostulacionService.mensajeErrorRetirar);
+    }
+  }
+
+    @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async {
+    final usuario = _client.auth.currentUser;
+    if (usuario == null) {
+      throw const AppException(PostulacionService.mensajeSesion);
+    }
+    try {
+      // RLS: el cliente solo lee las postulaciones de sus propias solicitudes.
+      // HU-14 c2: las retiradas (HU-26) no se muestran.
+      final filas = await _client
+          .from('postulaciones')
+          .select('id, trabajadora_id, mensaje, estado, created_at')
+          .eq('solicitud_id', solicitudId)
+          .inFilter('estado', [
+        EstadoPostulacion.pendiente.valorDb,
+        EstadoPostulacion.aceptada.valorDb,
+      ]).order('created_at', ascending: true);
+      if (filas.isEmpty) return const [];
+
+      final trabajadoras = await _trabajadoras({
+        for (final f in filas) f['trabajadora_id'] as String,
+      });
+
+      return [
+        for (final f in filas)
+          PostulanteModel.desdeJson(
+            Map<String, dynamic>.from(f),
+            trabajadora: trabajadoras[f['trabajadora_id']],
+            fotoUrl: _fotoUrl(
+              trabajadoras[f['trabajadora_id']]?['foto_path'] as String?,
+            ),
+          ),
+      ];
+    } on AppException {
+      rethrow;
+    } on Exception {
+      throw const AppException('No pudimos cargar las postulantes.');
+    }
+  }
+
+  /// Nombre, foto, verificación y reputación de cada trabajadora (vista
+  /// `trabajadoras_publicas`, sin teléfono ni correo). Es información
+  /// complementaria: si falla, las tarjetas salen con datos mínimos.
+  Future<Map<String, Map<String, dynamic>>> _trabajadoras(
+    Set<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    try {
+      final filas = await _client
+          .from('trabajadoras_publicas')
+          .select(
+            'id, nombre, foto_path, verificada, promedio, total_resenas, '
+            'servicios_completados, experiencia_anios',
+          )
+          .inFilter('id', ids.toList());
+      return {
+        for (final fila in filas)
+          fila['id'] as String: Map<String, dynamic>.from(fila),
+      };
+    } on Exception {
+      return const {};
     }
   }
 

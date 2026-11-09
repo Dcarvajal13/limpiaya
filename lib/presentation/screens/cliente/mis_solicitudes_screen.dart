@@ -233,6 +233,11 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                   Rutas.editarSolicitud(solicitud.id),
                                 ),
                                 onCancelar: () => _cancelar(solicitud),
+
+                                  // HU-14: abre la lista de postulantes.
+                                onVerPostulantes: () => context.go(
+                                  Rutas.postulantes(solicitud.id),
+                                ),
                               ),
                               const SizedBox(height: 12),
                             ],
