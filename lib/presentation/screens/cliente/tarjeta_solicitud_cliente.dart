@@ -39,6 +39,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onCancelar,
     this.onVerPostulantes,
     this.onCompletar,
+    this.onVerServicio,
     this.onCancelarServicio,
     this.onCalificar,
     this.onRepetir,
@@ -59,6 +60,9 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   /// HU-17 · Marcar como completado. La pantalla lo pasa solo si el servicio
   /// está Asignado y ya empezó (c2); si es null, el botón no aparece.
   final VoidCallback? onCompletar;
+
+  /// HU-16 · Abrir el detalle del servicio agendado ("Ver servicio").
+  final VoidCallback? onVerServicio;
 
   /// HU-28 · Cancelar el servicio asignado indicando el motivo. Null si no
   /// se puede (por ejemplo, ya Completado: c3).
@@ -413,10 +417,8 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
       case EstadoSolicitud.asignada:
         final verServicio = FilledButton(
-          onPressed: () => _accion(
-            context,
-            'El seguimiento del servicio estará disponible pronto (HU-16)',
-          ),
+          key: Key('ver-servicio-${solicitud.id}'),
+          onPressed: onVerServicio,
           style: FilledButton.styleFrom(
             minimumSize: Size(movil ? double.infinity : 150, 44),
             backgroundColor: AppColors.primarioOscuro,

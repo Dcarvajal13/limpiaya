@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show OutlinedButton, Text;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -22,11 +21,11 @@ import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
 import '../../presentation/screens/trabajadora/detalle_solicitud_screen.dart';
 import '../../presentation/screens/trabajadora/mi_reputacion_screen.dart';
 import '../../presentation/screens/trabajadora/mis_servicios_screen.dart';
+import '../../presentation/screens/trabajadora/servicio_agendado_screen.dart';
 import '../../presentation/screens/trabajadora/perfil_cliente_publico_screen.dart';
 import '../../presentation/screens/trabajadora/perfil_trabajadora_screen.dart';
 import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
 import '../../presentation/screens/trabajadora/verificacion_identidad_screen.dart';
-import '../../presentation/widgets/pantalla_en_construccion.dart';
 import '../di/providers.dart';
 import 'redireccion.dart';
 import 'rutas.dart';
@@ -121,18 +120,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           clienteId: state.pathParameters['id']!,
         ),
       ),
+      // HU-16 · Detalle del servicio agendado, desde la trabajadora.
       GoRoute(
         path: Rutas.servicioAgendadoPatron,
-        // TODO(HU-16): reemplazar por el detalle del servicio agendado.
-        builder: (context, state) => PantallaEnConstruccion(
-          titulo: 'Servicio agendado',
-          historia: 'HU-16',
-          acciones: [
-            OutlinedButton(
-              onPressed: () => context.go(Rutas.misServicios),
-              child: const Text('Volver a Mis servicios'),
-            ),
-          ],
+        builder: (context, state) => ServicioAgendadoScreen(
+          solicitudId: state.pathParameters['id']!,
+        ),
+      ),
+      // HU-16 · El mismo detalle, desde el cliente dueño del servicio.
+      GoRoute(
+        path: Rutas.servicioClientePatron,
+        builder: (context, state) => ServicioAgendadoScreen(
+          solicitudId: state.pathParameters['id']!,
         ),
       ),
       GoRoute(

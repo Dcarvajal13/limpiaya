@@ -9,9 +9,13 @@ import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/estado_postulacion.dart';
 import 'package:limpiaya/domain/entities/postulacion.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
+import 'package:limpiaya/domain/entities/estado_solicitud.dart';
+import 'package:limpiaya/domain/entities/metodo_pago.dart';
+import 'package:limpiaya/domain/entities/servicio_agendado.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/repositories/postulacion_repository.dart';
+import 'package:limpiaya/domain/repositories/servicio_repository.dart';
 import 'package:limpiaya/domain/entities/postulante.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/mis_servicios_screen.dart';
@@ -62,6 +66,52 @@ class _SesionFalsa extends SesionNotifier {
       );
 }
 
+/// HU-16: servicios falsos de la trabajadora.
+class _ServiciosFalsos implements ServicioRepository {
+  _ServiciosFalsos([this.servicios = const []]);
+
+  final List<ServicioAgendado> servicios;
+
+  @override
+  Future<void> elegir(String postulacionId) async {}
+
+  @override
+  Future<void> completar(String solicitudId) async {}
+
+  @override
+  Future<List<ServicioAgendado>> misServicios() async => servicios;
+
+  @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {}
+
+  @override
+  Future<ServicioAgendado?> servicioAgendado(String id) async =>
+      servicios.where((s) => s.id == id).firstOrNull;
+}
+
+ServicioAgendado _servicio(
+  String id, {
+  EstadoSolicitud estado = EstadoSolicitud.asignada,
+  required DateTime inicio,
+  bool yaCalifique = false,
+  DateTime? completadaEn,
+}) =>
+    ServicioAgendado(
+      id: id,
+      estado: estado,
+      tipo: TipoLimpieza.general,
+      zona: 'Los Palos Grandes',
+      inicio: inicio,
+      horasEstimadas: 4,
+      pagoOfrecido: 30,
+      metodoPago: MetodoPago.pagoMovil,
+      soyCliente: false,
+      direccion: 'Av. Principal, casa 4',
+      contraparteNombre: 'María Alejandra',
+      yaCalifique: yaCalifique,
+      completadaEn: completadaEn,
+    );
+
 Postulacion _postulacion(
   String id,
   EstadoPostulacion estado, {
@@ -79,10 +129,17 @@ Postulacion _postulacion(
       clienteNombre: 'María Alejandra',
     );
 
-Widget _app(PostulacionRepository repo, {GoRouter? router}) {
+Widget _app(
+  PostulacionRepository repo, {
+  GoRouter? router,
+  List<ServicioAgendado> servicios = const [],
+}) {
   return ProviderScope(
     overrides: [
       postulacionRepositoryProvider.overrideWithValue(repo),
+      servicioRepositoryProvider.overrideWithValue(
+        _ServiciosFalsos(servicios),
+      ),
       sesionProvider.overrideWith(_SesionFalsa.new),
     ],
     child: router != null
@@ -195,7 +252,7 @@ void main() {
     expect(find.text('Reintentar'), findsOneWidget);
   });
 
-  testWidgets('las pestañas Próximos y Pasados avisan que llegarán pronto',
+  testWidgets('HU-16 c5: sin próximos invita a ver solicitudes disponibles',
       (tester) async {
     _pantallaGrande(tester);
     await tester.pumpWidget(_app(_RepositorioFalso(const [])));
@@ -203,11 +260,111 @@ void main() {
 
     await tester.tap(find.text('Próximos'));
     await tester.pumpAndSettle();
-    expect(find.text('Tus próximos servicios'), findsOneWidget);
+    expect(find.text('No tienes servicios próximos'), findsOneWidget);
+    expect(find.text('Ver solicitudes disponibles'), findsOneWidget);
 
     await tester.tap(find.text('Pasados'));
     await tester.pumpAndSettle();
-    expect(find.text('Tus servicios pasados'), findsOneWidget);
+    expect(find.text('Todavía no tienes servicios pasados'), findsOneWidget);
+  });
+
+  testWidgets('HU-16 c1: Próximos del más cercano al más lejano',
+      (tester) async {
+    _pantallaGrande(tester);
+    final ahora = DateTime.now();
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(const []),
+        servicios: [
+          _servicio('lejos', inicio: ahora.add(const Duration(days: 9))),
+          _servicio('cerca', inicio: ahora.add(const Duration(days: 1))),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Al entrar, la pestaña Próximos ya muestra los servicios asignados.
+    expect(find.text('No tienes servicios próximos'), findsNothing);
+    expect(find.text('María Alejandra'), findsNWidgets(2));
+    expect(find.textContaining('Los Palos Grandes'), findsNWidgets(2));
+
+    final cerca = tester
+        .getTopLeft(find.textContaining('Los Palos Grandes').first)
+        .dy;
+    final lejos = tester
+        .getTopLeft(find.textContaining('Los Palos Grandes').last)
+        .dy;
+    expect(cerca, lessThan(lejos));
+  });
+
+  testWidgets('HU-16 c3 y c4: Pasados con pago, estado y Calificar',
+      (tester) async {
+    _pantallaGrande(tester);
+    final ahora = DateTime.now();
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(const []),
+        servicios: [
+          _servicio(
+            'completado',
+            estado: EstadoSolicitud.completada,
+            inicio: ahora.subtract(const Duration(days: 2)),
+            completadaEn: ahora.subtract(const Duration(days: 1)),
+          ),
+          _servicio(
+            'calificado',
+            estado: EstadoSolicitud.completada,
+            inicio: ahora.subtract(const Duration(days: 5)),
+            completadaEn: ahora.subtract(const Duration(days: 4)),
+            yaCalifique: true,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pasados'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Completada'), findsNWidgets(2));
+    expect(find.textContaining(r'$30'), findsNWidgets(2));
+    // Solo el que no tiene mi calificación ofrece el botón.
+    expect(find.byKey(const Key('calificar-completado')), findsOneWidget);
+    expect(find.byKey(const Key('calificar-calificado')), findsNothing);
+  });
+
+  testWidgets('HU-16 c2: tocar un próximo abre su detalle', (tester) async {
+    _pantallaGrande(tester);
+    final router = GoRouter(
+      initialLocation: Rutas.misServicios,
+      routes: [
+        GoRoute(
+          path: Rutas.misServicios,
+          builder: (context, state) => const MisServiciosScreen(),
+        ),
+        GoRoute(
+          path: Rutas.servicioAgendadoPatron,
+          builder: (context, state) => Scaffold(
+            body: Text('Detalle ${state.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(const []),
+        router: router,
+        servicios: [
+          _servicio('cerca', inicio: DateTime.now().add(const Duration(days: 1))),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Limpieza general').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Detalle cerca'), findsOneWidget);
   });
 
   testWidgets('renderiza sin desbordamiento en móvil (390x844)',

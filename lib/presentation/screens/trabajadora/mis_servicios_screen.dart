@@ -9,30 +9,36 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_postulacion.dart';
 import '../../../domain/entities/postulacion.dart';
+import '../../../domain/entities/servicio_agendado.dart';
 import '../../../domain/services/calificacion_service.dart';
 import '../../../domain/services/postulacion_service.dart';
 import '../../../domain/services/servicio_service.dart';
 import '../../providers/calificar_provider.dart';
 import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/mis_postulaciones_provider.dart';
+import '../../providers/mis_servicios_provider.dart';
 import '../../providers/retirar_postulacion_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
+import '../../widgets/calificar_contraparte.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/dialogo_calificar.dart';
 import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
 import 'barra_trabajadora.dart';
 import 'tarjeta_postulacion.dart';
+import 'tarjeta_servicio_agendado.dart';
 
 enum _Pestana { proximos, postulaciones, pasados }
 
 /// HU-13 · Ver mis postulaciones (Figma W07 · Mis servicios).
 ///
 /// Pantalla de la trabajadora en '/trabajadora/servicios'. Tiene tres
-/// pestañas; esta historia construye **Postulaciones**. "Próximos" y
-/// "Pasados" son del seguimiento del servicio (HU-16) y por ahora muestran
-/// que llegarán pronto.
+/// pestañas:
+/// - **Próximos** (HU-16): servicios asignados, del más cercano al más lejano.
+/// - **Postulaciones** (HU-13): cada postulación con su estado.
+/// - **Pasados** (HU-16): completados y cancelados, del más reciente al más
+///   antiguo.
 ///
 /// Criterios de aceptación:
 /// 1. Cada postulación se ve con su estado: Pendiente, Aceptada,
@@ -41,6 +47,9 @@ enum _Pestana { proximos, postulaciones, pasados }
 ///    No seleccionada (el estado se deduce en `EstadoPostulacion.resolver`).
 /// 3. Al tocar una postulación Aceptada, lleva al detalle del servicio
 ///    agendado.
+///
+/// Arranca en Próximos; si todavía no hay servicios asignados, en
+/// Postulaciones, que es lo que la trabajadora está esperando.
 class MisServiciosScreen extends ConsumerStatefulWidget {
   const MisServiciosScreen({super.key});
 
@@ -49,8 +58,9 @@ class MisServiciosScreen extends ConsumerStatefulWidget {
 }
 
 class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
-  // Arranca en Postulaciones: es la única pestaña con contenido por ahora.
-  _Pestana _pestana = _Pestana.postulaciones;
+  // Null = todavía no eligió pestaña: se muestra Próximos si hay servicios
+  // asignados y, si no, Postulaciones.
+  _Pestana? _elegida;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +69,12 @@ class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
     final movil = Responsive.esMovil(context);
     final textos = Theme.of(context).textTheme;
     final postulaciones = ref.watch(misPostulacionesProvider);
+    final servicios = ref.watch(misServiciosProvider);
+    final listaServicios = servicios.value ?? const <ServicioAgendado>[];
+    final proximos = listaServicios.where((s) => s.esProximo).length;
+    final pasados = listaServicios.where((s) => s.esPasado).length;
+    final pestana = _elegida ??
+        (proximos > 0 ? _Pestana.proximos : _Pestana.postulaciones);
 
     return Scaffold(
       backgroundColor: AppColors.fondo,
@@ -88,31 +104,17 @@ class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
                     ),
                     const SizedBox(height: 24),
                     _BarraPestanas(
-                      actual: _pestana,
+                      actual: pestana,
                       totalPostulaciones: postulaciones.value?.length,
-                      onCambio: (p) => setState(() => _pestana = p),
+                      totalProximos: proximos,
+                      totalPasados: pasados,
+                      onCambio: (p) => setState(() => _elegida = p),
                     ),
                     const SizedBox(height: 20),
-                    switch (_pestana) {
+                    switch (pestana) {
                       _Pestana.postulaciones => const _ListaPostulaciones(),
-                      _Pestana.proximos => const _Caja(
-                          child: EstadoVacio(
-                            icono: Icons.event_available_outlined,
-                            titulo: 'Tus próximos servicios',
-                            mensaje:
-                                'Aquí verás los trabajos confirmados. '
-                                'Estará disponible pronto.',
-                          ),
-                        ),
-                      _Pestana.pasados => const _Caja(
-                          child: EstadoVacio(
-                            icono: Icons.history_rounded,
-                            titulo: 'Tus servicios pasados',
-                            mensaje:
-                                'Aquí verás los trabajos ya realizados. '
-                                'Estará disponible pronto.',
-                          ),
-                        ),
+                      _Pestana.proximos => const _ListaServicios(proximos: true),
+                      _Pestana.pasados => const _ListaServicios(proximos: false),
                     },
                   ],
                 ),
@@ -121,6 +123,84 @@ class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// HU-16 · Lista de servicios (Próximos o Pasados) con sus estados de
+/// carga, error y vacío.
+class _ListaServicios extends ConsumerWidget {
+  const _ListaServicios({required this.proximos});
+
+  final bool proximos;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final servicios = ref.watch(misServiciosProvider);
+
+    return servicios.when(
+      loading: () => const _Caja(
+        child: Padding(
+          padding: EdgeInsets.all(48),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (error, _) => _Caja(
+        child: EstadoVacio(
+          icono: Icons.wifi_off_rounded,
+          titulo: error is AppException
+              ? error.mensaje
+              : 'No pudimos cargar tus servicios.',
+          textoBoton: 'Reintentar',
+          onPressed: () => ref.invalidate(misServiciosProvider),
+        ),
+      ),
+      data: (lista) {
+        final filtrados = lista
+            .where((s) => proximos ? s.esProximo : s.esPasado)
+            .toList()
+          ..sort(
+            (a, b) => proximos
+                ? a.inicio.compareTo(b.inicio)
+                : (b.completadaEn ?? b.canceladaEn ?? b.inicio)
+                    .compareTo(a.completadaEn ?? a.canceladaEn ?? a.inicio),
+          );
+
+        if (filtrados.isEmpty) {
+          return _Caja(
+            child: proximos
+                ? EstadoVacio(
+                    icono: Icons.event_available_outlined,
+                    titulo: 'No tienes servicios próximos',
+                    mensaje: 'Cuando un cliente te elija, el trabajo aparecerá '
+                        'aquí con la fecha, la hora y su dirección.',
+                    textoBoton: 'Ver solicitudes disponibles',
+                    onPressed: () => context.go(Rutas.inicioTrabajadora),
+                  )
+                : const EstadoVacio(
+                    icono: Icons.history_rounded,
+                    titulo: 'Todavía no tienes servicios pasados',
+                    mensaje: 'Aquí se guardan los trabajos completados y los '
+                        'cancelados, del más reciente al más antiguo.',
+                  ),
+          );
+        }
+
+        return Column(
+          children: [
+            for (final ServicioAgendado s in filtrados) ...[
+              TarjetaServicioAgendado(
+                servicio: s,
+                onTap: () => context.push(Rutas.servicioAgendado(s.id)),
+                // HU-16 c4: la otra parte se califica con HU-29/HU-30.
+                onCalificar: () =>
+                    calificarContraparte(context, ref, s),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -479,10 +559,14 @@ class _BarraPestanas extends StatelessWidget {
     required this.actual,
     required this.totalPostulaciones,
     required this.onCambio,
+    this.totalProximos,
+    this.totalPasados,
   });
 
   final _Pestana actual;
   final int? totalPostulaciones;
+  final int? totalProximos;
+  final int? totalPasados;
   final ValueChanged<_Pestana> onCambio;
 
   @override
@@ -497,6 +581,7 @@ class _BarraPestanas extends StatelessWidget {
           children: [
             _ItemPestana(
               etiqueta: 'Próximos',
+              contador: totalProximos,
               activa: actual == _Pestana.proximos,
               onTap: () => onCambio(_Pestana.proximos),
             ),
@@ -508,6 +593,7 @@ class _BarraPestanas extends StatelessWidget {
             ),
             _ItemPestana(
               etiqueta: 'Pasados',
+              contador: totalPasados,
               activa: actual == _Pestana.pasados,
               onTap: () => onCambio(_Pestana.pasados),
             ),
