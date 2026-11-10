@@ -75,6 +75,7 @@ abstract final class SolicitudModel {
           ? DateTime.parse(json['created_at'] as String).toLocal()
           : null,
       motivoCancelacion: json['motivo_cancelacion'] as String?,
+      canceladaPor: json['cancelada_por'] as String?,
     );
   }
 

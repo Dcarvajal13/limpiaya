@@ -9,11 +9,14 @@ import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_postulacion.dart';
 import '../../../domain/entities/postulacion.dart';
 import '../../../domain/services/postulacion_service.dart';
+import '../../../domain/services/servicio_service.dart';
+import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/retirar_postulacion_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
 import 'barra_trabajadora.dart';
 import 'tarjeta_postulacion.dart';
@@ -178,6 +181,37 @@ class _ListaPostulaciones extends ConsumerWidget {
       );
   }
 
+  /// HU-28 · Pide el motivo y cancela el servicio asignado. Con "No" no
+  /// cambia nada; sin motivo no deja confirmar (c2). El cliente lo verá como
+  /// Cancelado con el motivo (c1).
+  Future<void> _cancelarServicio(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final motivo = await mostrarDialogoCancelarServicio(
+      context,
+      inicio: postulacion.inicio,
+      motivos: ServicioService.motivosCancelarTrabajadora,
+      otraParte: postulacion.clienteNombre ?? 'el cliente',
+    );
+    if (motivo == null || !context.mounted) return;
+
+    final error = await ref
+        .read(cancelarServicioProvider.notifier)
+        .cancelar(postulacion.solicitudId, motivo: motivo);
+    if (!context.mounted) return;
+
+    ref.invalidate(misPostulacionesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? ServicioService.mensajeServicioCancelado),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postulaciones = ref.watch(misPostulacionesProvider);
@@ -224,6 +258,11 @@ class _ListaPostulaciones extends ConsumerWidget {
                 onRetirar: () => _retirar(context, ref, p),
                 onVerSolicitud: () =>
                     context.go(Rutas.detalleSolicitud(p.solicitudId)),
+                // HU-28: solo mientras el servicio sigue Asignado (c3).
+                onCancelarServicio: p.estadoSolicitud != null &&
+                        ServicioService.puedeCancelar(p.estadoSolicitud!)
+                    ? () => _cancelarServicio(context, ref, p)
+                    : null,
               ),
               const SizedBox(height: 14),
             ],
@@ -275,7 +314,14 @@ class _PanelResumen extends StatelessWidget {
       ),
       (
         'Canceladas por el cliente',
-        _cuantas(EstadoPostulacion.solicitudCancelada),
+        // HU-28: las que canceló ella misma no cuentan aquí.
+        postulaciones
+            .where(
+              (p) =>
+                  p.estado == EstadoPostulacion.solicitudCancelada &&
+                  !p.canceladaPorMi,
+            )
+            .length,
         AppColors.error,
       ),
     ];

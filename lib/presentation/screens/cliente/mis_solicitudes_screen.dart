@@ -11,11 +11,13 @@ import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
 import '../../../domain/services/servicio_service.dart';
+import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/completar_servicio_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
 import 'banner_cliente.dart';
 import 'barra_cliente.dart';
@@ -99,6 +101,32 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
           ),
         );
     }
+  }
+
+  /// HU-28 · Pide el motivo y cancela el servicio asignado. Con "No" no
+  /// cambia nada; sin motivo no deja confirmar (c2).
+  Future<void> _cancelarServicio(Solicitud solicitud) async {
+    final motivo = await mostrarDialogoCancelarServicio(
+      context,
+      inicio: solicitud.inicio,
+      motivos: ServicioService.motivosCancelarCliente,
+      otraParte: solicitud.trabajadoraNombre ?? 'la trabajadora',
+    );
+    if (motivo == null || !mounted) return;
+
+    final error = await ref
+        .read(cancelarServicioProvider.notifier)
+        .cancelar(solicitud.id, motivo: motivo);
+    if (!mounted) return;
+
+    ref.invalidate(misSolicitudesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? ServicioService.mensajeServicioCancelado),
+        ),
+      );
   }
 
   /// HU-29 · Calificar a la trabajadora.
@@ -292,6 +320,13 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                 )
                                     ? () => _completar(solicitud)
                                     : null,
+                                // HU-28: solo mientras está Asignado.
+                                onCancelarServicio:
+                                    ServicioService.puedeCancelar(
+                                  solicitud.estado,
+                                )
+                                        ? () => _cancelarServicio(solicitud)
+                                        : null,
 
                                   // HU-14: abre la lista de postulantes.
                                 onVerPostulantes: () => context.go(

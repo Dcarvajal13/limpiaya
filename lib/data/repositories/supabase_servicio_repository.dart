@@ -52,4 +52,24 @@ class SupabaseServicioRepository implements ServicioRepository {
       throw const AppException(ServicioService.mensajeErrorCompletar);
     }
   }
+
+  @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {
+    try {
+      await _client.rpc(
+        'cancelar_servicio',
+        params: {'p_solicitud': solicitudId, 'p_motivo': motivo},
+      );
+    } on PostgrestException catch (e) {
+      throw AppException(
+        ServicioService.traducir(
+          e.message,
+          ServicioService.mensajesCancelar,
+          ServicioService.mensajeErrorCancelar,
+        ),
+      );
+    } on Exception {
+      throw const AppException(ServicioService.mensajeErrorCancelar);
+    }
+  }
 }
