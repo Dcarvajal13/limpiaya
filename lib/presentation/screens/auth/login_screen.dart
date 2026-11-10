@@ -9,6 +9,7 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validadores.dart';
 import '../../widgets/campo_texto.dart';
+import 'widgets/aviso_verificar_correo.dart';
 import 'widgets/plantilla_auth.dart';
 
 /// HU-02A / HU-02B · Iniciar sesión (cliente y trabajadora).
@@ -36,6 +37,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // qué pasó y cómo resolverlo en vez de mostrar el login sin más.
   String? _error = Recuperacion.errorDelEnlace(Uri.base);
 
+  /// HU-40 c2: correo de quien intentó entrar sin haberlo verificado.
+  String? _sinVerificar;
+
   @override
   void dispose() {
     _email.dispose();
@@ -45,7 +49,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _entrar() async {
     // Cada intento empieza sin el error del intento anterior.
-    setState(() => _error = null);
+    setState(() {
+      _error = null;
+      _sinVerificar = null;
+    });
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
@@ -55,6 +62,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _password.text,
           );
       // Listo: el router se encarga de llevarlo a su inicio.
+    } on CorreoSinVerificarException catch (e) {
+      // HU-40 c2: aviso con "Reenviar correo" en vez de un error.
+      if (!mounted) return;
+      setState(() {
+        _sinVerificar = e.email;
+        _cargando = false;
+      });
     } on AppException catch (e) {
       _mostrarError(e.mensaje);
     } catch (_) {
@@ -132,6 +146,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (_error != null) ...[
                 const SizedBox(height: 18),
                 AvisoErrorAuth(_error!),
+              ],
+              if (_sinVerificar != null) ...[
+                const SizedBox(height: 18),
+                AvisoVerificarCorreo(email: _sinVerificar!),
               ],
               const SizedBox(height: 24),
               FilledButton(

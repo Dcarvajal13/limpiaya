@@ -14,6 +14,7 @@ import '../../data/repositories/supabase_postulacion_repository.dart';
 import '../../data/repositories/supabase_reputacion_repository.dart';
 import '../../data/repositories/supabase_servicio_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
+import '../../data/repositories/supabase_verificacion_correo_repository.dart';
 import '../../data/repositories/supabase_verificacion_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/busqueda_trabajadoras_repository.dart';
@@ -28,6 +29,7 @@ import '../../domain/repositories/reputacion_repository.dart';
 import '../../domain/repositories/servicio_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/repositories/trabajadora_publica_repository.dart';
+import '../../domain/repositories/verificacion_correo_repository.dart';
 import '../../domain/repositories/verificacion_repository.dart';
 import '../../domain/services/registro_service.dart';
 import '../../domain/services/solicitud_service.dart';
@@ -124,4 +126,12 @@ final verificacionRepositoryProvider = Provider<VerificacionRepository>(
 
 final verificacionServiceProvider = Provider<VerificacionService>(
   (ref) => VerificacionService(ref.watch(verificacionRepositoryProvider)),
+);
+
+/// HU-40 · Reenviar el enlace para verificar el correo.
+final verificacionCorreoRepositoryProvider =
+    Provider<VerificacionCorreoRepository>(
+  (ref) => SupabaseVerificacionCorreoRepository(
+    ref.watch(supabaseClientProvider),
+  ),
 );

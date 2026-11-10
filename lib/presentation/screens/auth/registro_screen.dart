@@ -55,24 +55,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
     if (!mounted || !ok) return;
 
     // Con sesión activa, el router lleva solo al inicio (HU-01 c1).
-    // Sin sesión, Supabase está pidiendo confirmar el correo.
+    // Sin sesión, Supabase está pidiendo confirmar el correo (HU-40).
     if (ref.read(authRepositoryProvider).usuarioActual == null) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Revisa tu correo'),
-          content: const Text(
-            'Te enviamos un enlace para confirmar tu cuenta. '
-            'Después podrás iniciar sesión.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => context.go(Rutas.login),
-              child: const Text('Ir a iniciar sesión'),
-            ),
-          ],
-        ),
-      );
+      context.go(Rutas.revisaTuCorreoDe(_email.text.trim().toLowerCase()));
     }
   }
 
