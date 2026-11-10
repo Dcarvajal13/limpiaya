@@ -13,4 +13,10 @@ abstract interface class ServicioRepository {
   /// solicitud ya no está Publicada, la postulante se retiró o ya tiene otro
   /// servicio en ese horario.
   Future<void> elegir(String postulacionId);
+
+  /// HU-17 · El cliente confirma que la limpieza se hizo: el servicio
+  /// Asignado pasa a Completado y desde ahí se puede calificar (HU-29).
+  ///
+  /// Lanza `AppException` si todavía no ha empezado o ya no está Asignado.
+  Future<void> completar(String solicitudId);
 }

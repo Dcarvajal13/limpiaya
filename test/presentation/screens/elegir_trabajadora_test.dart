@@ -76,6 +76,9 @@ class _ServiciosFalsos implements ServicioRepository {
         ),
     ];
   }
+
+  @override
+  Future<void> completar(String solicitudId) async {}
 }
 
 class _SolicitudesFalsas implements SolicitudRepository {

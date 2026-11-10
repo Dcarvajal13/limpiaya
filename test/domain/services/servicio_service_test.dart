@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/domain/entities/estado_postulacion.dart';
 import 'package:limpiaya/domain/entities/estado_solicitud.dart';
+import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/postulante.dart';
+import 'package:limpiaya/domain/entities/solicitud.dart';
+import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/services/servicio_service.dart';
 
 Postulante _postulante(String id, EstadoPostulacion estado) => Postulante(
@@ -10,6 +13,21 @@ Postulante _postulante(String id, EstadoPostulacion estado) => Postulante(
       nombre: 'Trabajadora $id',
       estado: estado,
       fecha: DateTime(2026, 11, 8),
+    );
+
+Solicitud _solicitud(EstadoSolicitud estado, DateTime inicio) => Solicitud(
+      id: 's1',
+      clienteId: 'c1',
+      trabajadoraId: 't1',
+      estado: estado,
+      tipo: TipoLimpieza.general,
+      zonaId: 1,
+      zona: 'Petare',
+      inicio: inicio,
+      horasEstimadas: 4,
+      pagoOfrecido: 30,
+      metodoPago: MetodoPago.pagoMovil,
+      numPostulantes: 1,
     );
 
 void main() {
@@ -69,6 +87,57 @@ void main() {
         ),
         isFalse,
       );
+    });
+  });
+
+  group('HU-17 · ¿se puede marcar como completado?', () {
+    final ahora = DateTime(2026, 11, 14, 12);
+
+    test('c1: Asignado y ya empezó', () {
+      expect(
+        ServicioService.puedeCompletar(
+          _solicitud(EstadoSolicitud.asignada, DateTime(2026, 11, 14, 9)),
+          ahora,
+        ),
+        isTrue,
+      );
+    });
+
+    test('c1: justo a la hora de inicio también', () {
+      expect(
+        ServicioService.puedeCompletar(
+          _solicitud(EstadoSolicitud.asignada, ahora),
+          ahora,
+        ),
+        isTrue,
+      );
+    });
+
+    test('c2: no si todavía no ha empezado', () {
+      expect(
+        ServicioService.puedeCompletar(
+          _solicitud(EstadoSolicitud.asignada, DateTime(2026, 11, 15, 9)),
+          ahora,
+        ),
+        isFalse,
+      );
+    });
+
+    test('no si está Publicada, Completada o Cancelada', () {
+      for (final estado in [
+        EstadoSolicitud.publicada,
+        EstadoSolicitud.completada,
+        EstadoSolicitud.cancelada,
+      ]) {
+        expect(
+          ServicioService.puedeCompletar(
+            _solicitud(estado, DateTime(2026, 11, 14, 9)),
+            ahora,
+          ),
+          isFalse,
+          reason: estado.etiqueta,
+        );
+      }
     });
   });
 
