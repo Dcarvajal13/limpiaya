@@ -10,6 +10,8 @@ import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
+import '../../../domain/services/servicio_service.dart';
+import '../../providers/completar_servicio_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
@@ -18,6 +20,7 @@ import '../../widgets/estado_vacio.dart';
 import 'banner_cliente.dart';
 import 'barra_cliente.dart';
 import 'dialogo_cancelar_solicitud.dart';
+import 'dialogos_servicio.dart';
 import 'tarjeta_solicitud_cliente.dart';
 
 /// HU-08 · Ver mis solicitudes y su estado.
@@ -59,6 +62,55 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
     } on AppException catch (e) {
       mensajes.showSnackBar(SnackBar(content: Text(e.mensaje)));
     }
+  }
+
+  /// HU-17 · Pide confirmación y marca el servicio como completado. Con
+  /// "Todavía no" no cambia nada. Al terminar invita a calificar (c3).
+  Future<void> _completar(Solicitud solicitud) async {
+    final confirmado = await mostrarDialogoCompletar(context, solicitud);
+    if (!confirmado || !mounted) return;
+
+    final error = await ref
+        .read(completarServicioProvider.notifier)
+        .completar(solicitud.id);
+    if (!mounted) return;
+
+    ref.invalidate(misSolicitudesProvider);
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    final calificar = await mostrarInvitacionCalificar(context, solicitud);
+    if (!mounted) return;
+    if (calificar) {
+      _calificar(solicitud);
+    } else {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              '${ServicioService.mensajeCompletado} Puedes calificar '
+              'cuando quieras desde la tarjeta.',
+            ),
+          ),
+        );
+    }
+  }
+
+  /// HU-29 · Calificar a la trabajadora.
+  // TODO(HU-29): abrir la pantalla de calificar cuando exista.
+  void _calificar(Solicitud solicitud) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Calificar servicio estará disponible pronto (HU-29)'),
+        ),
+      );
   }
 
   String _construirResumen(List<Solicitud> solicitudes) {
@@ -233,6 +285,13 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                   Rutas.editarSolicitud(solicitud.id),
                                 ),
                                 onCancelar: () => _cancelar(solicitud),
+                                // HU-17: solo si está Asignado y ya empezó.
+                                onCompletar: ServicioService.puedeCompletar(
+                                  solicitud,
+                                  DateTime.now(),
+                                )
+                                    ? () => _completar(solicitud)
+                                    : null,
 
                                   // HU-14: abre la lista de postulantes.
                                 onVerPostulantes: () => context.go(

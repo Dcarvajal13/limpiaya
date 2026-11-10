@@ -32,4 +32,24 @@ class SupabaseServicioRepository implements ServicioRepository {
       throw const AppException(ServicioService.mensajeErrorElegir);
     }
   }
+
+  @override
+  Future<void> completar(String solicitudId) async {
+    try {
+      await _client.rpc(
+        'completar_servicio',
+        params: {'p_solicitud': solicitudId},
+      );
+    } on PostgrestException catch (e) {
+      throw AppException(
+        ServicioService.traducir(
+          e.message,
+          ServicioService.mensajesCompletar,
+          ServicioService.mensajeErrorCompletar,
+        ),
+      );
+    } on Exception {
+      throw const AppException(ServicioService.mensajeErrorCompletar);
+    }
+  }
 }

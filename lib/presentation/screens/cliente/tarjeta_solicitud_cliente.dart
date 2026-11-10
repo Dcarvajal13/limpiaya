@@ -37,6 +37,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onEditar,
     this.onCancelar,
     this.onVerPostulantes,
+    this.onCompletar,
   });
 
   
@@ -50,6 +51,10 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   
   /// HU-14 · Abrir la lista de postulantes (solo si está Publicada).
   final VoidCallback? onVerPostulantes;
+
+  /// HU-17 · Marcar como completado. La pantalla lo pasa solo si el servicio
+  /// está Asignado y ya empezó (c2); si es null, el botón no aparece.
+  final VoidCallback? onCompletar;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -362,7 +367,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         );
 
       case EstadoSolicitud.asignada:
-        return FilledButton(
+        final verServicio = FilledButton(
           onPressed: () => _accion(
             context,
             'El seguimiento del servicio estará disponible pronto (HU-16)',
@@ -373,6 +378,28 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           ),
           child: const Text('Ver servicio'),
         );
+        if (onCompletar == null) return verServicio;
+        // Los dos botones con el mismo ancho: en el teléfono ocupan toda la
+        // fila y en pantallas grandes toman el ancho del más largo.
+        final botones = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            verServicio,
+            const SizedBox(height: 8),
+            // HU-17 c1
+            OutlinedButton(
+              key: Key('completar-${solicitud.id}'),
+              onPressed: onCompletar,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(150, 44),
+                side: const BorderSide(color: AppColors.primario, width: 1.5),
+              ),
+              child: const Text('Marcar como completado'),
+            ),
+          ],
+        );
+        return movil ? botones : IntrinsicWidth(child: botones);
 
       case EstadoSolicitud.completada:
         return OutlinedButton(

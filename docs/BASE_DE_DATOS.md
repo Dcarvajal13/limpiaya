@@ -10,6 +10,7 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._storage.sql` | Buckets de fotos: `avatars` (pública) y `verificaciones` (privada) |
 | `..._zonas_parroquias.sql` | Agrega la parroquia a cada zona, para elegir Municipio → Parroquia → Urbanización |
 | `..._elegir_trabajadora.sql` | HU-15: `elegir_trabajadora()` asigna la solicitud a una postulante, la acepta y marca a las demás como No seleccionada |
+| `..._completar_servicio.sql` | HU-17: `completar_servicio()` pasa a Completado un servicio Asignado que ya empezó (solo el cliente) |
 
 ## Diagrama entidad-relación
 
