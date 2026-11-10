@@ -17,6 +17,7 @@ import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/postulantes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desglose_costo.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
 import 'barra_cliente.dart';
@@ -432,6 +433,9 @@ class _ResumenSolicitud extends StatelessWidget {
               ),
             ],
           ),
+          // HU-52 c3: el desglose también en el resumen de la solicitud.
+          const SizedBox(height: 6),
+          DesgloseCosto(pago: s.pagoOfrecido),
         ],
       ),
     );

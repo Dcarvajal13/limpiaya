@@ -5,6 +5,7 @@ import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
+import '../../widgets/desglose_costo.dart';
 import '../../widgets/insignia_estado.dart';
 
 /// "Carmen Pérez" → "CP"; "Ana" → "A".
@@ -169,6 +170,12 @@ class TarjetaSolicitudCliente extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        // HU-52 c3: el mismo desglose que se vio al publicar.
+        const SizedBox(height: 4),
+        DesgloseCosto(
+          key: Key('desglose-${solicitud.id}'),
+          pago: solicitud.pagoOfrecido,
         ),
         const SizedBox(height: 8),
         _construirDetalleEstado(context),
