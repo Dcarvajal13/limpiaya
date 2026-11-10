@@ -8,13 +8,16 @@ abstract final class PostulacionModel {
   /// Una fila de `postulaciones` más su fila de `solicitudes_publicas`.
   ///
   /// [miId] sirve para saber si la solicitud quedó asignada a mí o a otra
-  /// trabajadora. [clienteNombre] y [clienteFotoUrl] los pasa el repositorio.
+  /// trabajadora. [clienteNombre] y [clienteFotoUrl] los pasa el repositorio,
+  /// y también [direccion] y [puntoReferencia] cuando me eligieron (HU-15 c3).
   static Postulacion desdeJson(
     Map<String, dynamic> postulacion,
     Map<String, dynamic> solicitud, {
     required String miId,
     String? clienteNombre,
     String? clienteFotoUrl,
+    String? direccion,
+    String? puntoReferencia,
   }) {
     return Postulacion(
       id: postulacion['id'] as String,
@@ -33,6 +36,8 @@ abstract final class PostulacionModel {
       pagoOfrecido: (solicitud['pago_ofrecido'] as num).toDouble(),
       clienteNombre: clienteNombre,
       clienteFotoUrl: clienteFotoUrl,
+      direccion: direccion,
+      puntoReferencia: puntoReferencia,
       creadaEn: postulacion['created_at'] != null
           ? DateTime.parse(postulacion['created_at'] as String).toLocal()
           : null,

@@ -7,9 +7,12 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/estado_postulacion.dart';
 import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/postulante.dart';
 import '../../../domain/entities/solicitud.dart';
+import '../../../domain/services/servicio_service.dart';
+import '../../providers/elegir_trabajadora_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/postulantes_provider.dart';
 import '../../providers/sesion_provider.dart';
@@ -26,6 +29,10 @@ import 'barra_cliente.dart';
 /// 2. Si una postulante se retiró (HU-26), ya no aparece.
 /// 3. Sin postulantes, se muestra "Todavía no hay postulantes".
 /// 4. Al tocar a una, se abre su perfil público (HU-06).
+///
+/// HU-15 · Elegir a una trabajadora: cada postulante pendiente tiene el
+/// botón "Elegir". Al confirmar, la solicitud queda Asignada (c1), las demás
+/// pasan a No seleccionada (c2) y el botón deja de ofrecerse (c4).
 class PostulantesScreen extends ConsumerWidget {
   const PostulantesScreen({super.key, required this.solicitudId});
 
@@ -109,9 +116,7 @@ class PostulantesScreen extends ConsumerWidget {
                             ]
                           : [
                               Text(
-                                lista.length == 1
-                                    ? '1 trabajadora se postuló'
-                                    : '${lista.length} trabajadoras se postularon',
+                                _titulo(lista),
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
@@ -132,6 +137,23 @@ class PostulantesScreen extends ConsumerWidget {
                                           p.trabajadoraId,
                                         ),
                                       ),
+                                      elegida: p.estado ==
+                                          EstadoPostulacion.aceptada,
+                                      // HU-15 c1 y c4: solo mientras se
+                                      // puede elegir.
+                                      onElegir: ServicioService.puedeElegir(
+                                        postulante: p,
+                                        postulantes: lista,
+                                        estadoSolicitud: solicitud?.estado,
+                                      )
+                                          ? () => _elegir(
+                                                context,
+                                                ref,
+                                                solicitudId: solicitudId,
+                                                postulante: p,
+                                                solicitud: solicitud,
+                                              )
+                                          : null,
                                     ),
                                 ],
                               ),
@@ -144,6 +166,111 @@ class PostulantesScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "2 trabajadoras se postularon", o "Trabajadora elegida" cuando ya se
+/// eligió a una (HU-15): las demás dejan de listarse porque quedaron como
+/// No seleccionada.
+String _titulo(List<Postulante> lista) {
+  if (lista.any((p) => p.estado == EstadoPostulacion.aceptada)) {
+    return 'Trabajadora elegida';
+  }
+  return lista.length == 1
+      ? '1 trabajadora se postuló'
+      : '${lista.length} trabajadoras se postularon';
+}
+
+/// HU-15 · Pide confirmación y elige a la postulante. Con "No" no cambia
+/// nada. Al terminar refresca la lista (c4: el botón desaparece) y Mis
+/// solicitudes (la tarjeta pasa a Asignada).
+Future<void> _elegir(
+  BuildContext context,
+  WidgetRef ref, {
+  required String solicitudId,
+  required Postulante postulante,
+  Solicitud? solicitud,
+}) async {
+  final confirmado = await showDialog<bool>(
+    context: context,
+    builder: (context) => _DialogoElegir(
+      postulante: postulante,
+      solicitud: solicitud,
+    ),
+  );
+  if (confirmado != true || !context.mounted) return;
+
+  final error = await ref
+      .read(elegirTrabajadoraProvider.notifier)
+      .elegir(postulante.postulacionId);
+  if (!context.mounted) return;
+
+  // Haya salido bien o no, la lista pudo cambiar (alguien se retiró, la
+  // solicitud se asignó en otra pestaña…): se vuelve a cargar.
+  ref.invalidate(postulantesProvider(solicitudId));
+  ref.invalidate(misSolicitudesProvider);
+
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(
+          error ?? ServicioService.mensajeElegida(postulante.nombre),
+        ),
+      ),
+    );
+}
+
+/// Confirmación antes de elegir (H5 del taller: diálogo antes de una acción
+/// que no se puede deshacer).
+class _DialogoElegir extends StatelessWidget {
+  const _DialogoElegir({required this.postulante, this.solicitud});
+
+  final Postulante postulante;
+  final Solicitud? solicitud;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final nombre = postulante.nombre.trim().split(RegExp(r'\s+')).first;
+    final fecha = solicitud == null
+        ? 'El servicio'
+        : 'El servicio del ${Formato.diaDeMes(solicitud!.inicio)}';
+
+    return AlertDialog(
+      title: Text('¿Elegir a ${postulante.nombre}?'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '$fecha quedará agendado con ella. $nombre verá tu dirección '
+              'exacta y el punto de referencia para llegar.',
+              style: textos.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Si hay más postulantes, verán que elegiste a otra persona.',
+              style: textos.bodySmall,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          key: const Key('cancelar-elegir'),
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('No'),
+        ),
+        FilledButton(
+          key: const Key('confirmar-elegir'),
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Sí, elegir'),
+        ),
+      ],
     );
   }
 }
@@ -315,10 +442,21 @@ class _ResumenSolicitud extends StatelessWidget {
 /// franja de color con foto y nombre, datos en el medio y el mensaje abajo.
 /// Sin sombra, como pide el manual de marca: el color la separa del fondo.
 class _TarjetaPostulante extends StatelessWidget {
-  const _TarjetaPostulante({required this.postulante, required this.onTap});
+  const _TarjetaPostulante({
+    required this.postulante,
+    required this.onTap,
+    this.onElegir,
+    this.elegida = false,
+  });
 
   final Postulante postulante;
   final VoidCallback onTap;
+
+  /// HU-15 · Elegir a esta postulante. Null si ya no se puede elegir (c4).
+  final VoidCallback? onElegir;
+
+  /// HU-15 · Es la trabajadora que el cliente eligió.
+  final bool elegida;
 
   @override
   Widget build(BuildContext context) {
@@ -435,6 +573,24 @@ class _TarjetaPostulante extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (elegida) ...[
+                      const SizedBox(height: 14),
+                      const InsigniaEstado(
+                        'Elegida',
+                        tono: TonoInsignia.verde,
+                      ),
+                    ] else if (onElegir != null) ...[
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        key: Key('elegir-${p.postulacionId}'),
+                        onPressed: onElegir,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(44),
+                          backgroundColor: AppColors.primarioOscuro,
+                        ),
+                        child: Text('Elegir a ${_primerNombre(p.nombre)}'),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -444,6 +600,9 @@ class _TarjetaPostulante extends StatelessWidget {
       ),
     );
   }
+
+  String _primerNombre(String nombre) =>
+      nombre.trim().split(RegExp(r'\s+')).first;
 
   /// "★ 4,8 · 3 reseñas" o "Nueva en la plataforma".
   String _reputacion(Postulante p) {

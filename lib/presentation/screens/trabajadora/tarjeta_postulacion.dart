@@ -142,6 +142,12 @@ class TarjetaPostulacion extends StatelessWidget {
             icono: Icons.person_outline,
             texto: 'Cliente: ${p.clienteNombre}',
           ),
+        // HU-15 c3: al ser elegida ya ve la dirección exacta.
+        if (p.estado == EstadoPostulacion.aceptada && p.direccion != null)
+          _Linea(
+            icono: Icons.home_outlined,
+            texto: _textoDireccion(p.direccion!, p.puntoReferencia),
+          ),
         if (p.creadaEn != null)
           _Linea(
             icono: Icons.send_outlined,
@@ -256,6 +262,12 @@ class TarjetaPostulacion extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Av. Principal, casa 4 · Ref.: frente a la panadería".
+String _textoDireccion(String direccion, String? referencia) {
+  final ref = referencia?.trim();
+  return (ref == null || ref.isEmpty) ? direccion : '$direccion · Ref.: $ref';
 }
 
 /// Cuadro con el mes y el día, como en la tarjeta del cliente.

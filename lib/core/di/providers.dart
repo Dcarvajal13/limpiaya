@@ -6,6 +6,7 @@ import '../../data/repositories/supabase_cliente_repository.dart';
 import '../../data/repositories/supabase_perfil_repository.dart';
 import '../../data/repositories/supabase_postulacion_repository.dart';
 import '../../data/repositories/supabase_reputacion_repository.dart';
+import '../../data/repositories/supabase_servicio_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../data/repositories/supabase_verificacion_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -13,6 +14,7 @@ import '../../domain/repositories/cliente_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/postulacion_repository.dart';
 import '../../domain/repositories/reputacion_repository.dart';
+import '../../domain/repositories/servicio_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/repositories/verificacion_repository.dart';
 import '../../domain/services/registro_service.dart';
@@ -46,6 +48,11 @@ final clienteRepositoryProvider = Provider<ClienteRepository>(
 
 final postulacionRepositoryProvider = Provider<PostulacionRepository>(
   (ref) => SupabasePostulacionRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// Servicios agendados: elegir, completar y cancelar (HU-15, HU-17, HU-28).
+final servicioRepositoryProvider = Provider<ServicioRepository>(
+  (ref) => SupabaseServicioRepository(ref.watch(supabaseClientProvider)),
 );
 
 final perfilRepositoryProvider = Provider<PerfilRepository>(

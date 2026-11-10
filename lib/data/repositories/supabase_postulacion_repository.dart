@@ -52,6 +52,13 @@ class SupabasePostulacionRepository implements PostulacionRepository {
         for (final fila in solicitudes.values) fila['cliente_id'] as String,
       });
 
+      // HU-15 c3 · De los servicios donde me eligieron sí puedo leer la
+      // dirección exacta (RLS: trabajadora_id = yo).
+      final direcciones = await _direcciones({
+        for (final fila in solicitudes.values)
+          if (fila['trabajadora_id'] == usuario.id) fila['id'] as String,
+      });
+
       return [
         for (final p in postulaciones)
           if (solicitudes[p['solicitud_id']] case final solicitud?)
@@ -64,6 +71,10 @@ class SupabasePostulacionRepository implements PostulacionRepository {
               clienteFotoUrl: _fotoUrl(
                 clientes[solicitud['cliente_id']]?['foto_path'] as String?,
               ),
+              direccion:
+                  direcciones[solicitud['id']]?['direccion'] as String?,
+              puntoReferencia:
+                  direcciones[solicitud['id']]?['punto_referencia'] as String?,
             ),
       ];
     } on Exception {
@@ -251,6 +262,27 @@ class SupabasePostulacionRepository implements PostulacionRepository {
             'id, nombre, foto_path, verificada, promedio, total_resenas, '
             'servicios_completados, experiencia_anios',
           )
+          .inFilter('id', ids.toList());
+      return {
+        for (final fila in filas)
+          fila['id'] as String: Map<String, dynamic>.from(fila),
+      };
+    } on Exception {
+      return const {};
+    }
+  }
+
+  /// HU-15 c3 · Dirección y punto de referencia de los servicios asignados a
+  /// la trabajadora con sesión. Es información complementaria: si falla, la
+  /// tarjeta sale sin dirección en vez de romper la lista.
+  Future<Map<String, Map<String, dynamic>>> _direcciones(
+    Set<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    try {
+      final filas = await _client
+          .from('solicitudes')
+          .select('id, direccion, punto_referencia')
           .inFilter('id', ids.toList());
       return {
         for (final fila in filas)
