@@ -41,6 +41,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onCompletar,
     this.onCancelarServicio,
     this.onCalificar,
+    this.onRepetir,
   });
 
   
@@ -66,6 +67,10 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   /// HU-29 · Calificar a la trabajadora, o ver la calificación que ya le
   /// puse (c3). Solo en un servicio Completado.
   final VoidCallback? onCalificar;
+
+  /// HU-44 · Repetir la solicitud (solo Completada o Cancelada). Si es null,
+  /// el botón no aparece.
+  final VoidCallback? onRepetir;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -461,7 +466,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
       case EstadoSolicitud.completada:
         final yaCalifique = solicitud.miCalificacion != null;
-        return OutlinedButton(
+        final calificar = OutlinedButton(
           key: Key('calificar-${solicitud.id}'),
           onPressed: () {
             if (onCalificar != null) return onCalificar!();
@@ -474,9 +479,34 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           // HU-29 c3: si ya calificó, solo puede verla.
           child: Text(yaCalifique ? 'Ver mi calificación' : 'Calificar'),
         );
+        if (onRepetir == null) return calificar;
+        final botones = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            calificar,
+            const SizedBox(height: 4),
+            _botonRepetir(),
+          ],
+        );
+        return movil ? botones : IntrinsicWidth(child: botones);
 
       case EstadoSolicitud.cancelada:
-        return null;
+        // HU-44 c1 · Una cancelada también se puede volver a pedir.
+        if (onRepetir == null) return null;
+        return _botonRepetir();
     }
   }
+
+  /// HU-44 c1 · "Repetir": abre el formulario con los mismos datos.
+  Widget _botonRepetir() => TextButton.icon(
+        key: Key('repetir-${solicitud.id}'),
+        onPressed: onRepetir,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 36),
+          foregroundColor: AppColors.primario,
+        ),
+        icon: const Icon(Icons.replay_rounded, size: 18),
+        label: const Text('Repetir'),
+      );
 }

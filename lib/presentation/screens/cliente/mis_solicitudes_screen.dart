@@ -12,6 +12,7 @@ import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
 import '../../../domain/services/calificacion_service.dart';
 import '../../../domain/services/servicio_service.dart';
+import '../../../domain/services/solicitud_service.dart';
 import '../../providers/calificar_provider.dart';
 import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/completar_servicio_provider.dart';
@@ -359,6 +360,14 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                 // HU-28: solo mientras está Asignado.
                                 // HU-29: calificar o ver mi calificación.
                                 onCalificar: () => _calificar(solicitud),
+                                // HU-44 · Repetir una Completada o Cancelada.
+                                onRepetir: SolicitudService.sePuedeRepetir(
+                                  solicitud,
+                                )
+                                    ? () => context.go(
+                                          Rutas.repetirSolicitud(solicitud.id),
+                                        )
+                                    : null,
                                 onCancelarServicio:
                                     ServicioService.puedeCancelar(
                                   solicitud.estado,

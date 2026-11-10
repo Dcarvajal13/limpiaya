@@ -15,6 +15,8 @@ import '../../widgets/logo_limpiaya.dart';
 /// fila para que todo quepa.
 ///
 /// "Mis servicios" (HU-13) abre la pantalla con la pestaña Postulaciones.
+/// "Mi reputación" (HU-31, HU-61) muestra sus reseñas, sus respuestas y su
+/// nivel.
 class BarraTrabajadora extends StatelessWidget {
   const BarraTrabajadora({
     super.key,
@@ -41,6 +43,7 @@ class BarraTrabajadora extends StatelessWidget {
       ubicacion: ubicacion,
       onTrabajos: () => context.go(Rutas.inicioTrabajadora),
       onMisServicios: () => context.go(Rutas.misServicios),
+      onMiReputacion: () => context.go(Rutas.miReputacion),
     );
 
     // Corrección del review: "Mi perfil" y el nombre eran lo mismo. Ahora
@@ -73,7 +76,14 @@ class BarraTrabajadora extends StatelessWidget {
                       // de desbordar la barra (ventanas de ~800 px).
                       if (!movil) ...[
                         const SizedBox(width: 16),
-                        Expanded(child: Center(child: pestanas)),
+                        Expanded(
+                          child: Center(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: pestanas,
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
                       ] else
                         const Spacer(),
@@ -105,12 +115,16 @@ class _Pestanas extends StatelessWidget {
     required this.ubicacion,
     required this.onTrabajos,
     required this.onMisServicios,
+    required this.onMiReputacion,
   });
 
   /// Dirección actual, para marcar la pestaña activa.
   final String ubicacion;
   final VoidCallback onTrabajos;
   final VoidCallback onMisServicios;
+
+  /// HU-31 / HU-61 · Reseñas, respuestas y nivel.
+  final VoidCallback onMiReputacion;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +141,11 @@ class _Pestanas extends StatelessWidget {
           activa: ubicacion == Rutas.misServicios ||
               ubicacion.startsWith('${Rutas.misServicios}/'),
           onTap: onMisServicios,
+        ),
+        _Pestana(
+          etiqueta: 'Mi reputación',
+          activa: ubicacion == Rutas.miReputacion,
+          onTap: onMiReputacion,
         ),
       ],
     );

@@ -32,7 +32,10 @@ class SupabaseTrabajadoraPublicaRepository
       try {
         final filas = await _client
             .from('resenas_publicas')
-            .select('estrellas, comentario, autor_nombre, created_at')
+            .select(
+              'id, estrellas, comentario, autor_nombre, created_at, '
+              'respuesta, respuesta_en',
+            )
             .eq('destinatario_id', trabajadoraId)
             .order('created_at', ascending: false)
             .limit(20);

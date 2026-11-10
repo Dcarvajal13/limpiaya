@@ -29,18 +29,30 @@ abstract final class PerfilPublicoModel {
       serviciosCompletados:
           (fila['servicios_completados'] as num?)?.toInt() ?? 0,
       resenas: [for (final resena in resenas) resenaDesdeJson(resena)],
+      destacada: fila['destacada'] as bool? ?? false,
+      zonaIds: [
+        for (final id in (fila['zona_ids'] as List?) ?? const [])
+          (id as num).toInt(),
+      ],
     );
   }
 
   /// Una fila de `resenas_publicas`.
   static ResenaPublica resenaDesdeJson(Map<String, dynamic> fila) {
     final comentario = (fila['comentario'] as String?)?.trim();
+    final respuesta = (fila['respuesta'] as String?)?.trim();
     return ResenaPublica(
+      id: fila['id'] as String?,
       estrellas: (fila['estrellas'] as num).toInt(),
       autorNombre: (fila['autor_nombre'] as String?) ?? 'Usuario',
       comentario: (comentario == null || comentario.isEmpty) ? null : comentario,
       createdAt: fila['created_at'] != null
           ? DateTime.parse(fila['created_at'] as String).toLocal()
+          : null,
+      // HU-31 · Respuesta de quien recibió la reseña.
+      respuesta: (respuesta == null || respuesta.isEmpty) ? null : respuesta,
+      respuestaEn: fila['respuesta_en'] != null
+          ? DateTime.parse(fila['respuesta_en'] as String).toLocal()
           : null,
     );
   }

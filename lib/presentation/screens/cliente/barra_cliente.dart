@@ -31,6 +31,7 @@ class BarraCliente extends StatelessWidget {
       ubicacion: ubicacion,
       onMisSolicitudes: () => context.go(Rutas.inicioCliente),
       onPublicar: () => context.go(Rutas.publicarSolicitud),
+      onBuscar: () => context.go(Rutas.buscarTrabajadoras),
       onProximamente: (nombre) => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -95,12 +96,16 @@ class _Pestanas extends StatelessWidget {
     required this.ubicacion,
     required this.onMisSolicitudes,
     required this.onPublicar,
+    required this.onBuscar,
     required this.onProximamente,
   });
 
   final String ubicacion;
   final VoidCallback onMisSolicitudes;
   final VoidCallback onPublicar;
+
+  /// HU-25 · Buscar trabajadoras.
+  final VoidCallback onBuscar;
   final void Function(String) onProximamente;
 
   @override
@@ -119,6 +124,11 @@ class _Pestanas extends StatelessWidget {
             etiqueta: 'Publicar',
             activa: ubicacion == Rutas.publicarSolicitud,
             onTap: onPublicar,
+          ),
+          _Pestana(
+            etiqueta: 'Buscar trabajadoras',
+            activa: ubicacion == Rutas.buscarTrabajadoras,
+            onTap: onBuscar,
           ),
           _Pestana(
             etiqueta: 'Mensajes',
