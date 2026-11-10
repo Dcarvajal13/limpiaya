@@ -229,4 +229,42 @@ void main() {
     expect(find.text('“Tengo 15 años de experiencia.”'), findsOneWidget);
     expect(find.text('No dejó un mensaje.'), findsOneWidget);
   });
+
+  testWidgets('HU-61 c2: la trabajadora destacada aparece primero',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(
+        _PostulacionesFalsas([
+          // Ana se postuló antes, pero Carmen es destacada.
+          Postulante(
+            postulacionId: 'p1',
+            trabajadoraId: 't1',
+            nombre: 'Ana Rivas',
+            estado: EstadoPostulacion.pendiente,
+            fecha: DateTime(2026, 10, 24),
+          ),
+          Postulante(
+            postulacionId: 'p2',
+            trabajadoraId: 't2',
+            nombre: 'Carmen Pérez',
+            estado: EstadoPostulacion.pendiente,
+            fecha: DateTime(2026, 10, 25),
+            promedio: 4.9,
+            totalResenas: 12,
+            serviciosCompletados: 12,
+            destacada: true,
+          ),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Destacada'), findsOneWidget);
+    final carmen = tester.getTopLeft(find.text('Carmen Pérez'));
+    final ana = tester.getTopLeft(find.text('Ana Rivas'));
+    final carmenPrimero =
+        carmen.dy < ana.dy || (carmen.dy == ana.dy && carmen.dx < ana.dx);
+    expect(carmenPrimero, isTrue);
+  });
 }

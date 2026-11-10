@@ -18,6 +18,7 @@ import '../../widgets/contenido_centrado.dart';
 import '../../widgets/dialogo_postular.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
+import 'caja_cliente.dart';
 
 /// HU-45 · Ver el detalle de una solicitud antes de postularse.
 ///
@@ -172,6 +173,11 @@ class _Contenido extends ConsumerWidget {
     );
 
     final secciones = <Widget>[
+      // HU-46 · Quién la publicó y qué tal cliente es.
+      if (solicitud.clienteId != null) ...[
+        CajaCliente(clienteId: solicitud.clienteId!),
+        const SizedBox(height: 16),
+      ],
       _Horario(solicitud: solicitud),
       const SizedBox(height: 16),
       _Casa(solicitud: solicitud),
@@ -269,6 +275,15 @@ class _Encabezado extends StatelessWidget {
           Row(
             children: [
               InsigniaEstado(solicitud.tipo.etiqueta, tono: TonoInsignia.azul),
+              // HU-25 c3 · El cliente la invitó a esta solicitud.
+              if (solicitud.meInvitaron) ...[
+                const SizedBox(width: 6),
+                const InsigniaEstado(
+                  'Te invitaron',
+                  key: Key('te-invitaron'),
+                  tono: TonoInsignia.ambar,
+                ),
+              ],
               const SizedBox(width: 12),
               Expanded(
                 child: Row(

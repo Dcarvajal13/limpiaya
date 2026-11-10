@@ -14,7 +14,9 @@ import '../../widgets/avatar_usuario.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/estrellas.dart';
+import '../../widgets/insignia_destacada.dart';
 import '../../widgets/insignia_verificada.dart';
+import '../../widgets/resena_item.dart';
 
 /// HU-06 · Ver el perfil público de una trabajadora.
 ///
@@ -126,6 +128,11 @@ class _Contenido extends StatelessWidget {
                         if (p.verificada) ...[
                           const SizedBox(height: 6),
                           const InsigniaVerificada(),
+                        ],
+                        // HU-61 · Insignia "Destacada".
+                        if (p.destacada) ...[
+                          const SizedBox(height: 8),
+                          const InsigniaDestacada(),
                         ],
                         const SizedBox(height: 10),
                         _Reputacion(perfil: p),
@@ -243,7 +250,11 @@ class _Contenido extends StatelessWidget {
               else
                 for (final (i, resena) in p.resenas.indexed) ...[
                   if (i > 0) const Divider(height: 24, color: AppColors.borde),
-                  _Resena(resena: resena),
+                  // HU-31 c1 · Con la respuesta de ella debajo, si respondió.
+                  ResenaItem(
+                    resena: resena,
+                    etiquetaRespuesta: 'Respuesta de ${_primerNombre(p.nombre)}',
+                  ),
                 ],
             ],
           ),
@@ -292,46 +303,8 @@ class _Reputacion extends StatelessWidget {
   }
 }
 
-class _Resena extends StatelessWidget {
-  const _Resena({required this.resena});
-
-  final ResenaPublica resena;
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Estrellas(valor: resena.estrellas.toDouble(), tamano: 15),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                resena.autorNombre,
-                style: textos.labelMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            if (resena.createdAt != null)
-              Text(
-                Formato.diaMesCorto(resena.createdAt!),
-                style: textos.bodySmall?.copyWith(fontSize: 12),
-              ),
-          ],
-        ),
-        if (resena.comentario != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            resena.comentario!,
-            style: textos.bodyMedium?.copyWith(height: 1.4),
-          ),
-        ],
-      ],
-    );
-  }
-}
+String _primerNombre(String nombre) =>
+    nombre.trim().split(RegExp(r'\s+')).first;
 
 class _Dato extends StatelessWidget {
   const _Dato({required this.icono, required this.texto});

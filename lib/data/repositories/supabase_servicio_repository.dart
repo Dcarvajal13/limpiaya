@@ -92,6 +92,7 @@ class SupabaseServicioRepository implements ServicioRepository {
           ServicioAgendadoModel.desdeJson(
             {...fila, 'zona': zonas[fila['zona_id']] ?? ''},
             soyCliente: false,
+            contraparteId: fila['cliente_id'] as String?,
             contraparteNombre:
                 clientes[fila['cliente_id']]?['nombre'] as String?,
             contraparteFotoUrl: _fotoUrl(
@@ -134,6 +135,7 @@ class SupabaseServicioRepository implements ServicioRepository {
       return ServicioAgendadoModel.desdeJson(
         {...fila, 'zona': zonas[fila['zona_id']] ?? ''},
         soyCliente: soyCliente,
+        contraparteId: contraparteId,
         contraparteNombre:
             contrapartes[contraparteId]?['nombre'] as String?,
         contraparteFotoUrl: _fotoUrl(
@@ -211,4 +213,23 @@ class SupabaseServicioRepository implements ServicioRepository {
   String? _fotoUrl(String? fotoPath) => fotoPath == null || fotoPath.isEmpty
       ? null
       : _client.storage.from('avatars').getPublicUrl(fotoPath);
+  @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {
+    try {
+      await _client.rpc(
+        'cancelar_servicio',
+        params: {'p_solicitud': solicitudId, 'p_motivo': motivo},
+      );
+    } on PostgrestException catch (e) {
+      throw AppException(
+        ServicioService.traducir(
+          e.message,
+          ServicioService.mensajesCancelar,
+          ServicioService.mensajeErrorCancelar,
+        ),
+      );
+    } on Exception {
+      throw const AppException(ServicioService.mensajeErrorCancelar);
+    }
+  }
 }

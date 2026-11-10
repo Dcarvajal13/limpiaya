@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/di/providers.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
@@ -9,13 +10,20 @@ import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_postulacion.dart';
 import '../../../domain/entities/postulacion.dart';
 import '../../../domain/entities/servicio_agendado.dart';
+import '../../../domain/services/calificacion_service.dart';
 import '../../../domain/services/postulacion_service.dart';
+import '../../../domain/services/servicio_service.dart';
+import '../../providers/calificar_provider.dart';
+import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/mis_servicios_provider.dart';
 import '../../providers/retirar_postulacion_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
+import '../../widgets/calificar_contraparte.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_calificar.dart';
+import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
 import 'barra_trabajadora.dart';
 import 'tarjeta_postulacion.dart';
@@ -184,17 +192,9 @@ class _ListaServicios extends ConsumerWidget {
               TarjetaServicioAgendado(
                 servicio: s,
                 onTap: () => context.push(Rutas.servicioAgendado(s.id)),
-                // HU-16 c4: se califica desde el detalle; HU-29 lo completa.
-                // TODO(HU-29): abrir la pantalla de calificar.
-                onCalificar: () => ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Calificar servicio estará disponible pronto (HU-29)',
-                      ),
-                    ),
-                  ),
+                // HU-16 c4: la otra parte se califica con HU-29/HU-30.
+                onCalificar: () =>
+                    calificarContraparte(context, ref, s),
               ),
               const SizedBox(height: 12),
             ],
@@ -265,6 +265,96 @@ class _ListaPostulaciones extends ConsumerWidget {
       );
   }
 
+  /// HU-28 · Pide el motivo y cancela el servicio asignado. Con "No" no
+  /// cambia nada; sin motivo no deja confirmar (c2). El cliente lo verá como
+  /// Cancelado con el motivo (c1).
+  Future<void> _cancelarServicio(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final motivo = await mostrarDialogoCancelarServicio(
+      context,
+      inicio: postulacion.inicio,
+      motivos: ServicioService.motivosCancelarTrabajadora,
+      otraParte: postulacion.clienteNombre ?? 'el cliente',
+    );
+    if (motivo == null || !context.mounted) return;
+
+    final error = await ref
+        .read(cancelarServicioProvider.notifier)
+        .cancelar(postulacion.solicitudId, motivo: motivo);
+    if (!context.mounted) return;
+
+    ref.invalidate(misPostulacionesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? ServicioService.mensajeServicioCancelado),
+        ),
+      );
+  }
+
+  /// HU-30 · Calificar al cliente de un servicio Completado. Si ya lo
+  /// calificó, solo muestra su calificación (c3). Con 1 o 2 estrellas el
+  /// diálogo pide el motivo (c2).
+  Future<void> _calificarCliente(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    final clienteId = postulacion.clienteId;
+    final nombre = postulacion.clienteNombre ?? 'el cliente';
+    if (clienteId == null) return;
+
+    try {
+      final existente = await ref
+          .read(calificacionRepositoryProvider)
+          .miCalificacion(postulacion.solicitudId);
+      if (!context.mounted) return;
+      if (existente != null) {
+        await mostrarMiCalificacion(
+          context,
+          nombre: nombre,
+          calificacion: existente,
+        );
+        return;
+      }
+    } on AppException catch (e) {
+      mensajes.showSnackBar(SnackBar(content: Text(e.mensaje)));
+      return;
+    }
+
+    final nueva = await mostrarDialogoCalificar(
+      context,
+      nombre: nombre,
+      pregunta: '¿Cómo fue trabajar con este cliente? Tu opinión ayuda a '
+          'otras trabajadoras.',
+      aviso: CalificacionService.mensajeOcultaCliente,
+      ejemplo: 'Por ejemplo: pagó a tiempo y fue muy amable.',
+      pedirMotivo: true,
+    );
+    if (nueva == null || !context.mounted) return;
+
+    final error = await ref.read(calificarProvider.notifier).calificar(
+          solicitudId: postulacion.solicitudId,
+          destinatarioId: clienteId,
+          estrellas: nueva.estrellas,
+          comentario: nueva.comentario,
+          motivo: nueva.motivo,
+        );
+    if (!context.mounted) return;
+
+    ref.invalidate(misPostulacionesProvider);
+    mensajes
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(error ?? CalificacionService.mensajeEnviada)),
+      );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postulaciones = ref.watch(misPostulacionesProvider);
@@ -311,6 +401,13 @@ class _ListaPostulaciones extends ConsumerWidget {
                 onRetirar: () => _retirar(context, ref, p),
                 onVerSolicitud: () =>
                     context.go(Rutas.detalleSolicitud(p.solicitudId)),
+                // HU-30: calificar al cliente cuando ya se completó.
+                onCalificar: () => _calificarCliente(context, ref, p),
+                // HU-28: solo mientras el servicio sigue Asignado (c3).
+                onCancelarServicio: p.estadoSolicitud != null &&
+                        ServicioService.puedeCancelar(p.estadoSolicitud!)
+                    ? () => _cancelarServicio(context, ref, p)
+                    : null,
               ),
               const SizedBox(height: 14),
             ],
@@ -362,7 +459,14 @@ class _PanelResumen extends StatelessWidget {
       ),
       (
         'Canceladas por el cliente',
-        _cuantas(EstadoPostulacion.solicitudCancelada),
+        // HU-28: las que canceló ella misma no cuentan aquí.
+        postulaciones
+            .where(
+              (p) =>
+                  p.estado == EstadoPostulacion.solicitudCancelada &&
+                  !p.canceladaPorMi,
+            )
+            .length,
         AppColors.error,
       ),
     ];

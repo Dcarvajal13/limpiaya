@@ -9,6 +9,7 @@ import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/nueva_contrasena_screen.dart';
 import '../../presentation/screens/auth/recuperar_contrasena_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
+import '../../presentation/screens/cliente/buscar_trabajadoras_screen.dart';
 import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
 import '../../presentation/screens/cliente/postulantes_screen.dart';
@@ -18,8 +19,10 @@ import '../../presentation/screens/perfil/perfil_publico_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
 import '../../presentation/screens/trabajadora/detalle_solicitud_screen.dart';
+import '../../presentation/screens/trabajadora/mi_reputacion_screen.dart';
 import '../../presentation/screens/trabajadora/mis_servicios_screen.dart';
 import '../../presentation/screens/trabajadora/servicio_agendado_screen.dart';
+import '../../presentation/screens/trabajadora/perfil_cliente_publico_screen.dart';
 import '../../presentation/screens/trabajadora/perfil_trabajadora_screen.dart';
 import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.dart';
 import '../../presentation/screens/trabajadora/verificacion_identidad_screen.dart';
@@ -99,10 +102,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Rutas.misServicios,
         builder: (context, state) => const MisServiciosScreen(),
       ),
+      // HU-31 / HU-61 · Mis reseñas, mis respuestas y mi nivel.
+      GoRoute(
+        path: Rutas.miReputacion,
+        builder: (context, state) => const MiReputacionScreen(),
+      ),
       GoRoute(
         path: Rutas.detalleSolicitudPatron,
         builder: (context, state) => DetalleSolicitudScreen(
           solicitudId: state.pathParameters['id']!,
+        ),
+      ),
+      // HU-46 · Perfil del cliente, visto por la trabajadora.
+      GoRoute(
+        path: Rutas.perfilClientePublicoPatron,
+        builder: (context, state) => PerfilClientePublicoScreen(
+          clienteId: state.pathParameters['id']!,
         ),
       ),
       // HU-16 · Detalle del servicio agendado, desde la trabajadora.
@@ -141,11 +156,23 @@ final routerProvider = Provider<GoRouter>((ref) {
           solicitudId: state.pathParameters['id'],
         ),
       ),
+      // HU-44 · Repetir una solicitud anterior.
+      GoRoute(
+        path: Rutas.repetirSolicitudPatron,
+        builder: (context, state) => PublicarSolicitudScreen(
+          repetirDe: state.pathParameters['id'],
+        ),
+      ),
       // HU-14 · Postulantes de una solicitud del cliente.
       GoRoute(
         path: Rutas.postulantesPatron,
         builder: (context, state) =>
             PostulantesScreen(solicitudId: state.pathParameters['id']!),
+      ),
+      // HU-25 · Buscar trabajadoras e invitarlas.
+      GoRoute(
+        path: Rutas.buscarTrabajadoras,
+        builder: (context, state) => const BuscarTrabajadorasScreen(),
       ),
       // HU-06 · Perfil público de una trabajadora, sin teléfono ni correo.
       GoRoute(

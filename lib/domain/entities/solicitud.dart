@@ -32,6 +32,8 @@ class Solicitud {
     this.notas,
     this.createdAt,
     this.motivoCancelacion,
+    this.canceladaPor,
+    this.miCalificacion,
   });
 
   final String id;
@@ -73,6 +75,14 @@ class Solicitud {
   final String? notas;
   final DateTime? createdAt;
 
-  /// Motivo que eligió el cliente al cancelarla (HU-10), si eligió uno.
+  /// Motivo que eligió el cliente al cancelarla (HU-10), si eligió uno, o el
+  /// de quien canceló el servicio asignado (HU-28).
   final String? motivoCancelacion;
+
+  /// HU-28 · Id de quien la canceló (el cliente o la trabajadora asignada).
+  final String? canceladaPor;
+
+  /// HU-29 c3 · Estrellas que ya le puse a la trabajadora, o null si todavía
+  /// no la califiqué (o el servicio no está Completado).
+  final int? miCalificacion;
 }

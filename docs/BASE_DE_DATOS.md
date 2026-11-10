@@ -11,6 +11,10 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._zonas_parroquias.sql` | Agrega la parroquia a cada zona, para elegir Municipio → Parroquia → Urbanización |
 | `..._elegir_trabajadora.sql` | HU-15: `elegir_trabajadora()` asigna la solicitud a una postulante, la acepta y marca a las demás como No seleccionada |
 | `..._completar_servicio.sql` | HU-17: `completar_servicio()` pasa a Completado un servicio Asignado que ya empezó (solo el cliente) |
+| `..._cancelar_servicio.sql` | HU-28: `cancelar_servicio()` cancela un servicio Asignado con motivo (cliente o trabajadora) y la vista `solicitudes_publicas` suma `cancelada_por` |
+| `..._responder_resena.sql` | HU-31: tabla `respuestas_resenas` (una por reseña), `responder_resena()` publica o edita la respuesta (hasta 300 caracteres) y `resenas_publicas` suma `respuesta` y `respuesta_en` |
+| `..._nivel_trabajadora.sql` | HU-61: vista interna `nivel_trabajadoras` (10 servicios, promedio ≥ 4,5 y sin cancelaciones tardías en 30 días), `mi_nivel` para la trabajadora y `trabajadoras_publicas` suma `destacada` |
+| `..._invitaciones.sql` | HU-25: tabla `invitaciones`, `invitar_trabajadora()`, `trabajadoras_publicas` suma `zona_ids` y `solicitudes_publicas` suma `me_invitaron` |
 
 ## Diagrama entidad-relación
 
@@ -130,12 +134,15 @@ Una **solicitud asignada es lo que las historias llaman "servicio"**: es la mism
 | `zonas`, `trabajadora_zonas`, `trabajadora_servicios` | HU-04, HU-05, HU-11 |
 | `solicitudes` | HU-07, HU-08, HU-09, HU-10, HU-15, HU-16, HU-17, HU-28, HU-43, HU-52 |
 | `postulaciones` | HU-12, HU-13, HU-14, HU-26 |
-| `calificaciones` | HU-29, HU-30 |
+| `calificaciones` | HU-29, HU-30, HU-46 |
+| `respuestas_resenas` | HU-31 |
+| `invitaciones` | HU-25 |
 | `verificaciones` | HU-21, HU-33 |
 | `mensajes` | HU-38 |
 | Vista `solicitudes_publicas` | HU-11, HU-13, HU-45: solicitudes **sin dirección** |
-| Vista `trabajadoras_publicas` | HU-06, HU-14: perfil con zonas, servicios y promedio, **sin teléfono** |
-| Vista `resenas_publicas`, `reputacion` | HU-06, HU-29 c4: reseñas visibles y promedios |
+| Vista `trabajadoras_publicas` | HU-06, HU-14, HU-25, HU-61: perfil con zonas, servicios, promedio e insignia, **sin teléfono** |
+| Vista `resenas_publicas`, `reputacion` | HU-06, HU-29 c4, HU-31, HU-46: reseñas visibles (con su respuesta) y promedios |
+| Vista `mi_nivel` | HU-61: el nivel de la trabajadora con sesión y lo que le falta |
 | Vista `perfiles_publicos` | Nombre y foto de cualquier usuario |
 
 ## Reglas de seguridad (RLS)

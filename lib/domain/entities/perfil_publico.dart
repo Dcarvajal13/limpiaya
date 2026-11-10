@@ -10,6 +10,9 @@ class ResenaPublica {
     required this.autorNombre,
     this.comentario,
     this.createdAt,
+    this.id,
+    this.respuesta,
+    this.respuestaEn,
   });
 
   /// De 1 a 5.
@@ -20,6 +23,17 @@ class ResenaPublica {
 
   final String? comentario;
   final DateTime? createdAt;
+
+  /// Id de la calificación. Hace falta para responderla (HU-31).
+  final String? id;
+
+  /// HU-31 · Respuesta de quien recibió la reseña, si ya contestó.
+  final String? respuesta;
+
+  /// Cuándo se publicó o se editó la respuesta por última vez.
+  final DateTime? respuestaEn;
+
+  bool get tieneRespuesta => respuesta != null && respuesta!.trim().isNotEmpty;
 }
 
 /// Perfil público de una trabajadora (HU-06), tal como lo ve un cliente.
@@ -41,6 +55,8 @@ class PerfilPublico {
     this.totalResenas = 0,
     this.serviciosCompletados = 0,
     this.resenas = const [],
+    this.destacada = false,
+    this.zonaIds = const [],
   });
 
   final String id;
@@ -68,6 +84,12 @@ class PerfilPublico {
   final int serviciosCompletados;
 
   final List<ResenaPublica> resenas;
+
+  /// HU-61 · Insignia "Destacada".
+  final bool destacada;
+
+  /// HU-25 · Ids de las zonas donde trabaja (para filtrar e invitar).
+  final List<int> zonaIds;
 
   /// HU-06 c2: sin reseñas se muestra "Aún no tiene reseñas".
   bool get tieneResenas => promedio != null && totalResenas > 0;

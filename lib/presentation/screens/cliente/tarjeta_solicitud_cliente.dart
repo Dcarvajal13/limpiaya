@@ -5,6 +5,7 @@ import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
+import '../../widgets/desglose_costo.dart';
 import '../../widgets/insignia_estado.dart';
 
 /// "Carmen Pérez" → "CP"; "Ana" → "A".
@@ -39,6 +40,9 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onVerPostulantes,
     this.onCompletar,
     this.onVerServicio,
+    this.onCancelarServicio,
+    this.onCalificar,
+    this.onRepetir,
   });
 
   
@@ -59,6 +63,18 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
   /// HU-16 · Abrir el detalle del servicio agendado ("Ver servicio").
   final VoidCallback? onVerServicio;
+
+  /// HU-28 · Cancelar el servicio asignado indicando el motivo. Null si no
+  /// se puede (por ejemplo, ya Completado: c3).
+  final VoidCallback? onCancelarServicio;
+
+  /// HU-29 · Calificar a la trabajadora, o ver la calificación que ya le
+  /// puse (c3). Solo en un servicio Completado.
+  final VoidCallback? onCalificar;
+
+  /// HU-44 · Repetir la solicitud (solo Completada o Cancelada). Si es null,
+  /// el botón no aparece.
+  final VoidCallback? onRepetir;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -163,6 +179,12 @@ class TarjetaSolicitudCliente extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        // HU-52 c3: el mismo desglose que se vio al publicar.
+        const SizedBox(height: 4),
+        DesgloseCosto(
+          key: Key('desglose-${solicitud.id}'),
+          pago: solicitud.pagoOfrecido,
         ),
         const SizedBox(height: 8),
         _construirDetalleEstado(context),
@@ -292,11 +314,24 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
       case EstadoSolicitud.cancelada:
         final motivo = solicitud.motivoCancelacion;
+        // HU-28 c1: si la canceló la trabajadora, el cliente lo sabe.
+        final laCanceloLaTrabajadora = solicitud.canceladaPor != null &&
+            solicitud.canceladaPor == solicitud.trabajadoraId;
+        final quien = laCanceloLaTrabajadora
+            ? 'Cancelado por ${solicitud.trabajadoraNombre ?? 'la trabajadora'}'
+            : null;
         if (motivo == null || motivo.trim().isEmpty) {
-          return const SizedBox.shrink();
+          if (quien == null) return const SizedBox.shrink();
+          return Text(
+            quien,
+            style: textos.bodySmall?.copyWith(
+              fontSize: 12,
+              color: AppColors.textoSecundario,
+            ),
+          );
         }
         return Text(
-          'Motivo: $motivo',
+          quien == null ? 'Motivo: $motivo' : '$quien · Motivo: $motivo',
           style: textos.bodySmall?.copyWith(
             fontSize: 12,
             color: AppColors.textoSecundario,
@@ -304,7 +339,17 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         );
 
       case EstadoSolicitud.completada:
-        return const SizedBox.shrink();
+        // HU-29 c3: si ya la califiqué, lo recuerda.
+        final estrellas = solicitud.miCalificacion;
+        if (estrellas == null) return const SizedBox.shrink();
+        return Text(
+          'La calificaste con ★ $estrellas',
+          style: textos.bodySmall?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textoSecundario,
+          ),
+        );
     }
   }
 
@@ -380,44 +425,90 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           ),
           child: const Text('Ver servicio'),
         );
-        if (onCompletar == null) return verServicio;
-        // Los dos botones con el mismo ancho: en el teléfono ocupan toda la
+        if (onCompletar == null && onCancelarServicio == null) {
+          return verServicio;
+        }
+        // Los botones con el mismo ancho: en el teléfono ocupan toda la
         // fila y en pantallas grandes toman el ancho del más largo.
         final botones = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             verServicio,
-            const SizedBox(height: 8),
-            // HU-17 c1
-            OutlinedButton(
-              key: Key('completar-${solicitud.id}'),
-              onPressed: onCompletar,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(150, 44),
-                side: const BorderSide(color: AppColors.primario, width: 1.5),
+            if (onCompletar != null) ...[
+              const SizedBox(height: 8),
+              // HU-17 c1
+              OutlinedButton(
+                key: Key('completar-${solicitud.id}'),
+                onPressed: onCompletar,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(150, 44),
+                  side:
+                      const BorderSide(color: AppColors.primario, width: 1.5),
+                ),
+                child: const Text('Marcar como completado'),
               ),
-              child: const Text('Marcar como completado'),
-            ),
+            ],
+            if (onCancelarServicio != null) ...[
+              const SizedBox(height: 4),
+              // HU-28 c1
+              TextButton(
+                key: Key('cancelar-servicio-${solicitud.id}'),
+                onPressed: onCancelarServicio,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  foregroundColor: AppColors.error,
+                ),
+                child: const Text('Cancelar servicio'),
+              ),
+            ],
           ],
         );
         return movil ? botones : IntrinsicWidth(child: botones);
 
       case EstadoSolicitud.completada:
-        return OutlinedButton(
-          onPressed: () => _accion(
-            context,
-            'Calificar servicio estará disponible pronto (HU-29)',
-          ),
+        final yaCalifique = solicitud.miCalificacion != null;
+        final calificar = OutlinedButton(
+          key: Key('calificar-${solicitud.id}'),
+          onPressed: () {
+            if (onCalificar != null) return onCalificar!();
+            _accion(context, 'No pudimos abrir la calificación');
+          },
           style: OutlinedButton.styleFrom(
             minimumSize: Size(movil ? double.infinity : 120, 44),
             side: const BorderSide(color: AppColors.primario, width: 1.5),
           ),
-          child: const Text('Calificar'),
+          // HU-29 c3: si ya calificó, solo puede verla.
+          child: Text(yaCalifique ? 'Ver mi calificación' : 'Calificar'),
         );
+        if (onRepetir == null) return calificar;
+        final botones = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            calificar,
+            const SizedBox(height: 4),
+            _botonRepetir(),
+          ],
+        );
+        return movil ? botones : IntrinsicWidth(child: botones);
 
       case EstadoSolicitud.cancelada:
-        return null;
+        // HU-44 c1 · Una cancelada también se puede volver a pedir.
+        if (onRepetir == null) return null;
+        return _botonRepetir();
     }
   }
+
+  /// HU-44 c1 · "Repetir": abre el formulario con los mismos datos.
+  Widget _botonRepetir() => TextButton.icon(
+        key: Key('repetir-${solicitud.id}'),
+        onPressed: onRepetir,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 36),
+          foregroundColor: AppColors.primario,
+        ),
+        icon: const Icon(Icons.replay_rounded, size: 18),
+        label: const Text('Repetir'),
+      );
 }

@@ -79,6 +79,11 @@ class SolicitudService {
   static bool sePuedeEditar(Solicitud solicitud) =>
       solicitud.estado == EstadoSolicitud.publicada;
 
+  /// HU-44 c1 · Se puede repetir una solicitud Completada o Cancelada.
+  static bool sePuedeRepetir(Solicitud solicitud) =>
+      solicitud.estado == EstadoSolicitud.completada ||
+      solicitud.estado == EstadoSolicitud.cancelada;
+
   /// HU-09 c3 · ¿Cambió la fecha, la hora o el pago? Si la solicitud tiene
   /// postulantes, la app pide confirmar antes de guardar.
   static bool cambiaFechaHoraOPago(Solicitud original, NuevaSolicitud nueva) =>

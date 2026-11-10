@@ -38,11 +38,19 @@ abstract final class Rutas {
   static String editarSolicitud(String solicitudId) =>
       '/cliente/solicitudes/$solicitudId/editar';
 
-  
-    /// HU-14 · Postulantes de una solicitud del cliente.
+  /// HU-44 · Repetir una solicitud Completada o Cancelada (mismo formulario
+  /// que publicar, con los datos copiados y la fecha vacía).
+  static const repetirSolicitudPatron = '/cliente/solicitudes/:id/repetir';
+  static String repetirSolicitud(String solicitudId) =>
+      '/cliente/solicitudes/$solicitudId/repetir';
+
+  /// HU-14 · Postulantes de una solicitud del cliente.
   static const postulantesPatron = '/cliente/solicitudes/:id/postulantes';
   static String postulantes(String solicitudId) =>
       '/cliente/solicitudes/$solicitudId/postulantes';
+
+  /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
+  static const buscarTrabajadoras = '/cliente/buscar';
 
   /// HU-06 · Perfil público de una trabajadora, visto por el cliente.
   static const perfilPublicoTrabajadoraPatron = '/cliente/trabajadoras/:id';
@@ -61,6 +69,15 @@ abstract final class Rutas {
   static const detalleSolicitudPatron = '/trabajadora/solicitudes/:id';
   static String detalleSolicitud(String solicitudId) =>
       '/trabajadora/solicitudes/$solicitudId';
+
+  /// HU-46 · Perfil de un cliente (reputación y reseñas), visto por la
+  /// trabajadora desde el detalle de una solicitud.
+  static const perfilClientePublicoPatron = '/trabajadora/clientes/:id';
+  static String perfilClientePublico(String clienteId) =>
+      '/trabajadora/clientes/$clienteId';
+
+  /// HU-31 / HU-61 · Mi reputación: mis reseñas, mis respuestas y mi nivel.
+  static const miReputacion = '/trabajadora/reputacion';
 
   /// HU-21 · Verificar mi identidad. HU-12 criterio 4 manda aquí cuando la
   /// trabajadora todavía no tiene la identidad aprobada.

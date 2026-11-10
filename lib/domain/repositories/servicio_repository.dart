@@ -30,4 +30,12 @@ abstract interface class ServicioRepository {
   /// dirección. Solo devuelve algo si quien mira es el cliente dueño o la
   /// trabajadora asignada (RLS). Null si no existe o no puede verlo.
   Future<ServicioAgendado?> servicioAgendado(String id);
+
+  /// HU-28 · El cliente o la trabajadora asignada cancelan un servicio
+  /// Asignado con un motivo. La otra parte lo ve como Cancelado, con el
+  /// motivo y quién lo canceló.
+  ///
+  /// Lanza `AppException` si falta el motivo o el servicio ya no está
+  /// Asignado (por ejemplo, si ya se completó).
+  Future<void> cancelar(String solicitudId, {required String motivo});
 }

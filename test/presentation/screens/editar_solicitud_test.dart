@@ -189,6 +189,24 @@ void main() {
     expect(repo.editadas['s1']!.pagoOfrecido, 35);
   });
 
+  testWidgets('HU-52 c1 y c2: el desglose se recalcula al cambiar el pago',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(_app(_RepositorioFalso(_solicitud())));
+    await tester.pumpAndSettle();
+
+    // Pago 30: tarifa 3 y total 33.
+    expect(find.text(r'$3,00 (USD)'), findsOneWidget);
+    expect(find.text(r'$33,00 (USD)'), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextFormField, '30'), '35');
+    await tester.pumpAndSettle();
+
+    // Pago 35: tarifa 3,50 y total 38,50, al momento.
+    expect(find.text(r'$3,50 (USD)'), findsOneWidget);
+    expect(find.text(r'$38,50 (USD)'), findsOneWidget);
+  });
+
   testWidgets('c2: una solicitud Asignada no se puede editar', (tester) async {
     _pantallaGrande(tester);
     await tester.pumpWidget(_app(

@@ -11,6 +11,7 @@ abstract final class ServicioAgendadoModel {
   static ServicioAgendado desdeJson(
     Map<String, dynamic> json, {
     required bool soyCliente,
+    String? contraparteId,
     String? contraparteNombre,
     String? contraparteFotoUrl,
     double? contrapartePromedio,
@@ -41,6 +42,7 @@ abstract final class ServicioAgendadoModel {
       canceladaEn: json['cancelada_en'] != null
           ? DateTime.parse(json['cancelada_en'] as String).toLocal()
           : null,
+      contraparteId: contraparteId,
       contraparteNombre: contraparteNombre,
       contraparteFotoUrl: contraparteFotoUrl,
       contrapartePromedio: contrapartePromedio,

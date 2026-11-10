@@ -22,6 +22,8 @@ class SolicitudDisponible {
     this.banos = 1,
     this.tieneMascotas = false,
     this.productosPor = QuienPoneProductos.cliente,
+    this.clienteId,
+    this.meInvitaron = false,
   });
 
   final String id;
@@ -54,4 +56,11 @@ class SolicitudDisponible {
   /// HU-43 · Quién lleva los productos de limpieza. La trabajadora lo ve en la
   /// tarjeta antes de postularse.
   final QuienPoneProductos productosPor;
+
+  /// HU-46 · Quién publicó la solicitud, para mostrar su reputación. Null en
+  /// datos de prueba que no lo necesitan.
+  final String? clienteId;
+
+  /// HU-25 c3 · El cliente me invitó a postularme a esta solicitud.
+  final bool meInvitaron;
 }

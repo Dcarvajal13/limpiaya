@@ -18,13 +18,16 @@ abstract final class PostulacionModel {
     String? clienteFotoUrl,
     String? direccion,
     String? puntoReferencia,
+    int? miCalificacion,
   }) {
+    final estadoSolicitud =
+        EstadoSolicitud.desdeDb(solicitud['estado'] as String);
     return Postulacion(
       id: postulacion['id'] as String,
       solicitudId: postulacion['solicitud_id'] as String,
       estado: EstadoPostulacion.resolver(
         guardado: EstadoPostulacion.desdeDb(postulacion['estado'] as String),
-        estadoSolicitud: EstadoSolicitud.desdeDb(solicitud['estado'] as String),
+        estadoSolicitud: estadoSolicitud,
         trabajadoraAsignadaId: solicitud['trabajadora_id'] as String?,
         miId: miId,
       ),
@@ -38,6 +41,11 @@ abstract final class PostulacionModel {
       clienteFotoUrl: clienteFotoUrl,
       direccion: direccion,
       puntoReferencia: puntoReferencia,
+      estadoSolicitud: estadoSolicitud,
+      motivoCancelacion: solicitud['motivo_cancelacion'] as String?,
+      canceladaPorMi: solicitud['cancelada_por'] == miId,
+      clienteId: solicitud['cliente_id'] as String?,
+      miCalificacion: miCalificacion,
       creadaEn: postulacion['created_at'] != null
           ? DateTime.parse(postulacion['created_at'] as String).toLocal()
           : null,

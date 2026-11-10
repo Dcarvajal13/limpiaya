@@ -4,12 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/core/di/providers.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/domain/entities/calificacion.dart';
 import 'package:limpiaya/domain/entities/estado_solicitud.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/servicio_agendado.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
+import 'package:limpiaya/domain/entities/motivo_calificacion_baja.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
+import 'package:limpiaya/domain/repositories/calificacion_repository.dart';
 import 'package:limpiaya/domain/repositories/servicio_repository.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/servicio_agendado_screen.dart';
@@ -22,6 +25,9 @@ class _ServiciosFalsos implements ServicioRepository {
 
   @override
   Future<void> elegir(String postulacionId) async {}
+
+  @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {}
 
   @override
   Future<void> completar(String solicitudId) async {
@@ -52,6 +58,25 @@ class _ServiciosFalsos implements ServicioRepository {
 
   @override
   Future<ServicioAgendado?> servicioAgendado(String id) async => servicio;
+}
+
+class _CalificacionesFalsas implements CalificacionRepository {
+  Calificacion? existente;
+  final enviadas = <({String destinatario, int estrellas})>[];
+
+  @override
+  Future<Calificacion?> miCalificacion(String solicitudId) async => existente;
+
+  @override
+  Future<void> calificar({
+    required String solicitudId,
+    required String destinatarioId,
+    required int estrellas,
+    String? comentario,
+    MotivoCalificacionBaja? motivo,
+  }) async {
+    enviadas.add((destinatario: destinatarioId, estrellas: estrellas));
+  }
 }
 
 class _SesionFalsa extends SesionNotifier {
@@ -87,6 +112,7 @@ ServicioAgendado _servicio({
       direccion: 'Av. Principal, casa 4',
       puntoReferencia: 'frente a la panadería',
       notas: 'Hay un perro pequeño.',
+      contraparteId: soyCliente ? 't1' : 'c1',
       contraparteNombre: soyCliente ? 'Carmen Pérez' : 'María Alejandra',
       contrapartePromedio: soyCliente ? 4.8 : null,
       yaCalifique: yaCalifique,
@@ -94,10 +120,17 @@ ServicioAgendado _servicio({
           estado == EstadoSolicitud.completada ? DateTime.now() : null,
     );
 
-Widget _app(ServicioRepository repo, RolUsuario rol) => ProviderScope(
+Widget _app(
+  ServicioRepository repo,
+  RolUsuario rol, {
+  CalificacionRepository? calificaciones,
+}) =>
+    ProviderScope(
       overrides: [
         servicioRepositoryProvider.overrideWithValue(repo),
         sesionProvider.overrideWith(() => _SesionFalsa(rol)),
+        if (calificaciones != null)
+          calificacionRepositoryProvider.overrideWithValue(calificaciones),
       ],
       child: MaterialApp(
         theme: AppTheme.claro,
@@ -158,6 +191,23 @@ void main() {
 
     expect(find.byKey(const Key('calificar-servicio')), findsOneWidget);
     expect(find.byKey(const Key('completar-servicio')), findsNothing);
+  });
+
+  testWidgets('HU-16 c4: Calificar abre el diálogo de HU-29 con la otra parte',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo =
+        _ServiciosFalsos(_servicio(estado: EstadoSolicitud.completada));
+    final calificaciones = _CalificacionesFalsas();
+    await tester.pumpWidget(
+      _app(repo, RolUsuario.cliente, calificaciones: calificaciones),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calificar-servicio')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Califica a Carmen Pérez'), findsOneWidget);
   });
 
   testWidgets('HU-17: el cliente marca completado desde el detalle',

@@ -15,6 +15,7 @@ class Postulante {
     this.experienciaAnios,
     this.serviciosCompletados = 0,
     this.totalResenas = 0,
+    this.destacada = false,
   });
 
   final String postulacionId;
@@ -43,4 +44,7 @@ class Postulante {
 
   /// Reseñas visibles que ha recibido (HU-29 c4).
   final int totalResenas;
+
+  /// HU-61 · Tiene la insignia "Destacada": aparece primero.
+  final bool destacada;
 }

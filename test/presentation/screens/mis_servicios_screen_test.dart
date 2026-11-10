@@ -82,6 +82,9 @@ class _ServiciosFalsos implements ServicioRepository {
   Future<List<ServicioAgendado>> misServicios() async => servicios;
 
   @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {}
+
+  @override
   Future<ServicioAgendado?> servicioAgendado(String id) async =>
       servicios.where((s) => s.id == id).firstOrNull;
 }

@@ -86,6 +86,9 @@ class _ServiciosFalsos implements ServicioRepository {
 
   @override
   Future<ServicioAgendado?> servicioAgendado(String id) async => null;
+
+  @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {}
 }
 
 class _ReputacionFalsa implements ReputacionRepository {

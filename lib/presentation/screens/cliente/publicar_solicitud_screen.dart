@@ -21,11 +21,22 @@ import '../../widgets/selector_zona.dart';
 ///
 /// Con [solicitudId] es HU-09 · Editar una solicitud publicada (Figma:
 /// "Editar solicitud", mismo formulario con "Guardar cambios").
+///
+/// Con [repetirDe] es HU-44 · Repetir una solicitud anterior: el formulario
+/// sale con los mismos datos y la fecha vacía, y al publicar se crea una
+/// solicitud nueva (la anterior no cambia).
 class PublicarSolicitudScreen extends ConsumerStatefulWidget {
-  const PublicarSolicitudScreen({super.key, this.solicitudId});
+  const PublicarSolicitudScreen({super.key, this.solicitudId, this.repetirDe})
+      : assert(
+          solicitudId == null || repetirDe == null,
+          'Se edita o se repite, no las dos cosas',
+        );
 
   /// Id de la solicitud a editar, o null para publicar una nueva.
   final String? solicitudId;
+
+  /// HU-44 · Id de la solicitud Completada o Cancelada que se repite.
+  final String? repetirDe;
 
   @override
   ConsumerState<PublicarSolicitudScreen> createState() =>
@@ -38,7 +49,8 @@ class _PublicarSolicitudScreenState
   final _direccion = TextEditingController();
   final _pago = TextEditingController(text: '30');
 
-  late DateTime _fecha;
+  /// Null solo al repetir (HU-44 c1): hay que elegir la fecha nueva.
+  DateTime? _fecha;
   TimeOfDay _hora = const TimeOfDay(hour: 9, minute: 0);
   int _horas = 4;
   TipoLimpieza _tipo = TipoLimpieza.general;
@@ -53,13 +65,16 @@ class _PublicarSolicitudScreenState
   /// HU-09: la solicitud tal como estaba antes de editarla.
   Solicitud? _original;
 
+  /// HU-44: la solicitud que se está repitiendo.
+  Solicitud? _base;
+
   bool get _editando => widget.solicitudId != null;
+  bool get _repitiendo => widget.repetirDe != null;
 
   @override
   void initState() {
     super.initState();
-    final manana = DateTime.now().add(const Duration(days: 1));
-    _fecha = DateTime(manana.year, manana.month, manana.day);
+    if (!_repitiendo) _fecha = _manana();
     _direccion.addListener(() => setState(() {}));
     _pago.addListener(() => setState(() {}));
 
@@ -73,6 +88,22 @@ class _PublicarSolicitudScreenState
           final solicitud = actual.value;
           if (solicitud == null || _original != null || !mounted) return;
           _sembrar(solicitud);
+          setState(() {});
+        },
+        fireImmediately: true,
+      );
+      return;
+    }
+
+    // HU-44 c1: al repetir, el formulario se llena con los mismos datos y
+    // la fecha queda vacía.
+    if (_repitiendo) {
+      ref.listenManual(
+        solicitudParaEditarProvider(widget.repetirDe!),
+        (anterior, actual) {
+          final solicitud = actual.value;
+          if (solicitud == null || _base != null || !mounted) return;
+          _sembrar(solicitud, repetir: true);
           setState(() {});
         },
         fireImmediately: true,
@@ -99,12 +130,23 @@ class _PublicarSolicitudScreenState
     super.dispose();
   }
 
+  static DateTime _manana() {
+    final manana = DateTime.now().add(const Duration(days: 1));
+    return DateTime(manana.year, manana.month, manana.day);
+  }
+
   /// HU-09 · Llena el formulario con la solicitud a editar (una sola vez).
-  void _sembrar(Solicitud solicitud) {
-    if (_original != null) return;
-    _original = solicitud;
+  /// HU-44 · Con [repetir], copia todo menos la fecha.
+  void _sembrar(Solicitud solicitud, {bool repetir = false}) {
+    if (_original != null || _base != null) return;
     final inicio = solicitud.inicio;
-    _fecha = DateTime(inicio.year, inicio.month, inicio.day);
+    if (repetir) {
+      _base = solicitud;
+      _fecha = null;
+    } else {
+      _original = solicitud;
+      _fecha = DateTime(inicio.year, inicio.month, inicio.day);
+    }
     _hora = TimeOfDay(hour: inicio.hour, minute: inicio.minute);
     _horas = solicitud.horasEstimadas.round();
     _tipo = solicitud.tipo;
@@ -149,8 +191,12 @@ class _PublicarSolicitudScreenState
     return respuesta ?? false;
   }
 
-  DateTime get _inicio =>
-      DateTime(_fecha.year, _fecha.month, _fecha.day, _hora.hour, _hora.minute);
+  /// Null mientras no haya fecha (HU-44).
+  DateTime? get _inicio {
+    final fecha = _fecha;
+    if (fecha == null) return null;
+    return DateTime(fecha.year, fecha.month, fecha.day, _hora.hour, _hora.minute);
+  }
 
   double get _montoPago =>
       double.tryParse(_pago.text.trim().replaceAll(',', '.')) ?? 0;
@@ -159,7 +205,7 @@ class _PublicarSolicitudScreenState
     final hoy = DateTime.now();
     final elegida = await showDatePicker(
       context: context,
-      initialDate: _fecha,
+      initialDate: _fecha ?? _manana(),
       // H5: los días pasados no se pueden elegir.
       firstDate: DateTime(hoy.year, hoy.month, hoy.day),
       lastDate: hoy.add(const Duration(days: 90)),
@@ -175,13 +221,16 @@ class _PublicarSolicitudScreenState
   Future<void> _publicar() async {
     setState(() => _intentoEnviar = true);
     final valido = _formKey.currentState!.validate();
-    if (!valido || _zonaId == null || _productos == null) return;
+    final inicio = _inicio;
+    if (!valido || _zonaId == null || _productos == null || inicio == null) {
+      return;
+    }
 
     final solicitud = NuevaSolicitud(
       tipo: _tipo,
       zonaId: _zonaId!,
       direccion: _direccion.text.trim(),
-      inicio: _inicio,
+      inicio: inicio,
       horasEstimadas: _horas.toDouble(),
       pagoOfrecido: _montoPago,
       metodoPago: _metodo,
@@ -189,9 +238,10 @@ class _PublicarSolicitudScreenState
       banos: _banos,
       tieneMascotas: _mascotas,
       productosPor: _productos,
-      // Al editar se conservan los datos que este formulario no muestra.
-      puntoReferencia: _original?.puntoReferencia,
-      notas: _original?.notas,
+      // Al editar (o repetir, HU-44) se conservan los datos que este
+      // formulario no muestra.
+      puntoReferencia: (_original ?? _base)?.puntoReferencia,
+      notas: (_original ?? _base)?.notas,
     );
 
     final original = _original;
@@ -271,6 +321,32 @@ class _PublicarSolicitudScreenState
       }
     }
 
+    if (_repitiendo) {
+      final cargada = ref.watch(solicitudParaEditarProvider(widget.repetirDe!));
+      final aviso = switch (cargada) {
+        AsyncLoading() => const Center(child: CircularProgressIndicator()),
+        AsyncError(:final error) => EstadoVacio(
+            icono: Icons.wifi_off_rounded,
+            titulo: error is AppException
+                ? error.mensaje
+                : 'No pudimos cargar la solicitud.',
+            textoBoton: 'Volver a Mis solicitudes',
+            onPressed: () => context.go(Rutas.inicioCliente),
+          ),
+        AsyncData(:final value) when value == null => EstadoVacio(
+            icono: Icons.search_off_rounded,
+            titulo: 'No encontramos esta solicitud',
+            textoBoton: 'Volver a Mis solicitudes',
+            onPressed: () => context.go(Rutas.inicioCliente),
+          ),
+        _ => null,
+      };
+      if (aviso != null) return Scaffold(body: SafeArea(child: aviso));
+      if (_base == null) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+    }
+
     final estado = ref.watch(publicarSolicitudProvider);
     final zonas = ref.watch(zonasCatalogoProvider);
     final tema = Theme.of(context);
@@ -289,7 +365,7 @@ class _PublicarSolicitudScreenState
             _DosColumnas(
               izquierda: _CampoBoton(
                 etiqueta: 'Fecha',
-                valor: _fechaCorta(_fecha),
+                valor: _fecha == null ? 'Elige la fecha' : _fechaCorta(_fecha!),
                 icono: Icons.calendar_today_outlined,
                 onTap: _elegirFecha,
               ),
@@ -300,7 +376,9 @@ class _PublicarSolicitudScreenState
                 onTap: _elegirHora,
               ),
             ),
-            if (_intentoEnviar && !_inicio.isAfter(DateTime.now()))
+            if (_intentoEnviar && _inicio == null)
+              const _TextoError(texto: 'Elige la fecha del servicio')
+            else if (_intentoEnviar && !_inicio!.isAfter(DateTime.now()))
               const _TextoError(texto: 'La fecha debe ser futura'),
             const SizedBox(height: 16),
             _Contador(
@@ -471,13 +549,21 @@ class _PublicarSolicitudScreenState
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _editando ? 'Editar solicitud' : 'Publica una solicitud',
+                    _editando
+                        ? 'Editar solicitud'
+                        : _repitiendo
+                            ? 'Repetir solicitud'
+                            : 'Publica una solicitud',
                     style: tema.textTheme.headlineLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Cuéntales a las trabajadoras qué necesitas. Podrás '
-                    'elegir entre quienes se postulen.',
+                    _repitiendo
+                        ? 'Copiamos los datos de tu solicitud anterior. Elige '
+                            'la nueva fecha y revisa lo demás; la anterior no '
+                            'cambia.'
+                        : 'Cuéntales a las trabajadoras qué necesitas. Podrás '
+                            'elegir entre quienes se postulen.',
                     style: tema.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 24),
@@ -552,7 +638,8 @@ class _VistaPrevia extends StatelessWidget {
   });
 
   final TipoLimpieza tipo;
-  final DateTime fecha;
+  /// Null mientras no se elija (HU-44).
+  final DateTime? fecha;
   final TimeOfDay hora;
   final int horas;
   final String? zona;
@@ -586,7 +673,10 @@ class _VistaPrevia extends StatelessWidget {
             child: Chip(label: Text(tipo.etiqueta)),
           ),
           const SizedBox(height: 8),
-          Text(_fechaLarga(fecha), style: tema.textTheme.titleLarge),
+          Text(
+            fecha == null ? 'Fecha por elegir' : _fechaLarga(fecha!),
+            style: tema.textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
           _Dato(
             icono: Icons.schedule,

@@ -35,6 +35,9 @@ abstract final class SolicitudModel {
         json['productos_por'] as String? ??
             QuienPoneProductos.cliente.valorDb,
       ),
+      clienteId: json['cliente_id'] as String?,
+      // HU-25 c3 · "Te invitaron".
+      meInvitaron: json['me_invitaron'] as bool? ?? false,
     );
   }
 
@@ -46,6 +49,7 @@ abstract final class SolicitudModel {
     Map<String, dynamic> json, {
     String? trabajadoraNombre,
     double? trabajadoraPromedio,
+    int? miCalificacion,
   }) {
     return Solicitud(
       id: json['id'] as String,
@@ -75,6 +79,8 @@ abstract final class SolicitudModel {
           ? DateTime.parse(json['created_at'] as String).toLocal()
           : null,
       motivoCancelacion: json['motivo_cancelacion'] as String?,
+      canceladaPor: json['cancelada_por'] as String?,
+      miCalificacion: miCalificacion,
     );
   }
 

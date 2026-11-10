@@ -16,6 +16,7 @@ import '../../providers/mis_servicios_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
+import '../../widgets/calificar_contraparte.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
@@ -87,7 +88,7 @@ class ServicioAgendadoScreen extends ConsumerWidget {
       );
   }
 
-  /// HU-38 y HU-29 todavía no existen: se avisa sin dejar un botón muerto.
+  /// HU-38 todavía no existe: se avisa sin dejar un botón muerto.
   void _proximamente(BuildContext context, String mensaje) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -152,10 +153,7 @@ class ServicioAgendadoScreen extends ConsumerWidget {
                   context,
                   'El chat con la otra parte llegará pronto (HU-38).',
                 ),
-                onCalificar: () => _proximamente(
-                  context,
-                  'Calificar servicio estará disponible pronto (HU-29).',
-                ),
+                onCalificar: () => calificarContraparte(context, ref, servicio),
               );
             },
           ),

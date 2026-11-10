@@ -29,6 +29,7 @@ class ServicioAgendado {
     this.motivoCancelacion,
     this.completadaEn,
     this.canceladaEn,
+    this.contraparteId,
     this.contraparteNombre,
     this.contraparteFotoUrl,
     this.contrapartePromedio,
@@ -63,6 +64,7 @@ class ServicioAgendado {
 
   /// La otra parte: la trabajadora si quien mira es el cliente, o el cliente
   /// si quien mira es la trabajadora.
+  final String? contraparteId;
   final String? contraparteNombre;
   final String? contraparteFotoUrl;
   final double? contrapartePromedio;

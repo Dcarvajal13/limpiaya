@@ -1,4 +1,5 @@
 import 'estado_postulacion.dart';
+import 'estado_solicitud.dart';
 import 'tipo_limpieza.dart';
 
 /// Postulación de la trabajadora a una solicitud (HU-13).
@@ -20,6 +21,11 @@ class Postulacion {
     this.creadaEn,
     this.direccion,
     this.puntoReferencia,
+    this.estadoSolicitud,
+    this.motivoCancelacion,
+    this.canceladaPorMi = false,
+    this.clienteId,
+    this.miCalificacion,
   });
 
   final String id;
@@ -48,4 +54,21 @@ class Postulacion {
   /// cliente la eligió (Aceptada): antes, la base no deja leerlos.
   final String? direccion;
   final String? puntoReferencia;
+
+  /// Estado real de la solicitud. Una postulación Aceptada puede ser de un
+  /// servicio Asignado o ya Completado: solo el Asignado se cancela (HU-28).
+  final EstadoSolicitud? estadoSolicitud;
+
+  /// HU-28 c1 · Motivo de la cancelación, si la solicitud se canceló.
+  final String? motivoCancelacion;
+
+  /// HU-28 · La canceló ella misma (y no el cliente).
+  final bool canceladaPorMi;
+
+  /// HU-30 · El cliente dueño de la solicitud (a quien se califica).
+  final String? clienteId;
+
+  /// HU-30 c3 · Estrellas que ya le puse al cliente, o null si todavía no
+  /// lo califiqué.
+  final int? miCalificacion;
 }
