@@ -174,6 +174,30 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
         }
       }
 
+      // HU-29 c3 · Las estrellas que ya puse en mis servicios Completados.
+      final completadas = [
+        for (final fila in filas)
+          if (fila['estado'] == 'completada') fila['id'] as String,
+      ];
+      final misCalificaciones = <String, int>{};
+      if (completadas.isNotEmpty) {
+        try {
+          // RLS: cada quien lee las calificaciones que escribió.
+          final filasCalificaciones = await _client
+              .from('calificaciones')
+              .select('solicitud_id, estrellas')
+              .eq('autor_id', usuario.id)
+              .inFilter('solicitud_id', completadas);
+          for (final fila in filasCalificaciones) {
+            misCalificaciones[fila['solicitud_id'] as String] =
+                (fila['estrellas'] as num).toInt();
+          }
+        } on Exception {
+          // Complementario: si falla, la tarjeta ofrece "Calificar" y la
+          // base rechaza una segunda calificación.
+        }
+      }
+
       return [
         for (final fila in filas)
           SolicitudModel.solicitudDesdeJson(
@@ -183,6 +207,7 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
             trabajadoraPromedio:
                 (trabajadoras[fila['trabajadora_id']]?['promedio'] as num?)
                     ?.toDouble(),
+            miCalificacion: misCalificaciones[fila['id']],
           ),
       ];
     } on Exception {

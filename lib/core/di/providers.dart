@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_calificacion_repository.dart';
 import '../../data/repositories/supabase_cliente_repository.dart';
 import '../../data/repositories/supabase_trabajadora_publica_repository.dart';
 import '../../data/repositories/supabase_perfil_repository.dart';
@@ -11,6 +12,7 @@ import '../../data/repositories/supabase_servicio_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../data/repositories/supabase_verificacion_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/calificacion_repository.dart';
 import '../../domain/repositories/cliente_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/postulacion_repository.dart';
@@ -62,6 +64,11 @@ final postulacionRepositoryProvider = Provider<PostulacionRepository>(
 /// Servicios agendados: elegir, completar y cancelar (HU-15, HU-17, HU-28).
 final servicioRepositoryProvider = Provider<ServicioRepository>(
   (ref) => SupabaseServicioRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// Calificaciones de un servicio Completado (HU-29, HU-30).
+final calificacionRepositoryProvider = Provider<CalificacionRepository>(
+  (ref) => SupabaseCalificacionRepository(ref.watch(supabaseClientProvider)),
 );
 
 final perfilRepositoryProvider = Provider<PerfilRepository>(

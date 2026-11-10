@@ -39,6 +39,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onVerPostulantes,
     this.onCompletar,
     this.onCancelarServicio,
+    this.onCalificar,
   });
 
   
@@ -60,6 +61,10 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   /// HU-28 · Cancelar el servicio asignado indicando el motivo. Null si no
   /// se puede (por ejemplo, ya Completado: c3).
   final VoidCallback? onCancelarServicio;
+
+  /// HU-29 · Calificar a la trabajadora, o ver la calificación que ya le
+  /// puse (c3). Solo en un servicio Completado.
+  final VoidCallback? onCalificar;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -318,7 +323,17 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         );
 
       case EstadoSolicitud.completada:
-        return const SizedBox.shrink();
+        // HU-29 c3: si ya la califiqué, lo recuerda.
+        final estrellas = solicitud.miCalificacion;
+        if (estrellas == null) return const SizedBox.shrink();
+        return Text(
+          'La calificaste con ★ $estrellas',
+          style: textos.bodySmall?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textoSecundario,
+          ),
+        );
     }
   }
 
@@ -438,16 +453,19 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         return movil ? botones : IntrinsicWidth(child: botones);
 
       case EstadoSolicitud.completada:
+        final yaCalifique = solicitud.miCalificacion != null;
         return OutlinedButton(
-          onPressed: () => _accion(
-            context,
-            'Calificar servicio estará disponible pronto (HU-29)',
-          ),
+          key: Key('calificar-${solicitud.id}'),
+          onPressed: () {
+            if (onCalificar != null) return onCalificar!();
+            _accion(context, 'No pudimos abrir la calificación');
+          },
           style: OutlinedButton.styleFrom(
             minimumSize: Size(movil ? double.infinity : 120, 44),
             side: const BorderSide(color: AppColors.primario, width: 1.5),
           ),
-          child: const Text('Calificar'),
+          // HU-29 c3: si ya calificó, solo puede verla.
+          child: Text(yaCalifique ? 'Ver mi calificación' : 'Calificar'),
         );
 
       case EstadoSolicitud.cancelada:

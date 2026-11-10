@@ -46,6 +46,7 @@ abstract final class SolicitudModel {
     Map<String, dynamic> json, {
     String? trabajadoraNombre,
     double? trabajadoraPromedio,
+    int? miCalificacion,
   }) {
     return Solicitud(
       id: json['id'] as String,
@@ -76,6 +77,7 @@ abstract final class SolicitudModel {
           : null,
       motivoCancelacion: json['motivo_cancelacion'] as String?,
       canceladaPor: json['cancelada_por'] as String?,
+      miCalificacion: miCalificacion,
     );
   }
 
