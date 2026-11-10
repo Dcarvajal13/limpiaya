@@ -33,6 +33,7 @@ class Solicitud {
     this.createdAt,
     this.motivoCancelacion,
     this.canceladaPor,
+    this.miCalificacion,
   });
 
   final String id;
@@ -80,4 +81,8 @@ class Solicitud {
 
   /// HU-28 · Id de quien la canceló (el cliente o la trabajadora asignada).
   final String? canceladaPor;
+
+  /// HU-29 c3 · Estrellas que ya le puse a la trabajadora, o null si todavía
+  /// no la califiqué (o el servicio no está Completado).
+  final int? miCalificacion;
 }

@@ -10,13 +10,16 @@ import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/solicitud.dart';
+import '../../../domain/services/calificacion_service.dart';
 import '../../../domain/services/servicio_service.dart';
+import '../../providers/calificar_provider.dart';
 import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/completar_servicio_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_calificar.dart';
 import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
 import 'banner_cliente.dart';
@@ -88,7 +91,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
     final calificar = await mostrarInvitacionCalificar(context, solicitud);
     if (!mounted) return;
     if (calificar) {
-      _calificar(solicitud);
+      await _calificar(solicitud);
     } else {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -129,15 +132,48 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
       );
   }
 
-  /// HU-29 · Calificar a la trabajadora.
-  // TODO(HU-29): abrir la pantalla de calificar cuando exista.
-  void _calificar(Solicitud solicitud) {
-    ScaffoldMessenger.of(context)
+  /// HU-29 · Calificar a la trabajadora. Si ya la calificó, solo muestra
+  /// su calificación y no deja enviar otra (c3).
+  Future<void> _calificar(Solicitud solicitud) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    final trabajadoraId = solicitud.trabajadoraId;
+    final nombre = solicitud.trabajadoraNombre ?? 'la trabajadora';
+    if (trabajadoraId == null) return;
+
+    try {
+      final existente = await ref
+          .read(calificacionRepositoryProvider)
+          .miCalificacion(solicitud.id);
+      if (!mounted) return;
+      if (existente != null) {
+        await mostrarMiCalificacion(
+          context,
+          nombre: nombre,
+          calificacion: existente,
+        );
+        return;
+      }
+    } on AppException catch (e) {
+      mensajes.showSnackBar(SnackBar(content: Text(e.mensaje)));
+      return;
+    }
+
+    final nueva = await mostrarDialogoCalificar(context, nombre: nombre);
+    if (nueva == null || !mounted) return;
+
+    final error = await ref.read(calificarProvider.notifier).calificar(
+          solicitudId: solicitud.id,
+          destinatarioId: trabajadoraId,
+          estrellas: nueva.estrellas,
+          comentario: nueva.comentario,
+        );
+    if (!mounted) return;
+
+    ref.invalidate(misSolicitudesProvider);
+    mensajes
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('Calificar servicio estará disponible pronto (HU-29)'),
-        ),
+        SnackBar(content: Text(error ?? CalificacionService.mensajeEnviada)),
       );
   }
 
@@ -321,6 +357,8 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                     ? () => _completar(solicitud)
                                     : null,
                                 // HU-28: solo mientras está Asignado.
+                                // HU-29: calificar o ver mi calificación.
+                                onCalificar: () => _calificar(solicitud),
                                 onCancelarServicio:
                                     ServicioService.puedeCancelar(
                                   solicitud.estado,
