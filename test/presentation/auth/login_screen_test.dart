@@ -13,6 +13,12 @@ import 'package:limpiaya/presentation/screens/auth/login_screen.dart';
 
 /// Repositorio falso: la única contraseña correcta es 'correcta123'.
 class _RepositorioFalso implements AuthRepository {
+  @override
+  Future<void> enviarRecuperacion(String email) async {}
+
+  @override
+  Future<void> cambiarPassword(String nueva) async {}
+
   final correosUsados = <String>[];
 
   @override

@@ -1,0 +1,487 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:limpiaya/core/di/providers.dart';
+import 'package:limpiaya/core/router/rutas.dart';
+import 'package:limpiaya/core/theme/app_fonts.dart';
+import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/domain/entities/estado_postulacion.dart';
+import 'package:limpiaya/domain/entities/postulacion.dart';
+import 'package:limpiaya/domain/entities/rol_usuario.dart';
+import 'package:limpiaya/domain/entities/estado_solicitud.dart';
+import 'package:limpiaya/domain/entities/metodo_pago.dart';
+import 'package:limpiaya/domain/entities/servicio_agendado.dart';
+import 'package:limpiaya/domain/entities/sesion.dart';
+import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
+import 'package:limpiaya/domain/repositories/postulacion_repository.dart';
+import 'package:limpiaya/domain/repositories/servicio_repository.dart';
+import 'package:limpiaya/domain/entities/postulante.dart';
+import 'package:limpiaya/presentation/providers/sesion_provider.dart';
+import 'package:limpiaya/presentation/screens/trabajadora/mis_servicios_screen.dart';
+import 'package:limpiaya/presentation/screens/trabajadora/tarjeta_postulacion.dart';
+
+class _RepositorioFalso implements PostulacionRepository {
+  _RepositorioFalso(this.postulaciones);
+
+  final List<Postulacion> postulaciones;
+
+  @override
+  Future<List<Postulacion>> misPostulaciones() async => postulaciones;
+
+  @override
+  Future<void> retirar(String postulacionId) async {}
+
+  
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
+
+  @override
+  Future<void> postular({required String solicitudId, String? mensaje}) async {}
+}
+
+class _RepositorioConError implements PostulacionRepository {
+  @override
+  Future<List<Postulacion>> misPostulaciones() async =>
+      throw Exception('sin red');
+
+  @override
+  Future<void> retirar(String postulacionId) async {}
+
+  
+  @override
+  Future<List<Postulante>> postulantesDe(String solicitudId) async => const [];
+
+  @override
+  Future<void> postular({required String solicitudId, String? mensaje}) async {}
+}
+
+class _SesionFalsa extends SesionNotifier {
+  @override
+  Future<Sesion?> build() async => const Sesion(
+        id: 'trabajadora-1',
+        rol: RolUsuario.trabajadora,
+        nombre: 'Carmen Pérez',
+        perfilCompleto: true,
+      );
+}
+
+/// HU-16: servicios falsos de la trabajadora.
+class _ServiciosFalsos implements ServicioRepository {
+  _ServiciosFalsos([this.servicios = const []]);
+
+  final List<ServicioAgendado> servicios;
+
+  @override
+  Future<void> elegir(String postulacionId) async {}
+
+  @override
+  Future<void> completar(String solicitudId) async {}
+
+  @override
+  Future<List<ServicioAgendado>> misServicios() async => servicios;
+
+  @override
+  Future<void> cancelar(String solicitudId, {required String motivo}) async {}
+
+  @override
+  Future<ServicioAgendado?> servicioAgendado(String id) async =>
+      servicios.where((s) => s.id == id).firstOrNull;
+}
+
+ServicioAgendado _servicio(
+  String id, {
+  EstadoSolicitud estado = EstadoSolicitud.asignada,
+  required DateTime inicio,
+  bool yaCalifique = false,
+  DateTime? completadaEn,
+}) =>
+    ServicioAgendado(
+      id: id,
+      estado: estado,
+      tipo: TipoLimpieza.general,
+      zona: 'Los Palos Grandes',
+      inicio: inicio,
+      horasEstimadas: 4,
+      pagoOfrecido: 30,
+      metodoPago: MetodoPago.pagoMovil,
+      soyCliente: false,
+      direccion: 'Av. Principal, casa 4',
+      contraparteNombre: 'María Alejandra',
+      yaCalifique: yaCalifique,
+      completadaEn: completadaEn,
+    );
+
+Postulacion _postulacion(
+  String id,
+  EstadoPostulacion estado, {
+  DateTime? inicio,
+}) =>
+    Postulacion(
+      id: 'p-$id',
+      solicitudId: 's-$id',
+      estado: estado,
+      tipo: TipoLimpieza.profunda,
+      zona: 'Los Palos Grandes',
+      inicio: inicio ?? DateTime(2026, 10, 24, 8, 30),
+      horasEstimadas: 5,
+      pagoOfrecido: 36,
+      clienteNombre: 'María Alejandra',
+    );
+
+Widget _app(
+  PostulacionRepository repo, {
+  GoRouter? router,
+  List<ServicioAgendado> servicios = const [],
+}) {
+  return ProviderScope(
+    overrides: [
+      postulacionRepositoryProvider.overrideWithValue(repo),
+      servicioRepositoryProvider.overrideWithValue(
+        _ServiciosFalsos(servicios),
+      ),
+      sesionProvider.overrideWith(_SesionFalsa.new),
+    ],
+    child: router != null
+        ? MaterialApp.router(theme: AppTheme.claro, routerConfig: router)
+        : MaterialApp(theme: AppTheme.claro, home: const MisServiciosScreen()),
+  );
+}
+
+void _pantallaGrande(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1280, 1400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
+void main() {
+  setUpAll(() => AppFonts.usarGoogleFonts = false);
+
+  testWidgets('HU-13 c1: cada postulación se ve con su estado', (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([
+          _postulacion('1', EstadoPostulacion.pendiente),
+          _postulacion('2', EstadoPostulacion.aceptada),
+          _postulacion('3', EstadoPostulacion.noSeleccionada),
+          _postulacion('4', EstadoPostulacion.solicitudCancelada),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pendiente'), findsOneWidget);
+    expect(find.text('Aceptada'), findsOneWidget);
+    expect(find.text('No seleccionada'), findsOneWidget);
+    expect(find.text('Solicitud cancelada'), findsOneWidget);
+    // Contador de la pestaña.
+    expect(find.text('4'), findsOneWidget);
+    // Datos reales: día, hora, horas, cliente y pago.
+    expect(find.textContaining('Sábado, 8:30 a. m. · 5 horas'), findsWidgets);
+    expect(find.text('Cliente: María Alejandra'), findsWidgets);
+    expect(find.textContaining('Recibes \$36'), findsWidgets);
+    expect(find.textContaining('Los Palos Grandes'), findsWidgets);
+    expect(find.text('Retirar postulación'), findsOneWidget);
+  });
+
+  testWidgets('HU-13 c3: tocar una aceptada lleva al servicio agendado',
+      (tester) async {
+    _pantallaGrande(tester);
+    final router = GoRouter(
+      initialLocation: Rutas.misServicios,
+      routes: [
+        GoRoute(
+          path: Rutas.misServicios,
+          builder: (context, state) => const MisServiciosScreen(),
+        ),
+        GoRoute(
+          path: Rutas.servicioAgendadoPatron,
+          builder: (context, state) => Scaffold(
+            body: Text('Detalle ${state.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([_postulacion('2', EstadoPostulacion.aceptada)]),
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ver servicio'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Detalle s-2'), findsOneWidget);
+  });
+
+  testWidgets('HU-13 c3: las demás postulaciones no se abren', (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([
+          _postulacion('1', EstadoPostulacion.pendiente),
+          _postulacion('3', EstadoPostulacion.noSeleccionada),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ver servicio'), findsNothing);
+  });
+
+  testWidgets('sin postulaciones muestra mensaje y botón a los trabajos',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(_app(_RepositorioFalso(const [])));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aún no te has postulado a ningún trabajo'),
+        findsOneWidget);
+    expect(find.text('Ver trabajos disponibles'), findsOneWidget);
+  });
+
+  testWidgets('si falla la carga permite reintentar', (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(_app(_RepositorioConError()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reintentar'), findsOneWidget);
+  });
+
+  testWidgets('HU-16 c5: sin próximos invita a ver solicitudes disponibles',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(_app(_RepositorioFalso(const [])));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Próximos'));
+    await tester.pumpAndSettle();
+    expect(find.text('No tienes servicios próximos'), findsOneWidget);
+    expect(find.text('Ver solicitudes disponibles'), findsOneWidget);
+
+    await tester.tap(find.text('Pasados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Todavía no tienes servicios pasados'), findsOneWidget);
+  });
+
+  testWidgets('HU-16 c1: Próximos del más cercano al más lejano',
+      (tester) async {
+    _pantallaGrande(tester);
+    final ahora = DateTime.now();
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(const []),
+        servicios: [
+          _servicio('lejos', inicio: ahora.add(const Duration(days: 9))),
+          _servicio('cerca', inicio: ahora.add(const Duration(days: 1))),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Al entrar, la pestaña Próximos ya muestra los servicios asignados.
+    expect(find.text('No tienes servicios próximos'), findsNothing);
+    expect(find.text('María Alejandra'), findsNWidgets(2));
+    expect(find.textContaining('Los Palos Grandes'), findsNWidgets(2));
+
+    final cerca = tester
+        .getTopLeft(find.textContaining('Los Palos Grandes').first)
+        .dy;
+    final lejos = tester
+        .getTopLeft(find.textContaining('Los Palos Grandes').last)
+        .dy;
+    expect(cerca, lessThan(lejos));
+  });
+
+  testWidgets('HU-16 c3 y c4: Pasados con pago, estado y Calificar',
+      (tester) async {
+    _pantallaGrande(tester);
+    final ahora = DateTime.now();
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(const []),
+        servicios: [
+          _servicio(
+            'completado',
+            estado: EstadoSolicitud.completada,
+            inicio: ahora.subtract(const Duration(days: 2)),
+            completadaEn: ahora.subtract(const Duration(days: 1)),
+          ),
+          _servicio(
+            'calificado',
+            estado: EstadoSolicitud.completada,
+            inicio: ahora.subtract(const Duration(days: 5)),
+            completadaEn: ahora.subtract(const Duration(days: 4)),
+            yaCalifique: true,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pasados'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Completada'), findsNWidgets(2));
+    expect(find.textContaining(r'$30'), findsNWidgets(2));
+    // Solo el que no tiene mi calificación ofrece el botón.
+    expect(find.byKey(const Key('calificar-completado')), findsOneWidget);
+    expect(find.byKey(const Key('calificar-calificado')), findsNothing);
+  });
+
+  testWidgets('HU-16 c2: tocar un próximo abre su detalle', (tester) async {
+    _pantallaGrande(tester);
+    final router = GoRouter(
+      initialLocation: Rutas.misServicios,
+      routes: [
+        GoRoute(
+          path: Rutas.misServicios,
+          builder: (context, state) => const MisServiciosScreen(),
+        ),
+        GoRoute(
+          path: Rutas.servicioAgendadoPatron,
+          builder: (context, state) => Scaffold(
+            body: Text('Detalle ${state.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso(const []),
+        router: router,
+        servicios: [
+          _servicio('cerca', inicio: DateTime.now().add(const Duration(days: 1))),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Limpieza general').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Detalle cerca'), findsOneWidget);
+  });
+
+  testWidgets('renderiza sin desbordamiento en móvil (390x844)',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([
+          _postulacion('1', EstadoPostulacion.pendiente),
+          _postulacion('2', EstadoPostulacion.aceptada),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mis servicios'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('revisión: el estado va a la derecha de la tarjeta',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(_RepositorioFalso([_postulacion('1', EstadoPostulacion.pendiente)])),
+    );
+    await tester.pumpAndSettle();
+
+    final tarjeta = tester.getRect(find.byType(TarjetaPostulacion));
+    final estado = tester.getRect(find.text('Pendiente'));
+    final titulo = tester.getRect(
+      find.text('Limpieza profunda · Los Palos Grandes'),
+    );
+    expect(estado.left, greaterThan(titulo.right));
+    expect(estado.center.dx, greaterThan(tarjeta.center.dx));
+    expect(tarjeta.right - estado.right, lessThan(40));
+  });
+
+  testWidgets('revisión: en móvil el estado también va a la derecha',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _app(_RepositorioFalso([_postulacion('1', EstadoPostulacion.pendiente)])),
+    );
+    await tester.pumpAndSettle();
+
+    final tarjeta = tester.getRect(find.byType(TarjetaPostulacion));
+    final estado = tester.getRect(find.text('Pendiente'));
+    expect(estado.center.dx, greaterThan(tarjeta.center.dx));
+  });
+
+  testWidgets('revisión: resumen por estado al lado de la lista',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([
+          _postulacion('1', EstadoPostulacion.pendiente),
+          _postulacion('2', EstadoPostulacion.pendiente),
+          _postulacion('3', EstadoPostulacion.noSeleccionada),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resumen'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('resumen-Pendientes'))).data,
+      '2',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const Key('resumen-No seleccionadas'))).data,
+      '1',
+    );
+    expect(find.text('Cómo funciona'), findsOneWidget);
+    // El panel está a la derecha de las tarjetas.
+    expect(
+      tester.getTopLeft(find.text('Resumen')).dx,
+      greaterThan(tester.getRect(find.byType(TarjetaPostulacion).first).right),
+    );
+  });
+
+  testWidgets('revisión: una pendiente permite ver la solicitud',
+      (tester) async {
+    _pantallaGrande(tester);
+    final router = GoRouter(
+      initialLocation: Rutas.misServicios,
+      routes: [
+        GoRoute(
+          path: Rutas.misServicios,
+          builder: (context, state) => const MisServiciosScreen(),
+        ),
+        GoRoute(
+          path: Rutas.detalleSolicitudPatron,
+          builder: (context, state) => Scaffold(
+            body: Text('Solicitud ${state.pathParameters['id']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        _RepositorioFalso([_postulacion('1', EstadoPostulacion.pendiente)]),
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('ver-solicitud-p-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Solicitud s-1'), findsOneWidget);
+  });
+}

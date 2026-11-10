@@ -1,0 +1,693 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/di/providers.dart';
+import '../../../core/errors/app_exception.dart';
+import '../../../core/router/rutas.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/estado_postulacion.dart';
+import '../../../domain/entities/postulacion.dart';
+import '../../../domain/entities/servicio_agendado.dart';
+import '../../../domain/services/calificacion_service.dart';
+import '../../../domain/services/postulacion_service.dart';
+import '../../../domain/services/servicio_service.dart';
+import '../../providers/calificar_provider.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/cancelar_servicio_provider.dart';
+import '../../providers/mis_postulaciones_provider.dart';
+import '../../providers/mis_servicios_provider.dart';
+import '../../providers/retirar_postulacion_provider.dart';
+import '../../providers/sesion_provider.dart';
+import '../../providers/solicitudes_disponibles_provider.dart';
+import '../../widgets/calificar_contraparte.dart';
+import '../../widgets/contenido_centrado.dart';
+import '../../widgets/dialogo_calificar.dart';
+import '../../widgets/dialogo_cancelar_servicio.dart';
+import '../../widgets/estado_vacio.dart';
+import 'barra_trabajadora.dart';
+import 'tarjeta_postulacion.dart';
+import 'tarjeta_servicio_agendado.dart';
+
+enum _Pestana { proximos, postulaciones, pasados }
+
+/// HU-13 · Ver mis postulaciones (Figma W07 · Mis servicios).
+///
+/// Pantalla de la trabajadora en '/trabajadora/servicios'. Tiene tres
+/// pestañas:
+/// - **Próximos** (HU-16): servicios asignados, del más cercano al más lejano.
+/// - **Postulaciones** (HU-13): cada postulación con su estado.
+/// - **Pasados** (HU-16): completados y cancelados, del más reciente al más
+///   antiguo.
+///
+/// Criterios de aceptación:
+/// 1. Cada postulación se ve con su estado: Pendiente, Aceptada,
+///    No seleccionada o Solicitud cancelada.
+/// 2. Si el cliente eligió a otra trabajadora, la mía aparece como
+///    No seleccionada (el estado se deduce en `EstadoPostulacion.resolver`).
+/// 3. Al tocar una postulación Aceptada, lleva al detalle del servicio
+///    agendado.
+///
+/// Arranca en Próximos; si todavía no hay servicios asignados, en
+/// Postulaciones, que es lo que la trabajadora está esperando.
+class MisServiciosScreen extends ConsumerStatefulWidget {
+  const MisServiciosScreen({super.key});
+
+  @override
+  ConsumerState<MisServiciosScreen> createState() => _MisServiciosScreenState();
+}
+
+class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
+  // Null = todavía no eligió pestaña: se muestra Próximos si hay servicios
+  // asignados y, si no, Postulaciones.
+  _Pestana? _elegida;
+
+  @override
+  Widget build(BuildContext context) {
+    final sesion = ref.watch(sesionProvider).value;
+    final nombre = sesion?.nombre ?? '';
+    final movil = Responsive.esMovil(context);
+    final textos = Theme.of(context).textTheme;
+    final postulaciones = ref.watch(misPostulacionesProvider);
+    final servicios = ref.watch(misServiciosProvider);
+    final listaServicios = servicios.value ?? const <ServicioAgendado>[];
+    final proximos = listaServicios.where((s) => s.esProximo).length;
+    final pasados = listaServicios.where((s) => s.esPasado).length;
+    final pestana = _elegida ??
+        (proximos > 0 ? _Pestana.proximos : _Pestana.postulaciones);
+
+    return Scaffold(
+      backgroundColor: AppColors.fondo,
+      body: Column(
+        children: [
+          BarraTrabajadora(
+            nombre: nombre,
+            fotoUrl: sesion?.fotoUrl,
+            noLeidos: ref.watch(noLeidosProvider),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: ContenidoCentrado(
+                vertical: movil ? 20 : 40,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Mis servicios',
+                      style: (movil ? textos.headlineLarge : textos.displaySmall)
+                          ?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.texto,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Organiza tus próximos trabajos y postulaciones.',
+                      style: textos.bodyLarge
+                          ?.copyWith(color: AppColors.textoSecundario),
+                    ),
+                    const SizedBox(height: 24),
+                    _BarraPestanas(
+                      actual: pestana,
+                      totalPostulaciones: postulaciones.value?.length,
+                      totalProximos: proximos,
+                      totalPasados: pasados,
+                      onCambio: (p) => setState(() => _elegida = p),
+                    ),
+                    const SizedBox(height: 20),
+                    switch (pestana) {
+                      _Pestana.postulaciones => const _ListaPostulaciones(),
+                      _Pestana.proximos => const _ListaServicios(proximos: true),
+                      _Pestana.pasados => const _ListaServicios(proximos: false),
+                    },
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// HU-16 · Lista de servicios (Próximos o Pasados) con sus estados de
+/// carga, error y vacío.
+class _ListaServicios extends ConsumerWidget {
+  const _ListaServicios({required this.proximos});
+
+  final bool proximos;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final servicios = ref.watch(misServiciosProvider);
+
+    return servicios.when(
+      loading: () => const _Caja(
+        child: Padding(
+          padding: EdgeInsets.all(48),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (error, _) => _Caja(
+        child: EstadoVacio(
+          icono: Icons.wifi_off_rounded,
+          titulo: error is AppException
+              ? error.mensaje
+              : 'No pudimos cargar tus servicios.',
+          textoBoton: 'Reintentar',
+          onPressed: () => ref.invalidate(misServiciosProvider),
+        ),
+      ),
+      data: (lista) {
+        final filtrados = lista
+            .where((s) => proximos ? s.esProximo : s.esPasado)
+            .toList()
+          ..sort(
+            (a, b) => proximos
+                ? a.inicio.compareTo(b.inicio)
+                : (b.completadaEn ?? b.canceladaEn ?? b.inicio)
+                    .compareTo(a.completadaEn ?? a.canceladaEn ?? a.inicio),
+          );
+
+        if (filtrados.isEmpty) {
+          return _Caja(
+            child: proximos
+                ? EstadoVacio(
+                    icono: Icons.event_available_outlined,
+                    titulo: 'No tienes servicios próximos',
+                    mensaje: 'Cuando un cliente te elija, el trabajo aparecerá '
+                        'aquí con la fecha, la hora y su dirección.',
+                    textoBoton: 'Ver solicitudes disponibles',
+                    onPressed: () => context.go(Rutas.inicioTrabajadora),
+                  )
+                : const EstadoVacio(
+                    icono: Icons.history_rounded,
+                    titulo: 'Todavía no tienes servicios pasados',
+                    mensaje: 'Aquí se guardan los trabajos completados y los '
+                        'cancelados, del más reciente al más antiguo.',
+                  ),
+          );
+        }
+
+        return Column(
+          children: [
+            for (final ServicioAgendado s in filtrados) ...[
+              TarjetaServicioAgendado(
+                servicio: s,
+                onTap: () => context.push(Rutas.servicioAgendado(s.id)),
+                // HU-16 c4: la otra parte se califica con HU-29/HU-30.
+                onCalificar: () =>
+                    calificarContraparte(context, ref, s),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Lista de postulaciones, o el estado que corresponda
+/// (cargando, error, sin postulaciones).
+class _ListaPostulaciones extends ConsumerWidget {
+  const _ListaPostulaciones();
+
+  /// HU-26 · Pide confirmación y retira la postulación pendiente.
+  ///
+  /// Al terminar refresca las dos listas: la tarjeta sale de "Mis servicios"
+  /// y, si la solicitud sigue Publicada, el trabajo vuelve a ofrecer
+  /// "Postularme" en Trabajos (criterio 3).
+  Future<void> _retirar(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirar postulación'),
+        content: const Text(
+          'Tu postulación dejará de aparecer en la lista del cliente. '
+          'Si el trabajo sigue publicado, puedes volver a postularte.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('cancelar-retirar'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('confirmar-retirar'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Retirar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !context.mounted) return;
+
+    final error = await ref
+        .read(retirarPostulacionProvider.notifier)
+        .retirar(postulacion.id);
+    if (!context.mounted) return;
+
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    ref.invalidate(misPostulacionesProvider);
+    ref.invalidate(solicitudesDisponiblesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text(PostulacionService.mensajeRetirada)),
+      );
+  }
+
+  /// HU-28 · Pide el motivo y cancela el servicio asignado. Con "No" no
+  /// cambia nada; sin motivo no deja confirmar (c2). El cliente lo verá como
+  /// Cancelado con el motivo (c1).
+  Future<void> _cancelarServicio(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final motivo = await mostrarDialogoCancelarServicio(
+      context,
+      inicio: postulacion.inicio,
+      motivos: ServicioService.motivosCancelarTrabajadora,
+      otraParte: postulacion.clienteNombre ?? 'el cliente',
+    );
+    if (motivo == null || !context.mounted) return;
+
+    final error = await ref
+        .read(cancelarServicioProvider.notifier)
+        .cancelar(postulacion.solicitudId, motivo: motivo);
+    if (!context.mounted) return;
+
+    ref.invalidate(misPostulacionesProvider);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? ServicioService.mensajeServicioCancelado),
+        ),
+      );
+  }
+
+  /// HU-30 · Calificar al cliente de un servicio Completado. Si ya lo
+  /// calificó, solo muestra su calificación (c3). Con 1 o 2 estrellas el
+  /// diálogo pide el motivo (c2).
+  Future<void> _calificarCliente(
+    BuildContext context,
+    WidgetRef ref,
+    Postulacion postulacion,
+  ) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    final clienteId = postulacion.clienteId;
+    final nombre = postulacion.clienteNombre ?? 'el cliente';
+    if (clienteId == null) return;
+
+    try {
+      final existente = await ref
+          .read(calificacionRepositoryProvider)
+          .miCalificacion(postulacion.solicitudId);
+      if (!context.mounted) return;
+      if (existente != null) {
+        await mostrarMiCalificacion(
+          context,
+          nombre: nombre,
+          calificacion: existente,
+        );
+        return;
+      }
+    } on AppException catch (e) {
+      mensajes.showSnackBar(SnackBar(content: Text(e.mensaje)));
+      return;
+    }
+
+    final nueva = await mostrarDialogoCalificar(
+      context,
+      nombre: nombre,
+      pregunta: '¿Cómo fue trabajar con este cliente? Tu opinión ayuda a '
+          'otras trabajadoras.',
+      aviso: CalificacionService.mensajeOcultaCliente,
+      ejemplo: 'Por ejemplo: pagó a tiempo y fue muy amable.',
+      pedirMotivo: true,
+    );
+    if (nueva == null || !context.mounted) return;
+
+    final error = await ref.read(calificarProvider.notifier).calificar(
+          solicitudId: postulacion.solicitudId,
+          destinatarioId: clienteId,
+          estrellas: nueva.estrellas,
+          comentario: nueva.comentario,
+          motivo: nueva.motivo,
+        );
+    if (!context.mounted) return;
+
+    ref.invalidate(misPostulacionesProvider);
+    mensajes
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(error ?? CalificacionService.mensajeEnviada)),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postulaciones = ref.watch(misPostulacionesProvider);
+
+    return postulaciones.when(
+      loading: () => const _Caja(
+        child: Padding(
+          padding: EdgeInsets.all(48),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (error, _) => _Caja(
+        child: EstadoVacio(
+          icono: Icons.wifi_off_rounded,
+          titulo: error is AppException
+              ? error.mensaje
+              : 'No pudimos cargar tus postulaciones.',
+          textoBoton: 'Reintentar',
+          onPressed: () => ref.invalidate(misPostulacionesProvider),
+        ),
+      ),
+      data: (lista) {
+        if (lista.isEmpty) {
+          return _Caja(
+            child: EstadoVacio(
+              icono: Icons.assignment_outlined,
+              titulo: 'Aún no te has postulado a ningún trabajo',
+              mensaje: 'Busca solicitudes en tus zonas y postúlate '
+                  'a las que se ajusten a tu horario.',
+              textoBoton: 'Ver trabajos disponibles',
+              onPressed: () => context.go(Rutas.inicioTrabajadora),
+            ),
+          );
+        }
+        final tarjetas = Column(
+          children: [
+            for (final Postulacion p in lista) ...[
+              TarjetaPostulacion(
+                postulacion: p,
+                // Criterio 3: la aceptada lleva al servicio agendado.
+                onTap: () =>
+                    context.go(Rutas.servicioAgendado(p.solicitudId)),
+                // HU-26: solo las pendientes ofrecen retirarse.
+                onRetirar: () => _retirar(context, ref, p),
+                onVerSolicitud: () =>
+                    context.go(Rutas.detalleSolicitud(p.solicitudId)),
+                // HU-30: calificar al cliente cuando ya se completó.
+                onCalificar: () => _calificarCliente(context, ref, p),
+                // HU-28: solo mientras el servicio sigue Asignado (c3).
+                onCancelarServicio: p.estadoSolicitud != null &&
+                        ServicioService.puedeCancelar(p.estadoSolicitud!)
+                    ? () => _cancelarServicio(context, ref, p)
+                    : null,
+              ),
+              const SizedBox(height: 14),
+            ],
+          ],
+        );
+
+        // Corrección de la revisión: la página se veía vacía. Al lado de la
+        // lista va un resumen por estado y cómo sigue el proceso.
+        final resumen = _PanelResumen(postulaciones: lista);
+
+        if (Responsive.esMovil(context)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [tarjetas, const SizedBox(height: 6), resumen],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: tarjetas),
+            const SizedBox(width: 24),
+            SizedBox(width: 300, child: resumen),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Resumen de las postulaciones por estado y los pasos del proceso.
+class _PanelResumen extends StatelessWidget {
+  const _PanelResumen({required this.postulaciones});
+
+  final List<Postulacion> postulaciones;
+
+  int _cuantas(EstadoPostulacion estado) =>
+      postulaciones.where((p) => p.estado == estado).length;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final filas = [
+      ('Pendientes', _cuantas(EstadoPostulacion.pendiente), AppColors.aviso),
+      ('Aceptadas', _cuantas(EstadoPostulacion.aceptada), AppColors.exito),
+      (
+        'No seleccionadas',
+        _cuantas(EstadoPostulacion.noSeleccionada),
+        AppColors.insigniaGrisTexto,
+      ),
+      (
+        'Canceladas por el cliente',
+        // HU-28: las que canceló ella misma no cuentan aquí.
+        postulaciones
+            .where(
+              (p) =>
+                  p.estado == EstadoPostulacion.solicitudCancelada &&
+                  !p.canceladaPorMi,
+            )
+            .length,
+        AppColors.error,
+      ),
+    ];
+    const pasos = [
+      'Te postulas a un trabajo de tus zonas.',
+      'El cliente revisa los perfiles y elige a una trabajadora.',
+      'Si te elige, verás la dirección y el servicio en Próximos.',
+    ];
+
+    return _Caja(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Resumen',
+              style: textos.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            for (final (etiqueta, cantidad, color) in filas)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(etiqueta, style: textos.bodyMedium)),
+                    Text(
+                      '$cantidad',
+                      key: Key('resumen-$etiqueta'),
+                      style: textos.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const Divider(height: 28),
+            Text(
+              'Cómo funciona',
+              style: textos.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            for (var i = 0; i < pasos.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 11,
+                      backgroundColor: AppColors.primarioClaro,
+                      child: Text(
+                        '${i + 1}',
+                        style: textos.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primario,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(pasos[i], style: textos.bodySmall)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              onPressed: () => context.go(Rutas.inicioTrabajadora),
+              icon: const Icon(Icons.search, size: 18),
+              label: const Text('Buscar más trabajos'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pestañas "Próximos · Postulaciones (3) · Pasados" con línea inferior.
+class _BarraPestanas extends StatelessWidget {
+  const _BarraPestanas({
+    required this.actual,
+    required this.totalPostulaciones,
+    required this.onCambio,
+    this.totalProximos,
+    this.totalPasados,
+  });
+
+  final _Pestana actual;
+  final int? totalPostulaciones;
+  final int? totalProximos;
+  final int? totalPasados;
+  final ValueChanged<_Pestana> onCambio;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.borde)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _ItemPestana(
+              etiqueta: 'Próximos',
+              contador: totalProximos,
+              activa: actual == _Pestana.proximos,
+              onTap: () => onCambio(_Pestana.proximos),
+            ),
+            _ItemPestana(
+              etiqueta: 'Postulaciones',
+              contador: totalPostulaciones,
+              activa: actual == _Pestana.postulaciones,
+              onTap: () => onCambio(_Pestana.postulaciones),
+            ),
+            _ItemPestana(
+              etiqueta: 'Pasados',
+              contador: totalPasados,
+              activa: actual == _Pestana.pasados,
+              onTap: () => onCambio(_Pestana.pasados),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ItemPestana extends StatelessWidget {
+  const _ItemPestana({
+    required this.etiqueta,
+    required this.activa,
+    required this.onTap,
+    this.contador,
+  });
+
+  final String etiqueta;
+  final bool activa;
+  final VoidCallback onTap;
+  final int? contador;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activa ? AppColors.primario : AppColors.textoSecundario;
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: activa ? AppColors.primario : Colors.transparent,
+              width: 3,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              etiqueta,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: color,
+                    fontWeight: activa ? FontWeight.w800 : FontWeight.w600,
+                  ),
+            ),
+            if (contador != null && contador! > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primarioClaro,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '$contador',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.primarioOscuro,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Recuadro blanco para los mensajes (vacío, error, cargando).
+class _Caja extends StatelessWidget {
+  const _Caja({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.superficie,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borde),
+      ),
+      child: child,
+    );
+  }
+}

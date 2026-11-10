@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors/app_exception.dart';
+import '../../core/router/recuperacion.dart';
 import '../../domain/entities/rol_usuario.dart';
 import '../../domain/entities/sesion.dart';
 import '../../domain/entities/usuario.dart';
@@ -125,5 +126,50 @@ class SupabaseAuthRepository implements AuthRepository {
   Usuario? _aUsuario(User? user) {
     if (user == null) return null;
     return Usuario(id: user.id, email: user.email ?? '');
+  }
+
+  @override
+  Future<void> enviarRecuperacion(String email) async {
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email,
+        // El enlace vuelve a la app con ?recuperar=1 y el router la manda a
+        // "Nueva contraseña". Esta dirección debe estar en Supabase →
+        // Authentication → URL Configuration → Redirect URLs.
+        redirectTo: Recuperacion.enlaceDeRegreso(),
+      );
+    } on AuthException catch (e) {
+      if (e.code == 'over_email_send_rate_limit' || e.statusCode == '429') {
+        throw const AppException(
+          'Ya te enviamos un enlace hace poco. Espera un minuto e intenta de nuevo.',
+        );
+      }
+      throw const AppException('No pudimos enviar el enlace. Intenta de nuevo.');
+    } on Exception {
+      throw const AppException(
+        'No pudimos enviar el enlace. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
+
+  @override
+  Future<void> cambiarPassword(String nueva) async {
+    try {
+      await _client.auth.updateUser(UserAttributes(password: nueva));
+    } on AuthException catch (e) {
+      if (e.code == 'same_password') {
+        throw const AppException('La contraseña nueva debe ser distinta a la anterior');
+      }
+      if (e.code == 'weak_password') {
+        throw const AppException('Elige una contraseña más segura');
+      }
+      throw const AppException(
+        'El enlace venció. Pide otro desde "¿Olvidaste tu contraseña?".',
+      );
+    } on Exception {
+      throw const AppException(
+        'No pudimos guardar la contraseña. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
   }
 }

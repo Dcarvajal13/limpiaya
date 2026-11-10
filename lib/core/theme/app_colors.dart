@@ -12,11 +12,22 @@ abstract final class AppColors {
   static const acento = Color(0xFFC8553D); // terracota: solo para destacar
   static const ambar = Color(0xFFE8A23A); // estrellas y botón destacado
 
+  // Correcciones de contraste WCAG 2.2 (taller UX, sección 3.3).
+  /// Terracota para texto normal o con texto blanco encima (5.36:1).
+  static const acentoTexto = Color(0xFFB24A33);
+
+  /// Borde de las estrellas ámbar sobre blanco (4.40:1, criterio 1.4.11).
+  static const estrellaBorde = Color(0xFFA86B12);
+
   // Fondos y superficies
   static const fondo = Color(0xFFFAF5EC);
   static const superficie = Color(0xFFFFFFFF);
   static const arena = Color(0xFFF1E6D6);
-  static const borde = Color(0xFFE6DACB);
+  static const borde = Color(0xFFE6DACB); // tarjetas y divisores
+
+  /// Borde de los campos de texto (3.37:1, criterio 1.4.11). El borde de
+  /// tarjetas (1.38:1) no alcanzaba para un control que hay que encontrar.
+  static const bordeCampo = Color(0xFF958A80);
   static const arenaOscura = Color(0xFFD8C4A9); // bloques de foto
   static const seleccionSuave = Color(0xFFF5FBF9); // fila elegida
 
@@ -28,9 +39,11 @@ abstract final class AppColors {
   static const textoSuaveSobreOscuro = Color(0xFFCDD8D5);
 
   // Estados
-  static const exito = Color(0xFF2E7D4F);
+  // exito y aviso se oscurecieron para pasar 4.5:1 en sus insignias
+  // (antes #2E7D4F con 4.26:1 y #B26A00 con 3.64:1; taller UX, 3.3).
+  static const exito = Color(0xFF23683F);
   static const error = Color(0xFFB3261E);
-  static const aviso = Color(0xFFB26A00);
+  static const aviso = Color(0xFF8A5300);
   static const deshabilitado = Color(0xFFE4DFD8);
   static const textoDeshabilitado = Color(0xFF8B837B);
 

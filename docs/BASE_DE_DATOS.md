@@ -8,6 +8,14 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._seguridad_rls.sql` | Perfil automático al registrarse, `mi_sesion()`, permisos y políticas RLS |
 | `..._vistas_publicas.sql` | Vistas con lo que un usuario puede ver de otros (sin datos privados) |
 | `..._storage.sql` | Buckets de fotos: `avatars` (pública) y `verificaciones` (privada) |
+| `..._zonas_parroquias.sql` | Agrega la parroquia a cada zona, para elegir Municipio → Parroquia → Urbanización |
+| `..._elegir_trabajadora.sql` | HU-15: `elegir_trabajadora()` asigna la solicitud a una postulante, la acepta y marca a las demás como No seleccionada |
+| `..._completar_servicio.sql` | HU-17: `completar_servicio()` pasa a Completado un servicio Asignado que ya empezó (solo el cliente) |
+| `..._cancelar_servicio.sql` | HU-28: `cancelar_servicio()` cancela un servicio Asignado con motivo (cliente o trabajadora) y la vista `solicitudes_publicas` suma `cancelada_por` |
+| `..._responder_resena.sql` | HU-31: tabla `respuestas_resenas` (una por reseña), `responder_resena()` publica o edita la respuesta (hasta 300 caracteres) y `resenas_publicas` suma `respuesta` y `respuesta_en` |
+| `..._nivel_trabajadora.sql` | HU-61: vista interna `nivel_trabajadoras` (10 servicios, promedio ≥ 4,5 y sin cancelaciones tardías en 30 días), `mi_nivel` para la trabajadora y `trabajadoras_publicas` suma `destacada` |
+| `..._invitaciones.sql` | HU-25: tabla `invitaciones`, `invitar_trabajadora()`, `trabajadoras_publicas` suma `zona_ids` y `solicitudes_publicas` suma `me_invitaron` |
+| `..._chat_leidos.sql` | HU-38: columna `leido_en` en `mensajes`, índice de no leídos y política para marcar como leídos los mensajes de la otra parte |
 
 ## Diagrama entidad-relación
 
@@ -57,6 +65,7 @@ erDiagram
         smallint id PK
         text nombre
         text municipio
+        text parroquia
     }
     TRABAJADORA_ZONAS {
         uuid trabajadora_id PK
@@ -126,12 +135,15 @@ Una **solicitud asignada es lo que las historias llaman "servicio"**: es la mism
 | `zonas`, `trabajadora_zonas`, `trabajadora_servicios` | HU-04, HU-05, HU-11 |
 | `solicitudes` | HU-07, HU-08, HU-09, HU-10, HU-15, HU-16, HU-17, HU-28, HU-43, HU-52 |
 | `postulaciones` | HU-12, HU-13, HU-14, HU-26 |
-| `calificaciones` | HU-29, HU-30 |
+| `calificaciones` | HU-29, HU-30, HU-46 |
+| `respuestas_resenas` | HU-31 |
+| `invitaciones` | HU-25 |
 | `verificaciones` | HU-21, HU-33 |
 | `mensajes` | HU-38 |
 | Vista `solicitudes_publicas` | HU-11, HU-13, HU-45: solicitudes **sin dirección** |
-| Vista `trabajadoras_publicas` | HU-06, HU-14: perfil con zonas, servicios y promedio, **sin teléfono** |
-| Vista `resenas_publicas`, `reputacion` | HU-06, HU-29 c4: reseñas visibles y promedios |
+| Vista `trabajadoras_publicas` | HU-06, HU-14, HU-25, HU-61: perfil con zonas, servicios, promedio e insignia, **sin teléfono** |
+| Vista `resenas_publicas`, `reputacion` | HU-06, HU-29 c4, HU-31, HU-46: reseñas visibles (con su respuesta) y promedios |
+| Vista `mi_nivel` | HU-61: el nivel de la trabajadora con sesión y lo que le falta |
 | Vista `perfiles_publicos` | Nombre y foto de cualquier usuario |
 
 ## Reglas de seguridad (RLS)
@@ -173,16 +185,37 @@ Los **cambios de estado** no se pueden hacer directo desde la app; HD-04 debe de
 - Cancelar (HU-10, HU-28), completar (HU-17) y el cierre automático a las 48 horas.
 - Cruce de horarios al postularse o elegir (HU-12 c3, HU-15 c4).
 
+> **HU-13 (Ver mis postulaciones):** mientras HD-04 no cambie los estados en la base, la app deduce el estado que se muestra con `EstadoPostulacion.resolver` (`domain/entities/estado_postulacion.dart`) usando la solicitud: cancelada → *Solicitud cancelada*; asignada a otra trabajadora → *No seleccionada*; asignada a ella → *Aceptada*. Lee `postulaciones` + las vistas `solicitudes_publicas` y `perfiles_publicos` (sin migración nueva ni dirección exacta). Cuando HD-04 actualice `postulaciones.estado`, la regla sigue siendo válida.
+
 ## Cuenta de administrador (HD-06)
 
-1. Registrarse en la app como cliente con el correo del admin.
-2. En Supabase → **SQL Editor**:
+1. En Supabase → **Authentication** → **Users** → **Add user** → **Create new user**
+   (marcar **Auto Confirm User**).
+2. En el **SQL Editor**:
    ```sql
-   update public.perfiles set rol = 'admin'
-    where id = (select id from auth.users where email = 'CORREO_DEL_ADMIN');
-   delete from public.clientes
-    where id = (select id from auth.users where email = 'CORREO_DEL_ADMIN');
+   select public.hacer_admin('CORREO_DEL_ADMIN');
    ```
+   La función está en la migración `20261027200000_cuenta_admin.sql` y no se
+   puede llamar desde la app.
+
+## Datos de prueba para las demos (HD-07)
+
+`supabase/datos_de_prueba.sql` crea 3 clientes, 5 trabajadoras verificadas,
+10 solicitudes en varias zonas (con postulaciones, una asignada y una
+cancelada). Todas las cuentas terminan en `@demo.limpiaya.app`:
+
+| Rol | Correos |
+|---|---|
+| Cliente | maria@, luis@, gabriela@ |
+| Trabajadora | carmen@, yelitza@, marisol@, andreina@, josefina@ |
+
+1. Abrir el archivo y cambiar la contraseña de la línea «CAMBIA AQUÍ»
+   (no subirla al repositorio; se pasa al equipo por privado).
+2. Pegarlo completo en el **SQL Editor** y darle a **Run**.
+
+Se puede correr otra vez antes de cada review: borra las cuentas de prueba
+anteriores y todo lo suyo, y lo vuelve a crear con fechas a partir de hoy.
+No es una migración: no se aplica con `supabase db push`.
 
 ## Cómo agregar un cambio a la base
 

@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
-import '../../widgets/avatar_usuario.dart';
-import '../../widgets/boton_cerrar_sesion.dart';
+import '../../widgets/acceso_perfil.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
@@ -15,13 +14,15 @@ import '../../widgets/logo_limpiaya.dart';
 /// `appBar`) porque en móvil es más alta: las pestañas pasan a una segunda
 /// fila para que todo quepa.
 ///
-/// TODO(HU-26): "Mis servicios" todavía no tiene pantalla; por ahora avisa
-/// que llegará pronto.
+/// "Mis servicios" (HU-13) abre la pantalla con la pestaña Postulaciones.
+/// "Mi reputación" (HU-31, HU-61) muestra sus reseñas, sus respuestas y su
+/// nivel.
 class BarraTrabajadora extends StatelessWidget {
   const BarraTrabajadora({
     super.key,
     required this.nombre,
     this.fotoUrl,
+    this.noLeidos = 0,
   });
 
   final String nombre;
@@ -29,39 +30,34 @@ class BarraTrabajadora extends StatelessWidget {
   /// Foto de perfil (HU-04), o null para mostrar las iniciales.
   final String? fotoUrl;
 
+  /// HU-38 · Mensajes sin leer, para el aviso de la pestaña "Mensajes".
+  final int noLeidos;
+
   static const _altoPrincipal = 64.0;
   static const _altoPestanas = 48.0;
 
   @override
   Widget build(BuildContext context) {
     final movil = Responsive.esMovil(context);
-    final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
     // maybeOf por si la barra se muestra fuera de un router (pruebas):
     // en ese caso ninguna pestaña queda activa.
     final ubicacion = GoRouter.maybeOf(context)?.state.uri.toString() ?? '';
 
     final pestanas = _Pestanas(
       ubicacion: ubicacion,
-      onProximamente: (nombre) => ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text('$nombre estará disponible pronto')),
-        ),
       onTrabajos: () => context.go(Rutas.inicioTrabajadora),
-      onMiPerfil: () => context.go(Rutas.perfilTrabajadora),
+      onMisServicios: () => context.go(Rutas.misServicios),
+      onMiReputacion: () => context.go(Rutas.miReputacion),
+      onMensajes: () => context.go(Rutas.mensajesTrabajadora),
+      noLeidos: noLeidos,
     );
 
-    final usuario = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-      AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, tamano: 36),
-        if (!movil) ...[
-          const SizedBox(width: 10),
-          Text(primerNombre, style: Theme.of(context).textTheme.labelMedium),
-        ],
-        const SizedBox(width: 8),
-        const BotonCerrarSesion(),
-      ],
+    // Corrección del review: "Mi perfil" y el nombre eran lo mismo. Ahora
+    // el avatar con el nombre abre el perfil, y "Cerrar sesión" está dentro.
+    final usuario = AccesoPerfil(
+      nombre: nombre,
+      fotoUrl: fotoUrl,
+      rutaPerfil: Rutas.perfilTrabajadora,
     );
 
     return Material(
@@ -81,10 +77,20 @@ class BarraTrabajadora extends StatelessWidget {
                   child: Row(
                     children: [
                       LogoLimpiaYa(tamano: 36, soloMarca: movil),
+                      // Las pestañas usan el espacio que queda entre el
+                      // logo y el nombre; si no caben, se desplazan en vez
+                      // de desbordar la barra (ventanas de ~800 px).
                       if (!movil) ...[
-                        const Spacer(),
-                        pestanas,
-                        const Spacer(),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Center(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: pestanas,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
                       ] else
                         const Spacer(),
                       usuario,
@@ -95,7 +101,12 @@ class BarraTrabajadora extends StatelessWidget {
               if (movil)
                 SizedBox(
                   height: _altoPestanas,
-                  child: ContenidoCentrado(child: pestanas),
+                  child: ContenidoCentrado(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: pestanas,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -108,16 +119,24 @@ class BarraTrabajadora extends StatelessWidget {
 class _Pestanas extends StatelessWidget {
   const _Pestanas({
     required this.ubicacion,
-    required this.onProximamente,
     required this.onTrabajos,
-    required this.onMiPerfil,
+    required this.onMisServicios,
+    required this.onMiReputacion,
+    required this.onMensajes,
+    this.noLeidos = 0,
   });
 
   /// Dirección actual, para marcar la pestaña activa.
   final String ubicacion;
-  final void Function(String nombre) onProximamente;
   final VoidCallback onTrabajos;
-  final VoidCallback onMiPerfil;
+  final VoidCallback onMisServicios;
+
+  /// HU-31 / HU-61 · Reseñas, respuestas y nivel.
+  final VoidCallback onMiReputacion;
+
+  /// HU-38 · Lista de conversaciones.
+  final VoidCallback onMensajes;
+  final int noLeidos;
 
   @override
   Widget build(BuildContext context) {
@@ -131,12 +150,20 @@ class _Pestanas extends StatelessWidget {
         ),
         _Pestana(
           etiqueta: 'Mis servicios',
-          onTap: () => onProximamente('Mis servicios'),
+          activa: ubicacion == Rutas.misServicios ||
+              ubicacion.startsWith('${Rutas.misServicios}/'),
+          onTap: onMisServicios,
         ),
         _Pestana(
-          etiqueta: 'Mi perfil',
-          activa: ubicacion == Rutas.perfilTrabajadora,
-          onTap: onMiPerfil,
+          etiqueta: 'Mi reputación',
+          activa: ubicacion == Rutas.miReputacion,
+          onTap: onMiReputacion,
+        ),
+        _Pestana(
+          etiqueta: 'Mensajes',
+          activa: ubicacion == Rutas.mensajesTrabajadora,
+          onTap: onMensajes,
+          contador: noLeidos,
         ),
       ],
     );
@@ -144,11 +171,19 @@ class _Pestanas extends StatelessWidget {
 }
 
 class _Pestana extends StatelessWidget {
-  const _Pestana({required this.etiqueta, this.activa = false, this.onTap});
+  const _Pestana({
+    required this.etiqueta,
+    this.activa = false,
+    this.onTap,
+    this.contador = 0,
+  });
 
   final String etiqueta;
   final bool activa;
   final VoidCallback? onTap;
+
+  /// Mensajes sin leer que se muestran como aviso.
+  final int contador;
 
   @override
   Widget build(BuildContext context) {
@@ -162,12 +197,38 @@ class _Pestana extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              etiqueta,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontSize: 13,
-                color: activa ? AppColors.primarioOscuro : AppColors.texto,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  etiqueta,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontSize: 13,
+                    color: activa ? AppColors.primarioOscuro : AppColors.texto,
+                  ),
+                ),
+                if (contador > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    key: const Key('aviso-mensajes'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primario,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      '$contador',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

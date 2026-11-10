@@ -9,6 +9,12 @@ abstract final class Rutas {
   static const login = '/login';
   static const registro = '/registro';
 
+  /// HU-19 · "¿Olvidaste tu contraseña?": pide el correo (sin sesión).
+  static const recuperarContrasena = '/recuperar';
+
+  /// HU-19 · Se llega desde el enlace del correo, ya con sesión.
+  static const nuevaContrasena = '/nueva-contrasena';
+
   /// Reparte a cada quien a su inicio según su rol. Mientras se carga el
   /// rol, muestra una espera.
   static const inicio = '/inicio';
@@ -19,9 +25,85 @@ abstract final class Rutas {
   static const inicioTrabajadora = '/trabajadora';
   static const inicioAdmin = '/admin';
 
+  /// Perfil del cliente (HU-05). Antes de publicar una solicitud, el
+  /// cliente recién registrado completa su zona y dirección.
+  static const perfilCliente = '/cliente/perfil';
+
+  /// HU-07 · Publicar una solicitud. Va dentro de /cliente, así que solo la
+  /// puede abrir un cliente.
+  static const publicarSolicitud = '/cliente/publicar';
+
+  /// HU-09 · Editar una solicitud Publicada (misma pantalla que publicar).
+  static const editarSolicitudPatron = '/cliente/solicitudes/:id/editar';
+  static String editarSolicitud(String solicitudId) =>
+      '/cliente/solicitudes/$solicitudId/editar';
+
+  /// HU-44 · Repetir una solicitud Completada o Cancelada (mismo formulario
+  /// que publicar, con los datos copiados y la fecha vacía).
+  static const repetirSolicitudPatron = '/cliente/solicitudes/:id/repetir';
+  static String repetirSolicitud(String solicitudId) =>
+      '/cliente/solicitudes/$solicitudId/repetir';
+
+  /// HU-14 · Postulantes de una solicitud del cliente.
+  static const postulantesPatron = '/cliente/solicitudes/:id/postulantes';
+  static String postulantes(String solicitudId) =>
+      '/cliente/solicitudes/$solicitudId/postulantes';
+
+  /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
+  static const buscarTrabajadoras = '/cliente/buscar';
+
+  /// HU-06 · Perfil público de una trabajadora, visto por el cliente.
+  static const perfilPublicoTrabajadoraPatron = '/cliente/trabajadoras/:id';
+  static String perfilPublicoTrabajadora(String trabajadoraId) =>
+      '/cliente/trabajadoras/$trabajadoraId';
+
   /// Perfil de la trabajadora (HU-04). Antes de ver solicitudes, la
   /// trabajadora recién registrada completa su perfil.
   static const perfilTrabajadora = '/trabajadora/perfil';
+
+  /// HU-13 · Mis servicios de la trabajadora (pestaña Postulaciones).
+  static const misServicios = '/trabajadora/servicios';
+
+  /// HU-45 · Detalle de una solicitud vista por la trabajadora. Nunca muestra
+  /// la dirección exacta del cliente.
+  static const detalleSolicitudPatron = '/trabajadora/solicitudes/:id';
+  static String detalleSolicitud(String solicitudId) =>
+      '/trabajadora/solicitudes/$solicitudId';
+
+  /// HU-46 · Perfil de un cliente (reputación y reseñas), visto por la
+  /// trabajadora desde el detalle de una solicitud.
+  static const perfilClientePublicoPatron = '/trabajadora/clientes/:id';
+  static String perfilClientePublico(String clienteId) =>
+      '/trabajadora/clientes/$clienteId';
+
+  /// HU-31 / HU-61 · Mi reputación: mis reseñas, mis respuestas y mi nivel.
+  static const miReputacion = '/trabajadora/reputacion';
+
+  /// HU-21 · Verificar mi identidad. HU-12 criterio 4 manda aquí cuando la
+  /// trabajadora todavía no tiene la identidad aprobada.
+  static const verificacionTrabajadora = '/trabajadora/verificacion';
+
+  /// HU-16 · Detalle de un servicio agendado, visto por la trabajadora.
+  /// Lo abre desde "Próximos", "Pasados" o una postulación aceptada.
+  static const servicioAgendadoPatron = '/trabajadora/servicios/:id';
+  static String servicioAgendado(String solicitudId) =>
+      '$misServicios/$solicitudId';
+
+  /// HU-16 · Detalle del mismo servicio, visto por el cliente dueño.
+  static const servicioClientePatron = '/cliente/servicios/:id';
+  static String servicioCliente(String solicitudId) =>
+      '/cliente/servicios/$solicitudId';
+
+  /// HU-38 · Chat de un servicio. Es la misma pantalla para los dos roles:
+  /// la base decide quién puede leer y escribir.
+  static const chatServicioPatron = '/servicio/:id/chat';
+  static String chatServicio(String solicitudId) =>
+      '/servicio/$solicitudId/chat';
+
+  /// HU-38 · Lista de conversaciones, una por rol porque la barra superior
+  /// cambia.
+  static const mensajesCliente = '/cliente/mensajes';
+  static const mensajesTrabajadora = '/trabajadora/mensajes';
 
   static const sistemaDiseno = '/diseno';
 
@@ -33,7 +115,7 @@ abstract final class Rutas {
   /// Pantallas que se pueden ver sin iniciar sesión.
   /// Si alguien con sesión entra a una de estas, se le manda a su inicio
   /// (HU-62, criterio 4).
-  static const publicas = {landing, login, registro};
+  static const publicas = {landing, login, registro, recuperarContrasena};
 
   /// Pantallas que se ven igual con o sin sesión (nunca redirigen).
   static const libres = {sistemaDiseno};

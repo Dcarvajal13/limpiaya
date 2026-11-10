@@ -15,6 +15,12 @@ import 'package:limpiaya/presentation/widgets/boton_cerrar_sesion.dart';
 
 /// Repositorio falso que cuenta cuántas veces se cerró sesión.
 class _RepositorioFalso implements AuthRepository {
+  @override
+  Future<void> enviarRecuperacion(String email) async {}
+
+  @override
+  Future<void> cambiarPassword(String nueva) async {}
+
   _RepositorioFalso({this.falla = false});
 
   final bool falla;

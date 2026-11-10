@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/providers.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/router/recuperacion.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validadores.dart';
@@ -30,7 +31,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   bool _verPassword = false;
   bool _cargando = false;
-  String? _error;
+
+  // H9: si se llegó desde un enlace del correo que ya no sirve, se explica
+  // qué pasó y cómo resolverlo en vez de mostrar el login sin más.
+  String? _error = Recuperacion.errorDelEnlace(Uri.base);
 
   @override
   void dispose() {
@@ -114,9 +118,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: () => setState(() => _verPassword = !_verPassword),
                 ),
               ),
+              // HU-19 (taller UX, H3 · severidad 3): quien olvida la
+              // contraseña ya no queda bloqueado.
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _cargando
+                      ? null
+                      : () => context.go(Rutas.recuperarContrasena),
+                  child: const Text('¿Olvidaste tu contraseña?'),
+                ),
+              ),
               if (_error != null) ...[
                 const SizedBox(height: 18),
-                _AvisoError(_error!),
+                AvisoErrorAuth(_error!),
               ],
               const SizedBox(height: 24),
               FilledButton(
@@ -149,9 +164,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-/// Mensaje de error del inicio de sesión (fondo rojo claro, texto rojo).
-class _AvisoError extends StatelessWidget {
-  const _AvisoError(this.mensaje);
+/// Mensaje de error de las pantallas de acceso (fondo rojo claro, texto
+/// rojo). Lo usan el login y la recuperación de contraseña.
+class AvisoErrorAuth extends StatelessWidget {
+  const AvisoErrorAuth(this.mensaje, {super.key});
 
   final String mensaje;
 

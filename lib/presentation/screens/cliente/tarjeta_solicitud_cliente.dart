@@ -1,0 +1,514 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formato.dart';
+import '../../../core/utils/responsive.dart';
+import '../../../domain/entities/estado_solicitud.dart';
+import '../../../domain/entities/solicitud.dart';
+import '../../widgets/desglose_costo.dart';
+import '../../widgets/insignia_estado.dart';
+
+/// "Carmen Pérez" → "CP"; "Ana" → "A".
+String _iniciales(String nombre) {
+  final partes = nombre
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((parte) => parte.isNotEmpty)
+      .toList();
+  if (partes.isEmpty) return '?';
+  if (partes.length == 1) return partes.first.substring(0, 1).toUpperCase();
+  return '${partes.first.substring(0, 1)}${partes.last.substring(0, 1)}'
+      .toUpperCase();
+}
+
+/// Tarjeta horizontal de solicitud del cliente (Figma C05).
+///
+/// Muestra:
+/// - Bloque con día y mes en grande a la izquierda.
+/// - Insignia de estado + tipo de limpieza ("Limpieza general", etc.).
+/// - Día y hora del servicio (ej. "Sábado, 9:00 a. m.").
+/// - Zona, duración estimada y monto ("Los Palos Grandes, Chacao · 4 horas · $30").
+/// - Postulantes (con ícono rojo/terracota), trabajadora asignada o motivo de cancelación.
+/// - Botones de acción a la derecha ("Ver postulantes", "Ver servicio", "Calificar", "Editar").
+class TarjetaSolicitudCliente extends StatelessWidget {
+    const TarjetaSolicitudCliente({
+    super.key,
+    required this.solicitud,
+    this.onTap,
+    this.onEditar,
+    this.onCancelar,
+    this.onVerPostulantes,
+    this.onCompletar,
+    this.onVerServicio,
+    this.onCancelarServicio,
+    this.onCalificar,
+    this.onRepetir,
+  });
+
+  
+
+  final Solicitud solicitud;
+  final VoidCallback? onTap;
+  final VoidCallback? onEditar;
+
+  /// HU-10 · Cancelar la solicitud (solo si está Publicada).
+  final VoidCallback? onCancelar;
+  
+  /// HU-14 · Abrir la lista de postulantes (solo si está Publicada).
+  final VoidCallback? onVerPostulantes;
+
+  /// HU-17 · Marcar como completado. La pantalla lo pasa solo si el servicio
+  /// está Asignado y ya empezó (c2); si es null, el botón no aparece.
+  final VoidCallback? onCompletar;
+
+  /// HU-16 · Abrir el detalle del servicio agendado ("Ver servicio").
+  final VoidCallback? onVerServicio;
+
+  /// HU-28 · Cancelar el servicio asignado indicando el motivo. Null si no
+  /// se puede (por ejemplo, ya Completado: c3).
+  final VoidCallback? onCancelarServicio;
+
+  /// HU-29 · Calificar a la trabajadora, o ver la calificación que ya le
+  /// puse (c3). Solo en un servicio Completado.
+  final VoidCallback? onCalificar;
+
+  /// HU-44 · Repetir la solicitud (solo Completada o Cancelada). Si es null,
+  /// el botón no aparece.
+  final VoidCallback? onRepetir;
+
+  TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
+        EstadoSolicitud.publicada => TonoInsignia.azul,
+        EstadoSolicitud.asignada => TonoInsignia.verde,
+        EstadoSolicitud.completada => TonoInsignia.gris,
+        EstadoSolicitud.cancelada => TonoInsignia.rojo,
+      };
+
+  void _accion(BuildContext context, String mensaje) {
+    if (onTap != null) return onTap!();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(mensaje)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final movil = Responsive.esMovil(context);
+    final textos = Theme.of(context).textTheme;
+
+    final badgeFecha = Container(
+      width: 58,
+      height: 64,
+      decoration: BoxDecoration(
+        color: AppColors.fondo,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.arena),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            solicitud.inicio.day.toString().padLeft(2, '0'),
+            style: textos.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+              height: 1.1,
+              color: AppColors.texto,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            Formato.mesMayus(solicitud.inicio),
+            style: textos.labelSmall?.copyWith(
+              color: AppColors.acentoTexto,
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final infoCentral = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            InsigniaEstado(
+              solicitud.estado.etiqueta,
+              tono: _tono(solicitud.estado),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Limpieza ${solicitud.tipo.etiqueta.toLowerCase()}',
+                style: textos.bodySmall?.copyWith(
+                  fontSize: 13,
+                  color: AppColors.textoSecundario,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          Formato.diaCompletoHora(solicitud.inicio),
+          style: textos.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            const Icon(
+              Icons.location_on_outlined,
+              size: 16,
+              color: AppColors.textoSecundario,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                '${solicitud.zona} · '
+                '${Formato.horas(solicitud.horasEstimadas)} · '
+                '${Formato.dinero(solicitud.pagoOfrecido)}',
+                style: textos.bodySmall?.copyWith(fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        // HU-52 c3: el mismo desglose que se vio al publicar.
+        const SizedBox(height: 4),
+        DesgloseCosto(
+          key: Key('desglose-${solicitud.id}'),
+          pago: solicitud.pagoOfrecido,
+        ),
+        const SizedBox(height: 8),
+        _construirDetalleEstado(context),
+      ],
+    );
+
+    final acciones = _construirBotones(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.superficie,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borde),
+      ),
+      padding: EdgeInsets.all(movil ? 16 : 20),
+      child: movil
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    badgeFecha,
+                    const SizedBox(width: 14),
+                    Expanded(child: infoCentral),
+                  ],
+                ),
+                if (acciones != null) ...[
+                  const SizedBox(height: 16),
+                  acciones,
+                ],
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                badgeFecha,
+                const SizedBox(width: 18),
+                Expanded(child: infoCentral),
+                if (acciones != null) ...[
+                  const SizedBox(width: 20),
+                  acciones,
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _construirDetalleEstado(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+
+    switch (solicitud.estado) {
+      case EstadoSolicitud.publicada:
+        if (solicitud.numPostulantes > 0) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.people_outline_rounded,
+                size: 16,
+                color: AppColors.acentoTexto,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                Formato.postulantes(solicitud.numPostulantes),
+                style: textos.bodySmall?.copyWith(
+                  color: AppColors.acentoTexto,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          );
+        }
+        return Text(
+          'Sin postulantes aún',
+          style: textos.bodySmall?.copyWith(fontSize: 13, fontStyle: FontStyle.italic),
+        );
+
+      case EstadoSolicitud.asignada:
+        {
+          final nombre = solicitud.trabajadoraNombre ?? 'Trabajadora asignada';
+          final promedio = solicitud.trabajadoraPromedio;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: AppColors.primarioClaro,
+                child: Text(
+                  _iniciales(nombre),
+                  style: textos.labelSmall?.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primarioOscuro,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      nombre,
+                      style: textos.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      promedio != null
+                          ? '★ ${Formato.promedio(promedio)}'
+                          : 'Sin calificaciones aún',
+                      style: textos.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: AppColors.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+      case EstadoSolicitud.cancelada:
+        final motivo = solicitud.motivoCancelacion;
+        // HU-28 c1: si la canceló la trabajadora, el cliente lo sabe.
+        final laCanceloLaTrabajadora = solicitud.canceladaPor != null &&
+            solicitud.canceladaPor == solicitud.trabajadoraId;
+        final quien = laCanceloLaTrabajadora
+            ? 'Cancelado por ${solicitud.trabajadoraNombre ?? 'la trabajadora'}'
+            : null;
+        if (motivo == null || motivo.trim().isEmpty) {
+          if (quien == null) return const SizedBox.shrink();
+          return Text(
+            quien,
+            style: textos.bodySmall?.copyWith(
+              fontSize: 12,
+              color: AppColors.textoSecundario,
+            ),
+          );
+        }
+        return Text(
+          quien == null ? 'Motivo: $motivo' : '$quien · Motivo: $motivo',
+          style: textos.bodySmall?.copyWith(
+            fontSize: 12,
+            color: AppColors.textoSecundario,
+          ),
+        );
+
+      case EstadoSolicitud.completada:
+        // HU-29 c3: si ya la califiqué, lo recuerda.
+        final estrellas = solicitud.miCalificacion;
+        if (estrellas == null) return const SizedBox.shrink();
+        return Text(
+          'La calificaste con ★ $estrellas',
+          style: textos.bodySmall?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textoSecundario,
+          ),
+        );
+    }
+  }
+
+  Widget? _construirBotones(BuildContext context) {
+    final movil = Responsive.esMovil(context);
+
+    switch (solicitud.estado) {
+      case EstadoSolicitud.publicada:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              movil ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
+          children: [
+              FilledButton(
+              onPressed: () {
+                if (onVerPostulantes != null) return onVerPostulantes!();
+                _accion(
+                  context,
+                  'La revisión de postulaciones estará disponible pronto',
+                );
+              },
+              style: FilledButton.styleFrom(
+                minimumSize: Size(movil ? double.infinity : 150, 44),
+                backgroundColor: AppColors.primarioOscuro,
+              ),
+              child: const Text('Ver postulantes'),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    if (onEditar != null) return onEditar!();
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Editar solicitud estará disponible pronto (HU-09)',
+                          ),
+                        ),
+                      );
+                  },
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 32),
+                    foregroundColor: AppColors.primario,
+                  ),
+                  child: const Text('Editar'),
+                ),
+                if (onCancelar != null)
+                  TextButton(
+                    onPressed: onCancelar,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(0, 32),
+                      foregroundColor: AppColors.error,
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+              ],
+            ),
+          ],
+        );
+
+      case EstadoSolicitud.asignada:
+        final verServicio = FilledButton(
+          key: Key('ver-servicio-${solicitud.id}'),
+          onPressed: onVerServicio,
+          style: FilledButton.styleFrom(
+            minimumSize: Size(movil ? double.infinity : 150, 44),
+            backgroundColor: AppColors.primarioOscuro,
+          ),
+          child: const Text('Ver servicio'),
+        );
+        if (onCompletar == null && onCancelarServicio == null) {
+          return verServicio;
+        }
+        // Los botones con el mismo ancho: en el teléfono ocupan toda la
+        // fila y en pantallas grandes toman el ancho del más largo.
+        final botones = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            verServicio,
+            if (onCompletar != null) ...[
+              const SizedBox(height: 8),
+              // HU-17 c1
+              OutlinedButton(
+                key: Key('completar-${solicitud.id}'),
+                onPressed: onCompletar,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(150, 44),
+                  side:
+                      const BorderSide(color: AppColors.primario, width: 1.5),
+                ),
+                child: const Text('Marcar como completado'),
+              ),
+            ],
+            if (onCancelarServicio != null) ...[
+              const SizedBox(height: 4),
+              // HU-28 c1
+              TextButton(
+                key: Key('cancelar-servicio-${solicitud.id}'),
+                onPressed: onCancelarServicio,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  foregroundColor: AppColors.error,
+                ),
+                child: const Text('Cancelar servicio'),
+              ),
+            ],
+          ],
+        );
+        return movil ? botones : IntrinsicWidth(child: botones);
+
+      case EstadoSolicitud.completada:
+        final yaCalifique = solicitud.miCalificacion != null;
+        final calificar = OutlinedButton(
+          key: Key('calificar-${solicitud.id}'),
+          onPressed: () {
+            if (onCalificar != null) return onCalificar!();
+            _accion(context, 'No pudimos abrir la calificación');
+          },
+          style: OutlinedButton.styleFrom(
+            minimumSize: Size(movil ? double.infinity : 120, 44),
+            side: const BorderSide(color: AppColors.primario, width: 1.5),
+          ),
+          // HU-29 c3: si ya calificó, solo puede verla.
+          child: Text(yaCalifique ? 'Ver mi calificación' : 'Calificar'),
+        );
+        if (onRepetir == null) return calificar;
+        final botones = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            calificar,
+            const SizedBox(height: 4),
+            _botonRepetir(),
+          ],
+        );
+        return movil ? botones : IntrinsicWidth(child: botones);
+
+      case EstadoSolicitud.cancelada:
+        // HU-44 c1 · Una cancelada también se puede volver a pedir.
+        if (onRepetir == null) return null;
+        return _botonRepetir();
+    }
+  }
+
+  /// HU-44 c1 · "Repetir": abre el formulario con los mismos datos.
+  Widget _botonRepetir() => TextButton.icon(
+        key: Key('repetir-${solicitud.id}'),
+        onPressed: onRepetir,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 36),
+          foregroundColor: AppColors.primario,
+        ),
+        icon: const Icon(Icons.replay_rounded, size: 18),
+        label: const Text('Repetir'),
+      );
+}

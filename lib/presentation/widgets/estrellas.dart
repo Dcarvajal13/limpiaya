@@ -33,7 +33,20 @@ class Estrellas extends StatelessWidget {
       } else {
         icono = Icons.star_outline_rounded;
       }
-      final estrella = Icon(icono, size: tamano, color: AppColors.ambar);
+      // Taller UX (WCAG 1.4.11): el ámbar solo sobre blanco da 2.17:1, así
+      // que cada estrella lleva un borde más oscuro (4.40:1).
+      final Widget estrella = icono == Icons.star_outline_rounded
+          ? Icon(icono, size: tamano, color: AppColors.estrellaBorde)
+          : Stack(
+              children: [
+                Icon(icono, size: tamano, color: AppColors.ambar),
+                Icon(
+                  Icons.star_outline_rounded,
+                  size: tamano,
+                  color: AppColors.estrellaBorde,
+                ),
+              ],
+            );
 
       if (!elegible) return estrella;
       return IconButton(
