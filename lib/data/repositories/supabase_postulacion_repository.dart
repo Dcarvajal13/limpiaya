@@ -52,6 +52,15 @@ class SupabasePostulacionRepository implements PostulacionRepository {
         for (final fila in solicitudes.values) fila['cliente_id'] as String,
       });
 
+      // HU-30 c3 · Las estrellas que ya les puse a los clientes de mis
+      // servicios Completados.
+      final misCalificaciones = await _misCalificaciones(usuario.id, {
+        for (final fila in solicitudes.values)
+          if (fila['trabajadora_id'] == usuario.id &&
+              fila['estado'] == EstadoSolicitud.completada.valorDb)
+            fila['id'] as String,
+      });
+
       // HU-15 c3 · De los servicios donde me eligieron sí puedo leer la
       // dirección exacta (RLS: trabajadora_id = yo).
       final direcciones = await _direcciones({
@@ -75,6 +84,7 @@ class SupabasePostulacionRepository implements PostulacionRepository {
                   direcciones[solicitud['id']]?['direccion'] as String?,
               puntoReferencia:
                   direcciones[solicitud['id']]?['punto_referencia'] as String?,
+              miCalificacion: misCalificaciones[solicitud['id']],
             ),
       ];
     } on Exception {
@@ -287,6 +297,29 @@ class SupabasePostulacionRepository implements PostulacionRepository {
       return {
         for (final fila in filas)
           fila['id'] as String: Map<String, dynamic>.from(fila),
+      };
+    } on Exception {
+      return const {};
+    }
+  }
+
+  /// HU-30 c3 · Estrellas que ya puse en esos servicios (RLS: cada quien lee
+  /// las calificaciones que escribió). Complementario: si falla, la tarjeta
+  /// ofrece calificar y la base rechaza una segunda calificación.
+  Future<Map<String, int>> _misCalificaciones(
+    String miId,
+    Set<String> solicitudes,
+  ) async {
+    if (solicitudes.isEmpty) return const {};
+    try {
+      final filas = await _client
+          .from('calificaciones')
+          .select('solicitud_id, estrellas')
+          .eq('autor_id', miId)
+          .inFilter('solicitud_id', solicitudes.toList());
+      return {
+        for (final fila in filas)
+          fila['solicitud_id'] as String: (fila['estrellas'] as num).toInt(),
       };
     } on Exception {
       return const {};

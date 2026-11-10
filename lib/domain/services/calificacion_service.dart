@@ -1,4 +1,7 @@
-/// Reglas de negocio de HU-29 · Calificar a la trabajadora.
+import '../entities/motivo_calificacion_baja.dart';
+
+/// Reglas de negocio de HU-29 · Calificar a la trabajadora y
+/// HU-30 · Calificar al cliente.
 ///
 /// Vive en el dominio y no conoce Supabase, igual que `ServicioService`.
 abstract final class CalificacionService {
@@ -19,10 +22,27 @@ abstract final class CalificacionService {
   /// Confirmación al enviar (c1).
   static const mensajeEnviada = '¡Gracias! Tu calificación quedó guardada.';
 
-  /// c4 · Mientras la otra parte no califique, la reseña no se muestra.
+  /// HU-29 c4 · Mientras la otra parte no califique, la reseña no se
+  /// muestra.
   static const mensajeOculta =
       'Tu reseña se publicará cuando la trabajadora también califique o '
       'pasen 7 días.';
+
+  /// Lo mismo, visto por la trabajadora (HU-30).
+  static const mensajeOcultaCliente =
+      'Tu reseña se publicará cuando el cliente también califique o pasen '
+      '7 días.';
+
+  /// HU-30 c2 · Puso 1 o 2 estrellas y no eligió el motivo.
+  static const mensajeEligeMotivo = 'Elige un motivo';
+
+  /// HU-30 c2 · Con 1 o 2 estrellas se pide el motivo.
+  static bool requiereMotivo(int? estrellas) =>
+      estrellas != null && estrellas <= 2;
+
+  /// HU-30 c2 · ¿Falta el motivo que se exige?
+  static bool faltaMotivo(int? estrellas, MotivoCalificacionBaja? motivo) =>
+      requiereMotivo(estrellas) && motivo == null;
 
   /// Largo máximo del comentario (lo valida también la base).
   static const maxComentario = 500;
