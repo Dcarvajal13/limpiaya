@@ -13,6 +13,7 @@ import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/postulacion.dart';
 import 'package:limpiaya/domain/entities/postulante.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
+import 'package:limpiaya/domain/entities/servicio_agendado.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/solicitud.dart';
 import 'package:limpiaya/domain/entities/solicitud_disponible.dart';
@@ -79,6 +80,12 @@ class _ServiciosFalsos implements ServicioRepository {
 
   @override
   Future<void> completar(String solicitudId) async {}
+
+  @override
+  Future<List<ServicioAgendado>> misServicios() async => const [];
+
+  @override
+  Future<ServicioAgendado?> servicioAgendado(String id) async => null;
 }
 
 class _SolicitudesFalsas implements SolicitudRepository {

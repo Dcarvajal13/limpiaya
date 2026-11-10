@@ -297,6 +297,11 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                 onVerPostulantes: () => context.go(
                                   Rutas.postulantes(solicitud.id),
                                 ),
+
+                                // HU-16 c2: detalle con dirección y datos.
+                                onVerServicio: () => context.push(
+                                  Rutas.servicioCliente(solicitud.id),
+                                ),
                               ),
                               const SizedBox(height: 12),
                             ],

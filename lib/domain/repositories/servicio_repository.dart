@@ -1,3 +1,5 @@
+import '../entities/servicio_agendado.dart';
+
 /// Contrato de servicios: lo que pasa con una solicitud desde que el cliente
 /// elige a una trabajadora. QUÉ se puede pedir, sin decir CÓMO.
 ///
@@ -19,4 +21,13 @@ abstract interface class ServicioRepository {
   ///
   /// Lanza `AppException` si todavía no ha empezado o ya no está Asignado.
   Future<void> completar(String solicitudId);
+
+  /// HU-16 c1 y c3 · Servicios de la trabajadora con sesión: asignados,
+  /// completados y cancelados, ordenados del más cercano al más lejano.
+  Future<List<ServicioAgendado>> misServicios();
+
+  /// HU-16 c2 · Un servicio concreto con todos sus datos, incluida la
+  /// dirección. Solo devuelve algo si quien mira es el cliente dueño o la
+  /// trabajadora asignada (RLS). Null si no existe o no puede verlo.
+  Future<ServicioAgendado?> servicioAgendado(String id);
 }

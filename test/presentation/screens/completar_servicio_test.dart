@@ -9,6 +9,7 @@ import 'package:limpiaya/domain/entities/estado_solicitud.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
+import 'package:limpiaya/domain/entities/servicio_agendado.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/solicitud.dart';
 import 'package:limpiaya/domain/entities/solicitud_disponible.dart';
@@ -79,6 +80,12 @@ class _ServiciosFalsos implements ServicioRepository {
             : s,
     ];
   }
+
+  @override
+  Future<List<ServicioAgendado>> misServicios() async => const [];
+
+  @override
+  Future<ServicioAgendado?> servicioAgendado(String id) async => null;
 }
 
 class _ReputacionFalsa implements ReputacionRepository {

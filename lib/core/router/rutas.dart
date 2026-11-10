@@ -66,11 +66,16 @@ abstract final class Rutas {
   /// trabajadora todavía no tiene la identidad aprobada.
   static const verificacionTrabajadora = '/trabajadora/verificacion';
 
-  /// Detalle de un servicio agendado. Lo construye HU-16; mientras tanto la
-  /// ruta existe para que HU-13 c3 pueda llevar hasta ahí.
+  /// HU-16 · Detalle de un servicio agendado, visto por la trabajadora.
+  /// Lo abre desde "Próximos", "Pasados" o una postulación aceptada.
   static const servicioAgendadoPatron = '/trabajadora/servicios/:id';
   static String servicioAgendado(String solicitudId) =>
       '$misServicios/$solicitudId';
+
+  /// HU-16 · Detalle del mismo servicio, visto por el cliente dueño.
+  static const servicioClientePatron = '/cliente/servicios/:id';
+  static String servicioCliente(String solicitudId) =>
+      '/cliente/servicios/$solicitudId';
 
   static const sistemaDiseno = '/diseno';
 
