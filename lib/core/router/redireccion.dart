@@ -14,8 +14,16 @@ String? redirigir({
   required RolUsuario? rol,
   bool perfilCompleto = true,
   bool recuperandoContrasena = false,
+  bool verificandoCorreo = false,
 }) {
   if (Rutas.libres.contains(ubicacion)) return null;
+
+  // HU-40: quien abre el enlace de confirmación ve primero si su correo
+  // quedó verificado (c1) o si el enlace ya se había usado (c3), tenga o no
+  // sesión.
+  if (verificandoCorreo) {
+    return ubicacion == Rutas.correoVerificado ? null : Rutas.correoVerificado;
+  }
 
   final esPublica = Rutas.publicas.contains(ubicacion);
 

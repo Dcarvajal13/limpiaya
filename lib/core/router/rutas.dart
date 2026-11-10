@@ -17,6 +17,14 @@ abstract final class Rutas {
 
   /// Reparte a cada quien a su inicio según su rol. Mientras se carga el
   /// rol, muestra una espera.
+  /// HU-40 · Después de registrarse: "Revisa tu correo".
+  static const revisaTuCorreo = '/revisa-tu-correo';
+  static String revisaTuCorreoDe(String email) =>
+      Uri(path: revisaTuCorreo, queryParameters: {'correo': email}).toString();
+
+  /// HU-40 · Al abrir el enlace de confirmación del correo.
+  static const correoVerificado = '/correo-verificado';
+
   static const inicio = '/inicio';
 
   /// Inicio de cada rol (HU-02A / HU-02B). Todo lo que empiece por estas
@@ -115,7 +123,13 @@ abstract final class Rutas {
   /// Pantallas que se pueden ver sin iniciar sesión.
   /// Si alguien con sesión entra a una de estas, se le manda a su inicio
   /// (HU-62, criterio 4).
-  static const publicas = {landing, login, registro, recuperarContrasena};
+  static const publicas = {
+    landing,
+    login,
+    registro,
+    recuperarContrasena,
+    revisaTuCorreo,
+  };
 
   /// Pantallas que se ven igual con o sin sesión (nunca redirigen).
   static const libres = {sistemaDiseno};

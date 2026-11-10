@@ -11,3 +11,12 @@ class AppException implements Exception {
   @override
   String toString() => mensaje;
 }
+
+/// HU-40 c2 · Quiso entrar sin haber confirmado su correo. Lleva el correo
+/// para poder reenviarle el enlace.
+class CorreoSinVerificarException extends AppException {
+  const CorreoSinVerificarException(this.email)
+      : super('Aún no verificas tu correo');
+
+  final String email;
+}

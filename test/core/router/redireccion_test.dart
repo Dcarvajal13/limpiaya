@@ -8,13 +8,15 @@ void main() {
           {bool haySesion = true,
           RolUsuario? rol,
           bool perfilCompleto = true,
-          bool recuperando = false}) =>
+          bool recuperando = false,
+          bool verificandoCorreo = false}) =>
       redirigir(
         ubicacion: ubicacion,
         haySesion: haySesion,
         rol: rol,
         perfilCompleto: perfilCompleto,
         recuperandoContrasena: recuperando,
+        verificandoCorreo: verificandoCorreo,
       );
 
   group('sin sesión', () {
@@ -185,6 +187,27 @@ void main() {
 
     test('después de guardarla ya no la obliga', () {
       expect(ir(Rutas.inicio, rol: RolUsuario.cliente), Rutas.inicioCliente);
+    });
+  });
+
+  group('HU-40 · verificar mi correo', () {
+    test('quien abre el enlace ve "Correo verificado", con o sin sesión', () {
+      expect(
+        ir(Rutas.landing, haySesion: false, verificandoCorreo: true),
+        Rutas.correoVerificado,
+      );
+      expect(
+        ir(Rutas.inicio, rol: RolUsuario.cliente, verificandoCorreo: true),
+        Rutas.correoVerificado,
+      );
+      expect(
+        ir(Rutas.correoVerificado, haySesion: false, verificandoCorreo: true),
+        isNull,
+      );
+    });
+
+    test('"Revisa tu correo" se ve sin sesión', () {
+      expect(ir(Rutas.revisaTuCorreo, haySesion: false), isNull);
     });
   });
 }

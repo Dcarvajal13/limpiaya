@@ -28,6 +28,8 @@ abstract final class Recuperacion {
   /// Si Supabase devolvió un error en el enlace (por ejemplo, porque ya se
   /// usó o venció), el mensaje para mostrar en el login. Si no, null.
   static String? errorDelEnlace(Uri direccion) {
+    // HU-40: el enlace de confirmación del correo tiene su propia pantalla.
+    if (direccion.queryParameters['verificado'] == '1') return null;
     final codigo = direccion.queryParameters['error_code'];
     if (codigo == null) return null;
     if (codigo == 'otp_expired') {

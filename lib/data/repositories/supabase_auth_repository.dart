@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors/app_exception.dart';
 import '../../core/router/recuperacion.dart';
+import '../../core/router/verificacion_correo.dart';
 import '../../domain/entities/rol_usuario.dart';
 import '../../domain/entities/sesion.dart';
 import '../../domain/entities/usuario.dart';
@@ -37,6 +38,10 @@ class SupabaseAuthRepository implements AuthRepository {
       final respuesta = await _client.auth.signUp(
         email: email,
         password: password,
+        // HU-40: el enlace de confirmación vuelve a la app con ?verificado=1.
+        // Esta dirección debe estar en Supabase → Authentication → URL
+        // Configuration → Redirect URLs.
+        emailRedirectTo: VerificacionCorreo.enlaceDeRegreso(),
         // El trigger de la base de datos lee estos datos y crea el perfil.
         data: {
           'nombre': nombre,
@@ -76,8 +81,10 @@ class SupabaseAuthRepository implements AuthRepository {
         // qué correos tienen cuenta.
         throw const AppException('Correo o contraseña incorrectos');
       }
-      if (e.code == 'email_not_confirmed') {
-        throw const AppException('Confirma tu correo antes de entrar');
+      // HU-40 c2: la contraseña está bien, pero falta confirmar el correo.
+      if (e.code == 'email_not_confirmed' ||
+          e.message.toLowerCase().contains('email not confirmed')) {
+        throw CorreoSinVerificarException(email);
       }
       throw const AppException('No pudimos iniciar sesión. Intenta de nuevo.');
     } on Exception {

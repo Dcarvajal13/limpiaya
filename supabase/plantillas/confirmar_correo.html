@@ -1,0 +1,21 @@
+<!--
+  HU-40 · Plantilla del correo "Confirm signup" en español.
+  Copiar en Supabase → Authentication → Emails → Confirm signup.
+  Asunto: Confirma tu correo en LimpiaYa
+-->
+<div style="font-family: Arial, Helvetica, sans-serif; max-width: 520px; margin: 0 auto; color: #1F1A17;">
+  <h2 style="color: #0F5E58; margin-bottom: 8px;">¡Te damos la bienvenida a LimpiaYa!</h2>
+  <p>Gracias por registrarte. Para activar tu cuenta, confirma que este correo es tuyo:</p>
+  <p style="margin: 28px 0;">
+    <a href="{{ .ConfirmationURL }}"
+       style="background: #0F5E58; color: #FFFFFF; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: bold;">
+      Confirmar mi correo
+    </a>
+  </p>
+  <p style="color: #6B625A; font-size: 14px;">
+    Confirmarlo protege tu cuenta y te permite recuperarla si olvidas tu contraseña.
+  </p>
+  <p style="color: #6B625A; font-size: 13px;">
+    Si no creaste una cuenta en LimpiaYa, puedes ignorar este correo.
+  </p>
+</div>
