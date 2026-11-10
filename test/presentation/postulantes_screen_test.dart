@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:limpiaya/core/di/providers.dart';
+import 'package:limpiaya/core/router/rutas.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/direccion_cliente.dart';
@@ -107,6 +109,34 @@ Widget _app(_PostulacionesFalsas repo) => ProviderScope(
       ),
     );
 
+Widget _appConRutas(_PostulacionesFalsas repo) {
+  final router = GoRouter(
+    initialLocation: Rutas.postulantes('s1'),
+    routes: [
+      GoRoute(
+        path: Rutas.postulantesPatron,
+        builder: (context, state) =>
+            PostulantesScreen(solicitudId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: Rutas.perfilPublicoTrabajadoraPatron,
+        builder: (context, state) => Scaffold(
+          body: Text('Perfil ${state.pathParameters['id']}'),
+        ),
+      ),
+    ],
+  );
+
+  return ProviderScope(
+    overrides: [
+      postulacionRepositoryProvider.overrideWithValue(repo),
+      solicitudRepositoryProvider.overrideWithValue(_SolicitudesFalsas()),
+      sesionProvider.overrideWith(_SesionFalsa.new),
+    ],
+    child: MaterialApp.router(theme: AppTheme.claro, routerConfig: router),
+  );
+}
+
 void _pantallaGrande(WidgetTester tester) {
   tester.view.physicalSize = const Size(1280, 1400);
   tester.view.devicePixelRatio = 1;
@@ -131,6 +161,30 @@ void main() {
 
     expect(find.text('TU SOLICITUD'), findsOneWidget);
     expect(find.textContaining('Petare'), findsOneWidget);
+  });
+
+  testWidgets('HU-14 c4: tocar una postulante abre su perfil público',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _appConRutas(
+        _PostulacionesFalsas([
+          Postulante(
+            postulacionId: 'p1',
+            trabajadoraId: 't1',
+            nombre: 'Carmen Pérez',
+            estado: EstadoPostulacion.pendiente,
+            fecha: DateTime(2026, 10, 25),
+          ),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Carmen Pérez'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Perfil t1'), findsOneWidget);
   });
 
   testWidgets('HU-14 c1: muestra nombre, reputación, insignia, experiencia y '

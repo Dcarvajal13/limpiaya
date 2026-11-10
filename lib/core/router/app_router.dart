@@ -15,6 +15,7 @@ import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
 import '../../presentation/screens/cliente/postulantes_screen.dart';
 import '../../presentation/screens/cliente/publicar_solicitud_screen.dart';
 import '../../presentation/screens/inicio/inicio_screen.dart';
+import '../../presentation/screens/perfil/perfil_publico_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
 import '../../presentation/screens/trabajadora/detalle_solicitud_screen.dart';
@@ -147,13 +148,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             PostulantesScreen(solicitudId: state.pathParameters['id']!),
       ),
-      // TODO(HU-06): reemplazar por la pantalla del perfil público.
+      // HU-06 · Perfil público de una trabajadora, sin teléfono ni correo.
       GoRoute(
         path: Rutas.perfilPublicoTrabajadoraPatron,
-        builder: (context, state) => PantallaEnConstruccion(
-          titulo: 'Perfil de la trabajadora',
-          historia: 'HU-06',
-          acciones: const [],
+        builder: (context, state) => PerfilPublicoScreen(
+          trabajadoraId: state.pathParameters['id']!,
         ),
       ),
     ],
