@@ -15,6 +15,7 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._responder_resena.sql` | HU-31: tabla `respuestas_resenas` (una por reseña), `responder_resena()` publica o edita la respuesta (hasta 300 caracteres) y `resenas_publicas` suma `respuesta` y `respuesta_en` |
 | `..._nivel_trabajadora.sql` | HU-61: vista interna `nivel_trabajadoras` (10 servicios, promedio ≥ 4,5 y sin cancelaciones tardías en 30 días), `mi_nivel` para la trabajadora y `trabajadoras_publicas` suma `destacada` |
 | `..._invitaciones.sql` | HU-25: tabla `invitaciones`, `invitar_trabajadora()`, `trabajadoras_publicas` suma `zona_ids` y `solicitudes_publicas` suma `me_invitaron` |
+| `..._chat_leidos.sql` | HU-38: columna `leido_en` en `mensajes`, índice de no leídos y política para marcar como leídos los mensajes de la otra parte |
 
 ## Diagrama entidad-relación
 

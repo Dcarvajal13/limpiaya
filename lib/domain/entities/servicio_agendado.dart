@@ -1,3 +1,4 @@
+import '../services/chat_service.dart';
 import 'estado_solicitud.dart';
 import 'metodo_pago.dart';
 import 'quien_pone_productos.dart';
@@ -87,6 +88,13 @@ class ServicioAgendado {
   /// HU-16 c4: un servicio completado sin mi calificación ofrece "Calificar".
   bool get puedeCalificar =>
       estado == EstadoSolicitud.completada && !yaCalifique;
+
+  /// HU-38 · Si la otra parte y yo todavía podemos escribirnos.
+  bool get chatAbierto => ChatService.chatAbierto(
+        estado,
+        completadaEn: completadaEn,
+        canceladaEn: canceladaEn,
+      );
 
   /// HU-17: el cliente puede marcarlo completado desde que empezó.
   bool get puedeCompletar =>

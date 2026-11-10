@@ -88,13 +88,6 @@ class ServicioAgendadoScreen extends ConsumerWidget {
       );
   }
 
-  /// HU-38 todavía no existe: se avisa sin dejar un botón muerto.
-  void _proximamente(BuildContext context, String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sesion = ref.watch(sesionProvider).value;
@@ -149,10 +142,12 @@ class ServicioAgendadoScreen extends ConsumerWidget {
                 servicio: servicio,
                 movil: movil,
                 onCompletar: () => _completar(context, ref, servicio),
-                onChat: () => _proximamente(
-                  context,
-                  'El chat con la otra parte llegará pronto (HU-38).',
-                ),
+                // HU-38: el chat solo existe cuando ya hay trabajadora
+                // asignada (mientras está Publicada no hay con quién hablar).
+                onChat: servicio.estado == EstadoSolicitud.publicada
+                    ? null
+                    : () =>
+                        context.push(Rutas.chatServicio(servicio.id)),
                 onCalificar: () => calificarContraparte(context, ref, servicio),
               );
             },
@@ -175,7 +170,9 @@ class _Contenido extends StatelessWidget {
   final ServicioAgendado servicio;
   final bool movil;
   final VoidCallback onCompletar;
-  final VoidCallback onChat;
+
+  /// HU-38 · Null cuando todavía no hay con quién chatear.
+  final VoidCallback? onChat;
   final VoidCallback onCalificar;
 
   TonoInsignia get _tono => switch (servicio.estado) {
@@ -409,13 +406,15 @@ class _Contenido extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              key: const Key('chat-servicio'),
-              onPressed: onChat,
-              icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: const Text('Escribir por el chat'),
-            ),
+            if (onChat != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                key: const Key('chat-servicio'),
+                onPressed: onChat,
+                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                label: const Text('Escribir por el chat'),
+              ),
+            ],
           ],
         ),
       ),

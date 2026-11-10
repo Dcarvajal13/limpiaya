@@ -14,6 +14,7 @@ import '../../../domain/services/calificacion_service.dart';
 import '../../../domain/services/postulacion_service.dart';
 import '../../../domain/services/servicio_service.dart';
 import '../../providers/calificar_provider.dart';
+import '../../providers/chat_provider.dart';
 import '../../providers/cancelar_servicio_provider.dart';
 import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/mis_servicios_provider.dart';
@@ -80,7 +81,11 @@ class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
       backgroundColor: AppColors.fondo,
       body: Column(
         children: [
-          BarraTrabajadora(nombre: nombre, fotoUrl: sesion?.fotoUrl),
+          BarraTrabajadora(
+            nombre: nombre,
+            fotoUrl: sesion?.fotoUrl,
+            noLeidos: ref.watch(noLeidosProvider),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: ContenidoCentrado(

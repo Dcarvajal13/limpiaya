@@ -22,12 +22,16 @@ class BarraTrabajadora extends StatelessWidget {
     super.key,
     required this.nombre,
     this.fotoUrl,
+    this.noLeidos = 0,
   });
 
   final String nombre;
 
   /// Foto de perfil (HU-04), o null para mostrar las iniciales.
   final String? fotoUrl;
+
+  /// HU-38 · Mensajes sin leer, para el aviso de la pestaña "Mensajes".
+  final int noLeidos;
 
   static const _altoPrincipal = 64.0;
   static const _altoPestanas = 48.0;
@@ -44,6 +48,8 @@ class BarraTrabajadora extends StatelessWidget {
       onTrabajos: () => context.go(Rutas.inicioTrabajadora),
       onMisServicios: () => context.go(Rutas.misServicios),
       onMiReputacion: () => context.go(Rutas.miReputacion),
+      onMensajes: () => context.go(Rutas.mensajesTrabajadora),
+      noLeidos: noLeidos,
     );
 
     // Corrección del review: "Mi perfil" y el nombre eran lo mismo. Ahora
@@ -116,6 +122,8 @@ class _Pestanas extends StatelessWidget {
     required this.onTrabajos,
     required this.onMisServicios,
     required this.onMiReputacion,
+    required this.onMensajes,
+    this.noLeidos = 0,
   });
 
   /// Dirección actual, para marcar la pestaña activa.
@@ -125,6 +133,10 @@ class _Pestanas extends StatelessWidget {
 
   /// HU-31 / HU-61 · Reseñas, respuestas y nivel.
   final VoidCallback onMiReputacion;
+
+  /// HU-38 · Lista de conversaciones.
+  final VoidCallback onMensajes;
+  final int noLeidos;
 
   @override
   Widget build(BuildContext context) {
@@ -147,17 +159,31 @@ class _Pestanas extends StatelessWidget {
           activa: ubicacion == Rutas.miReputacion,
           onTap: onMiReputacion,
         ),
+        _Pestana(
+          etiqueta: 'Mensajes',
+          activa: ubicacion == Rutas.mensajesTrabajadora,
+          onTap: onMensajes,
+          contador: noLeidos,
+        ),
       ],
     );
   }
 }
 
 class _Pestana extends StatelessWidget {
-  const _Pestana({required this.etiqueta, this.activa = false, this.onTap});
+  const _Pestana({
+    required this.etiqueta,
+    this.activa = false,
+    this.onTap,
+    this.contador = 0,
+  });
 
   final String etiqueta;
   final bool activa;
   final VoidCallback? onTap;
+
+  /// Mensajes sin leer que se muestran como aviso.
+  final int contador;
 
   @override
   Widget build(BuildContext context) {
@@ -171,12 +197,38 @@ class _Pestana extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              etiqueta,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontSize: 13,
-                color: activa ? AppColors.primarioOscuro : AppColors.texto,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  etiqueta,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontSize: 13,
+                    color: activa ? AppColors.primarioOscuro : AppColors.texto,
+                  ),
+                ),
+                if (contador > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    key: const Key('aviso-mensajes'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primario,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      '$contador',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

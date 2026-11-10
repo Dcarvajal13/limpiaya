@@ -94,6 +94,17 @@ abstract final class Rutas {
   static String servicioCliente(String solicitudId) =>
       '/cliente/servicios/$solicitudId';
 
+  /// HU-38 · Chat de un servicio. Es la misma pantalla para los dos roles:
+  /// la base decide quién puede leer y escribir.
+  static const chatServicioPatron = '/servicio/:id/chat';
+  static String chatServicio(String solicitudId) =>
+      '/servicio/$solicitudId/chat';
+
+  /// HU-38 · Lista de conversaciones, una por rol porque la barra superior
+  /// cambia.
+  static const mensajesCliente = '/cliente/mensajes';
+  static const mensajesTrabajadora = '/trabajadora/mensajes';
+
   static const sistemaDiseno = '/diseno';
 
   /// Registro con el rol ya sugerido, desde los botones de la landing.

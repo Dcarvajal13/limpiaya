@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_busqueda_trabajadoras_repository.dart';
 import '../../data/repositories/supabase_calificacion_repository.dart';
+import '../../data/repositories/supabase_chat_repository.dart';
 import '../../data/repositories/supabase_cliente_publico_repository.dart';
 import '../../data/repositories/supabase_cliente_repository.dart';
 import '../../data/repositories/supabase_trabajadora_publica_repository.dart';
@@ -17,6 +18,7 @@ import '../../data/repositories/supabase_verificacion_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/busqueda_trabajadoras_repository.dart';
 import '../../domain/repositories/calificacion_repository.dart';
+import '../../domain/repositories/chat_repository.dart';
 import '../../domain/repositories/cliente_publico_repository.dart';
 import '../../domain/repositories/cliente_repository.dart';
 import '../../domain/repositories/mi_reputacion_repository.dart';
@@ -88,6 +90,11 @@ final perfilRepositoryProvider = Provider<PerfilRepository>(
 
 final reputacionRepositoryProvider = Provider<ReputacionRepository>(
   (ref) => SupabaseReputacionRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// HU-38 · Chat de un servicio entre el cliente y la trabajadora.
+final chatRepositoryProvider = Provider<ChatRepository>(
+  (ref) => SupabaseChatRepository(ref.watch(supabaseClientProvider)),
 );
 
 /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.

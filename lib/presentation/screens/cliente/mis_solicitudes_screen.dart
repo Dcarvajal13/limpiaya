@@ -15,6 +15,7 @@ import '../../../domain/services/servicio_service.dart';
 import '../../../domain/services/solicitud_service.dart';
 import '../../providers/calificar_provider.dart';
 import '../../providers/cancelar_servicio_provider.dart';
+import '../../providers/chat_provider.dart';
 import '../../providers/completar_servicio_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
@@ -234,7 +235,11 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
       backgroundColor: AppColors.fondo,
       body: Column(
         children: [
-          BarraCliente(nombre: nombre, fotoUrl: fotoUrl),
+          BarraCliente(
+            nombre: nombre,
+            fotoUrl: fotoUrl,
+            noLeidos: ref.watch(noLeidosProvider),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: ContenidoCentrado(
