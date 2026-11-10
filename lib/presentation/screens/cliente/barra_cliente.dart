@@ -14,10 +14,14 @@ class BarraCliente extends StatelessWidget {
     super.key,
     required this.nombre,
     this.fotoUrl,
+    this.noLeidos = 0,
   });
 
   final String nombre;
   final String? fotoUrl;
+
+  /// HU-38 · Mensajes sin leer, para el aviso de la pestaña "Mensajes".
+  final int noLeidos;
 
   static const _altoPrincipal = 64.0;
   static const _altoPestanas = 48.0;
@@ -32,11 +36,8 @@ class BarraCliente extends StatelessWidget {
       onMisSolicitudes: () => context.go(Rutas.inicioCliente),
       onPublicar: () => context.go(Rutas.publicarSolicitud),
       onBuscar: () => context.go(Rutas.buscarTrabajadoras),
-      onProximamente: (nombre) => ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text('$nombre estará disponible pronto')),
-        ),
+      onMensajes: () => context.go(Rutas.mensajesCliente),
+      noLeidos: noLeidos,
     );
 
     // Corrección del review: el avatar con el nombre abre el perfil, y
@@ -97,7 +98,8 @@ class _Pestanas extends StatelessWidget {
     required this.onMisSolicitudes,
     required this.onPublicar,
     required this.onBuscar,
-    required this.onProximamente,
+    required this.onMensajes,
+    this.noLeidos = 0,
   });
 
   final String ubicacion;
@@ -106,7 +108,10 @@ class _Pestanas extends StatelessWidget {
 
   /// HU-25 · Buscar trabajadoras.
   final VoidCallback onBuscar;
-  final void Function(String) onProximamente;
+
+  /// HU-38 · Lista de conversaciones.
+  final VoidCallback onMensajes;
+  final int noLeidos;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +137,9 @@ class _Pestanas extends StatelessWidget {
           ),
           _Pestana(
             etiqueta: 'Mensajes',
-            onTap: () => onProximamente('Mensajes'),
+            activa: ubicacion == Rutas.mensajesCliente,
+            onTap: onMensajes,
+            contador: noLeidos,
           ),
         ],
       ),
@@ -141,11 +148,19 @@ class _Pestanas extends StatelessWidget {
 }
 
 class _Pestana extends StatelessWidget {
-  const _Pestana({required this.etiqueta, this.activa = false, this.onTap});
+  const _Pestana({
+    required this.etiqueta,
+    this.activa = false,
+    this.onTap,
+    this.contador = 0,
+  });
 
   final String etiqueta;
   final bool activa;
   final VoidCallback? onTap;
+
+  /// Mensajes sin leer que se muestran como aviso.
+  final int contador;
 
   @override
   Widget build(BuildContext context) {
@@ -159,12 +174,39 @@ class _Pestana extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Text(
-              etiqueta,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontSize: 13,
-                    color: activa ? AppColors.primarioOscuro : AppColors.texto,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  etiqueta,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontSize: 13,
+                        color:
+                            activa ? AppColors.primarioOscuro : AppColors.texto,
+                      ),
+                ),
+                if (contador > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    key: const Key('aviso-mensajes'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primario,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      '$contador',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
                   ),
+                ],
+              ],
             ),
           ),
         ),

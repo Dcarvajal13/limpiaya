@@ -9,6 +9,8 @@ import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/nueva_contrasena_screen.dart';
 import '../../presentation/screens/auth/recuperar_contrasena_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
+import '../../presentation/screens/chat/chat_screen.dart';
+import '../../presentation/screens/chat/mensajes_screen.dart';
 import '../../presentation/screens/cliente/buscar_trabajadoras_screen.dart';
 import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
@@ -133,6 +135,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ServicioAgendadoScreen(
           solicitudId: state.pathParameters['id']!,
         ),
+      ),
+      // HU-38 · Chat del servicio y lista de conversaciones.
+      GoRoute(
+        path: Rutas.chatServicioPatron,
+        builder: (context, state) => ChatScreen(
+          solicitudId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: Rutas.mensajesCliente,
+        builder: (context, state) => const MensajesScreen(),
+      ),
+      GoRoute(
+        path: Rutas.mensajesTrabajadora,
+        builder: (context, state) => const MensajesScreen(),
       ),
       GoRoute(
         path: Rutas.verificacionTrabajadora,

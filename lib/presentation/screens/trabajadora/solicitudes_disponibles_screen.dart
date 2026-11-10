@@ -7,6 +7,7 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
+import '../../providers/chat_provider.dart';
 import '../../../domain/entities/postulacion.dart';
 import '../../../domain/entities/solicitud_disponible.dart';
 import '../../../domain/entities/zona.dart';
@@ -52,7 +53,11 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          BarraTrabajadora(nombre: nombre, fotoUrl: fotoUrl),
+          BarraTrabajadora(
+            nombre: nombre,
+            fotoUrl: fotoUrl,
+            noLeidos: ref.watch(noLeidosProvider),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: ContenidoCentrado(
