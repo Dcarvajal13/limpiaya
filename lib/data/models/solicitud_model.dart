@@ -35,6 +35,9 @@ abstract final class SolicitudModel {
         json['productos_por'] as String? ??
             QuienPoneProductos.cliente.valorDb,
       ),
+      clienteId: json['cliente_id'] as String?,
+      // HU-25 c3 · "Te invitaron".
+      meInvitaron: json['me_invitaron'] as bool? ?? false,
     );
   }
 

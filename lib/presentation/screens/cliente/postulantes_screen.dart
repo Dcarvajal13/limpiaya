@@ -19,6 +19,7 @@ import '../../providers/sesion_provider.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/desglose_costo.dart';
 import '../../widgets/estado_vacio.dart';
+import '../../widgets/insignia_destacada.dart';
 import '../../widgets/insignia_estado.dart';
 import 'barra_cliente.dart';
 
@@ -541,7 +542,16 @@ class _TarjetaPostulante extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (p.verificada) const _InsigniaVerificada(),
+                    // HU-61 · "Destacada" junto a la verificación.
+                    if (p.verificada || p.destacada)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          if (p.destacada) const InsigniaDestacada(),
+                          if (p.verificada) const _InsigniaVerificada(),
+                        ],
+                      ),
                     if (datos != null) ...[
                       const SizedBox(height: 8),
                       Text(

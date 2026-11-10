@@ -270,7 +270,7 @@ class SupabasePostulacionRepository implements PostulacionRepository {
           .from('trabajadoras_publicas')
           .select(
             'id, nombre, foto_path, verificada, promedio, total_resenas, '
-            'servicios_completados, experiencia_anios',
+            'servicios_completados, experiencia_anios, destacada',
           )
           .inFilter('id', ids.toList());
       return {

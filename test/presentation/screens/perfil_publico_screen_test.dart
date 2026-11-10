@@ -146,4 +146,49 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('HU-31 c1: la respuesta de la trabajadora sale debajo de la '
+      'reseña', (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(_PerfilFalso(_perfil(resenas: const [
+        ResenaPublica(
+          id: 'r1',
+          estrellas: 4,
+          autorNombre: 'Luis Rangel',
+          comentario: 'Muy bien, aunque llegó un poco tarde.',
+          respuesta: 'Gracias, Luis. Hubo tráfico; la próxima salgo antes.',
+        ),
+      ]))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Respuesta de Carmen'), findsOneWidget);
+    expect(
+      find.text('Gracias, Luis. Hubo tráfico; la próxima salgo antes.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('HU-61: muestra la insignia "Destacada"', (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(
+        _PerfilFalso(
+          const PerfilPublico(
+            id: 't-1',
+            nombre: 'Carmen Pérez',
+            verificada: true,
+            promedio: 4.9,
+            totalResenas: 12,
+            serviciosCompletados: 12,
+            destacada: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Destacada'), findsOneWidget);
+  });
 }

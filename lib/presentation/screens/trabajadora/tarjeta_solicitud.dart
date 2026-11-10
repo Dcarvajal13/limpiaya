@@ -125,6 +125,19 @@ class TarjetaSolicitud extends StatelessWidget {
                 ),
               ],
             ),
+            // HU-25 c3 · El cliente la invitó a esta solicitud. Va en su
+            // propia línea para que quepa en el teléfono.
+            if (solicitud.meInvitaron) ...[
+              const SizedBox(height: 8),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: InsigniaEstado(
+                  'Te invitaron',
+                  key: Key('te-invitaron'),
+                  tono: TonoInsignia.ambar,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               'Recibes ${Formato.dinero(solicitud.pagoOfrecido)}',

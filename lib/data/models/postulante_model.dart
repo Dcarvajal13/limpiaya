@@ -30,6 +30,8 @@ abstract final class PostulanteModel {
       serviciosCompletados:
           (trabajadora?['servicios_completados'] as num?)?.toInt() ?? 0,
       totalResenas: (trabajadora?['total_resenas'] as num?)?.toInt() ?? 0,
+      // HU-61 · Insignia "Destacada" (vista trabajadoras_publicas).
+      destacada: (trabajadora?['destacada'] as bool?) ?? false,
     );
   }
 }
