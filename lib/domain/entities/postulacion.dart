@@ -18,6 +18,8 @@ class Postulacion {
     this.clienteNombre,
     this.clienteFotoUrl,
     this.creadaEn,
+    this.direccion,
+    this.puntoReferencia,
   });
 
   final String id;
@@ -41,4 +43,9 @@ class Postulacion {
   final String? clienteFotoUrl;
 
   final DateTime? creadaEn;
+
+  /// HU-15 c3 · Dirección exacta y punto de referencia. Solo vienen cuando el
+  /// cliente la eligió (Aceptada): antes, la base no deja leerlos.
+  final String? direccion;
+  final String? puntoReferencia;
 }

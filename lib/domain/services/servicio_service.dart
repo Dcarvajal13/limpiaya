@@ -1,0 +1,63 @@
+import '../entities/estado_postulacion.dart';
+import '../entities/estado_solicitud.dart';
+import '../entities/postulante.dart';
+
+/// Reglas de negocio de los servicios agendados:
+/// HU-15 · Elegir a una trabajadora.
+///
+/// Vive en el dominio y no conoce Supabase, igual que `PostulacionService`:
+/// así las reglas se prueban solas, sin red ni base de datos.
+abstract final class ServicioService {
+  // --- HU-15 · Elegir a una trabajadora -------------------------------------
+
+  /// Mensajes que devuelve la función `elegir_trabajadora` de la base. Se
+  /// muestran tal cual porque ya están escritos para el cliente.
+  static const mensajesElegir = [
+    'Esta postulación ya no está disponible',
+    'Esta solicitud ya tiene una trabajadora asignada',
+    'Esta solicitud fue cancelada',
+    'La fecha de esta solicitud ya pasó',
+    'Esta trabajadora ya tiene un servicio en ese horario',
+  ];
+
+  /// Cualquier otro fallo al elegir (sin red, base de datos).
+  static const mensajeErrorElegir =
+      'No pudimos elegir a la trabajadora. Intenta de nuevo.';
+
+  /// Confirmación al elegir (c1).
+  static String mensajeElegida(String nombre) =>
+      'Elegiste a $nombre. El servicio quedó agendado.';
+
+  /// c1 y c4 · ¿Se ofrece el botón "Elegir" para esta postulante?
+  ///
+  /// Solo mientras la solicitud sigue Publicada, la postulante está Pendiente
+  /// y todavía no se eligió a nadie. [estadoSolicitud] puede ser null si el
+  /// resumen de la solicitud aún no cargó: en ese caso decide la lista de
+  /// postulantes, y la base vuelve a revisarlo al confirmar.
+  static bool puedeElegir({
+    required Postulante postulante,
+    required Iterable<Postulante> postulantes,
+    EstadoSolicitud? estadoSolicitud,
+  }) {
+    if (estadoSolicitud != null && estadoSolicitud != EstadoSolicitud.publicada) {
+      return false;
+    }
+    if (postulantes.any((p) => p.estado == EstadoPostulacion.aceptada)) {
+      return false;
+    }
+    return postulante.estado == EstadoPostulacion.pendiente;
+  }
+
+  /// Convierte el error de la base en un mensaje para el usuario: si es uno
+  /// de [conocidos] lo devuelve tal cual; si no, [porDefecto].
+  static String traducir(
+    String mensajeDb,
+    List<String> conocidos,
+    String porDefecto,
+  ) {
+    for (final mensaje in conocidos) {
+      if (mensajeDb.contains(mensaje)) return mensaje;
+    }
+    return porDefecto;
+  }
+}
