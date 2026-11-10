@@ -18,6 +18,7 @@ abstract final class PostulacionModel {
     String? clienteFotoUrl,
     String? direccion,
     String? puntoReferencia,
+    int? miCalificacion,
   }) {
     final estadoSolicitud =
         EstadoSolicitud.desdeDb(solicitud['estado'] as String);
@@ -43,6 +44,8 @@ abstract final class PostulacionModel {
       estadoSolicitud: estadoSolicitud,
       motivoCancelacion: solicitud['motivo_cancelacion'] as String?,
       canceladaPorMi: solicitud['cancelada_por'] == miId,
+      clienteId: solicitud['cliente_id'] as String?,
+      miCalificacion: miCalificacion,
       creadaEn: postulacion['created_at'] != null
           ? DateTime.parse(postulacion['created_at'] as String).toLocal()
           : null,

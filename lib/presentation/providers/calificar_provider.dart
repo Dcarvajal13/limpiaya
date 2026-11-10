@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/di/providers.dart';
 import '../../core/errors/app_exception.dart';
+import '../../domain/entities/motivo_calificacion_baja.dart';
 import '../../domain/services/calificacion_service.dart';
 
 /// HU-29 · Enviar una calificación.
@@ -23,6 +24,7 @@ class CalificarNotifier extends Notifier<AsyncValue<void>> {
     required String destinatarioId,
     required int estrellas,
     String? comentario,
+    MotivoCalificacionBaja? motivo,
   }) async {
     state = const AsyncLoading();
 
@@ -32,6 +34,7 @@ class CalificarNotifier extends Notifier<AsyncValue<void>> {
             destinatarioId: destinatarioId,
             estrellas: estrellas,
             comentario: comentario,
+            motivo: motivo,
           ),
     );
     state = resultado;

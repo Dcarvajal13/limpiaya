@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formato.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/estado_postulacion.dart';
+import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/postulacion.dart';
 import '../../widgets/insignia_estado.dart';
 
@@ -27,6 +28,7 @@ class TarjetaPostulacion extends StatelessWidget {
     this.onRetirar,
     this.onVerSolicitud,
     this.onCancelarServicio,
+    this.onCalificar,
   });
 
   final Postulacion postulacion;
@@ -37,6 +39,14 @@ class TarjetaPostulacion extends StatelessWidget {
   /// HU-28 · Cancelar el servicio asignado. Null si no se puede (por
   /// ejemplo, ya Completado: c3).
   final VoidCallback? onCancelarServicio;
+
+  /// HU-30 · Calificar al cliente, o ver la calificación que ya le puse
+  /// (c3). Solo cuando el servicio está Completado.
+  final VoidCallback? onCalificar;
+
+  bool get _completado =>
+      postulacion.estado == EstadoPostulacion.aceptada &&
+      postulacion.estadoSolicitud == EstadoSolicitud.completada;
 
   TonoInsignia get _tono => switch (postulacion.estado) {
         EstadoPostulacion.pendiente => TonoInsignia.ambar,
@@ -49,8 +59,12 @@ class TarjetaPostulacion extends StatelessWidget {
   /// Qué significa el estado, en palabras de la trabajadora.
   String get _mensajeEstado => switch (postulacion.estado) {
         EstadoPostulacion.pendiente => 'Esperando que el cliente elija.',
-        EstadoPostulacion.aceptada =>
-          'El cliente te eligió. Revisa los detalles del servicio.',
+        EstadoPostulacion.aceptada => !_completado
+            ? 'El cliente te eligió. Revisa los detalles del servicio.'
+            : postulacion.miCalificacion == null
+                ? 'Servicio completado. Califica al cliente.'
+                : 'Servicio completado. Calificaste al cliente con '
+                    '★ ${postulacion.miCalificacion}.',
         EstadoPostulacion.noSeleccionada =>
           'El cliente eligió a otra trabajadora.',
         EstadoPostulacion.retirada => 'Retiraste esta postulación.',
@@ -107,6 +121,17 @@ class TarjetaPostulacion extends StatelessWidget {
                 textStyle: const TextStyle(fontWeight: FontWeight.w700),
               ),
               child: const Text('Cancelar servicio'),
+            ),
+          if (_completado && onCalificar != null)
+            // HU-30 c1 y c3
+            OutlinedButton(
+              key: Key('calificar-cliente-${postulacion.id}'),
+              onPressed: onCalificar,
+              child: Text(
+                postulacion.miCalificacion == null
+                    ? 'Calificar al cliente'
+                    : 'Ver mi calificación',
+              ),
             ),
           FilledButton(
             onPressed: onTap,

@@ -8,6 +8,7 @@ import 'package:limpiaya/domain/entities/calificacion.dart';
 import 'package:limpiaya/domain/entities/direccion_cliente.dart';
 import 'package:limpiaya/domain/entities/estado_solicitud.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
+import 'package:limpiaya/domain/entities/motivo_calificacion_baja.dart';
 import 'package:limpiaya/domain/entities/nueva_solicitud.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
@@ -103,6 +104,7 @@ class _CalificacionesFalsas implements CalificacionRepository {
     required String destinatarioId,
     required int estrellas,
     String? comentario,
+    MotivoCalificacionBaja? motivo,
   }) async {
     datos.enviadas.add(
       (destinatario: destinatarioId, estrellas: estrellas, comentario: comentario),

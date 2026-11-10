@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors/app_exception.dart';
 import '../../domain/entities/calificacion.dart';
+import '../../domain/entities/motivo_calificacion_baja.dart';
 import '../../domain/repositories/calificacion_repository.dart';
 import '../../domain/services/calificacion_service.dart';
 
@@ -48,6 +49,7 @@ class SupabaseCalificacionRepository implements CalificacionRepository {
     required String destinatarioId,
     required int estrellas,
     String? comentario,
+    MotivoCalificacionBaja? motivo,
   }) async {
     final usuario = _client.auth.currentUser;
     if (usuario == null) {
@@ -63,6 +65,7 @@ class SupabaseCalificacionRepository implements CalificacionRepository {
         'destinatario_id': destinatarioId,
         'estrellas': estrellas,
         'comentario': CalificacionService.limpiarComentario(comentario),
+        'motivo': motivo?.valorDb,
       });
     } on PostgrestException catch (e) {
       // 23505: ya existe una calificación mía para ese servicio (c3).

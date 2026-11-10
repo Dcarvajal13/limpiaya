@@ -24,6 +24,8 @@ class Postulacion {
     this.estadoSolicitud,
     this.motivoCancelacion,
     this.canceladaPorMi = false,
+    this.clienteId,
+    this.miCalificacion,
   });
 
   final String id;
@@ -62,4 +64,11 @@ class Postulacion {
 
   /// HU-28 · La canceló ella misma (y no el cliente).
   final bool canceladaPorMi;
+
+  /// HU-30 · El cliente dueño de la solicitud (a quien se califica).
+  final String? clienteId;
+
+  /// HU-30 c3 · Estrellas que ya le puse al cliente, o null si todavía no
+  /// lo califiqué.
+  final int? miCalificacion;
 }
