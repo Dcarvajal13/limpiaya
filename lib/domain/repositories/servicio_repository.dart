@@ -19,4 +19,12 @@ abstract interface class ServicioRepository {
   ///
   /// Lanza `AppException` si todavía no ha empezado o ya no está Asignado.
   Future<void> completar(String solicitudId);
+
+  /// HU-28 · El cliente o la trabajadora asignada cancelan un servicio
+  /// Asignado con un motivo. La otra parte lo ve como Cancelado, con el
+  /// motivo y quién lo canceló.
+  ///
+  /// Lanza `AppException` si falta el motivo o el servicio ya no está
+  /// Asignado (por ejemplo, si ya se completó).
+  Future<void> cancelar(String solicitudId, {required String motivo});
 }

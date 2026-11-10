@@ -141,6 +141,49 @@ void main() {
     });
   });
 
+  group('HU-28 · cancelar un servicio asignado', () {
+    test('c1: solo se cancela un servicio Asignado', () {
+      expect(ServicioService.puedeCancelar(EstadoSolicitud.asignada), isTrue);
+    });
+
+    test('c3: uno Completado ya no; tampoco Publicada ni Cancelada', () {
+      for (final estado in [
+        EstadoSolicitud.completada,
+        EstadoSolicitud.publicada,
+        EstadoSolicitud.cancelada,
+      ]) {
+        expect(
+          ServicioService.puedeCancelar(estado),
+          isFalse,
+          reason: estado.etiqueta,
+        );
+      }
+    });
+
+    test('cancelación tardía: menos de 24 horas antes', () {
+      final ahora = DateTime(2026, 11, 10, 9);
+      expect(
+        ServicioService.esCancelacionTardia(DateTime(2026, 11, 11, 8), ahora),
+        isTrue,
+      );
+      expect(
+        ServicioService.esCancelacionTardia(DateTime(2026, 11, 11, 10), ahora),
+        isFalse,
+      );
+    });
+
+    test('c2: "Elige un motivo" de la base se muestra tal cual', () {
+      expect(
+        ServicioService.traducir(
+          'Elige un motivo',
+          ServicioService.mensajesCancelar,
+          ServicioService.mensajeErrorCancelar,
+        ),
+        ServicioService.mensajeEligeMotivo,
+      );
+    });
+  });
+
   group('traducir errores de la base', () {
     test('un mensaje conocido se muestra tal cual', () {
       expect(

@@ -38,6 +38,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onCancelar,
     this.onVerPostulantes,
     this.onCompletar,
+    this.onCancelarServicio,
   });
 
   
@@ -55,6 +56,10 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   /// HU-17 · Marcar como completado. La pantalla lo pasa solo si el servicio
   /// está Asignado y ya empezó (c2); si es null, el botón no aparece.
   final VoidCallback? onCompletar;
+
+  /// HU-28 · Cancelar el servicio asignado indicando el motivo. Null si no
+  /// se puede (por ejemplo, ya Completado: c3).
+  final VoidCallback? onCancelarServicio;
 
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
@@ -288,11 +293,24 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
       case EstadoSolicitud.cancelada:
         final motivo = solicitud.motivoCancelacion;
+        // HU-28 c1: si la canceló la trabajadora, el cliente lo sabe.
+        final laCanceloLaTrabajadora = solicitud.canceladaPor != null &&
+            solicitud.canceladaPor == solicitud.trabajadoraId;
+        final quien = laCanceloLaTrabajadora
+            ? 'Cancelado por ${solicitud.trabajadoraNombre ?? 'la trabajadora'}'
+            : null;
         if (motivo == null || motivo.trim().isEmpty) {
-          return const SizedBox.shrink();
+          if (quien == null) return const SizedBox.shrink();
+          return Text(
+            quien,
+            style: textos.bodySmall?.copyWith(
+              fontSize: 12,
+              color: AppColors.textoSecundario,
+            ),
+          );
         }
         return Text(
-          'Motivo: $motivo',
+          quien == null ? 'Motivo: $motivo' : '$quien · Motivo: $motivo',
           style: textos.bodySmall?.copyWith(
             fontSize: 12,
             color: AppColors.textoSecundario,
@@ -378,25 +396,43 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           ),
           child: const Text('Ver servicio'),
         );
-        if (onCompletar == null) return verServicio;
-        // Los dos botones con el mismo ancho: en el teléfono ocupan toda la
+        if (onCompletar == null && onCancelarServicio == null) {
+          return verServicio;
+        }
+        // Los botones con el mismo ancho: en el teléfono ocupan toda la
         // fila y en pantallas grandes toman el ancho del más largo.
         final botones = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             verServicio,
-            const SizedBox(height: 8),
-            // HU-17 c1
-            OutlinedButton(
-              key: Key('completar-${solicitud.id}'),
-              onPressed: onCompletar,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(150, 44),
-                side: const BorderSide(color: AppColors.primario, width: 1.5),
+            if (onCompletar != null) ...[
+              const SizedBox(height: 8),
+              // HU-17 c1
+              OutlinedButton(
+                key: Key('completar-${solicitud.id}'),
+                onPressed: onCompletar,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(150, 44),
+                  side:
+                      const BorderSide(color: AppColors.primario, width: 1.5),
+                ),
+                child: const Text('Marcar como completado'),
               ),
-              child: const Text('Marcar como completado'),
-            ),
+            ],
+            if (onCancelarServicio != null) ...[
+              const SizedBox(height: 4),
+              // HU-28 c1
+              TextButton(
+                key: Key('cancelar-servicio-${solicitud.id}'),
+                onPressed: onCancelarServicio,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  foregroundColor: AppColors.error,
+                ),
+                child: const Text('Cancelar servicio'),
+              ),
+            ],
           ],
         );
         return movil ? botones : IntrinsicWidth(child: botones);

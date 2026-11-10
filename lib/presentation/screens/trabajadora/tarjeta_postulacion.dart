@@ -26,12 +26,17 @@ class TarjetaPostulacion extends StatelessWidget {
     this.onTap,
     this.onRetirar,
     this.onVerSolicitud,
+    this.onCancelarServicio,
   });
 
   final Postulacion postulacion;
   final VoidCallback? onTap;
   final VoidCallback? onRetirar;
   final VoidCallback? onVerSolicitud;
+
+  /// HU-28 · Cancelar el servicio asignado. Null si no se puede (por
+  /// ejemplo, ya Completado: c3).
+  final VoidCallback? onCancelarServicio;
 
   TonoInsignia get _tono => switch (postulacion.estado) {
         EstadoPostulacion.pendiente => TonoInsignia.ambar,
@@ -49,8 +54,9 @@ class TarjetaPostulacion extends StatelessWidget {
         EstadoPostulacion.noSeleccionada =>
           'El cliente eligió a otra trabajadora.',
         EstadoPostulacion.retirada => 'Retiraste esta postulación.',
-        EstadoPostulacion.solicitudCancelada =>
-          'El cliente canceló esta solicitud.',
+        EstadoPostulacion.solicitudCancelada => postulacion.canceladaPorMi
+            ? 'Cancelaste este servicio.'
+            : 'El cliente canceló esta solicitud.',
       };
 
   IconData get _iconoEstado => switch (postulacion.estado) {
@@ -91,6 +97,17 @@ class TarjetaPostulacion extends StatelessWidget {
         ];
       case EstadoPostulacion.aceptada:
         return [
+          if (onCancelarServicio != null)
+            // HU-28 c1
+            TextButton(
+              key: Key('cancelar-servicio-${postulacion.id}'),
+              onPressed: onCancelarServicio,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.error,
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              child: const Text('Cancelar servicio'),
+            ),
           FilledButton(
             onPressed: onTap,
             child: const Text('Ver servicio'),
@@ -141,6 +158,13 @@ class TarjetaPostulacion extends StatelessWidget {
           _Linea(
             icono: Icons.person_outline,
             texto: 'Cliente: ${p.clienteNombre}',
+          ),
+        // HU-28 c1: el motivo de la cancelación.
+        if (p.estado == EstadoPostulacion.solicitudCancelada &&
+            (p.motivoCancelacion?.trim().isNotEmpty ?? false))
+          _Linea(
+            icono: Icons.cancel_outlined,
+            texto: 'Motivo: ${p.motivoCancelacion!.trim()}',
           ),
         // HU-15 c3: al ser elegida ya ve la dirección exacta.
         if (p.estado == EstadoPostulacion.aceptada && p.direccion != null)

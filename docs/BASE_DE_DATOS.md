@@ -11,6 +11,7 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._zonas_parroquias.sql` | Agrega la parroquia a cada zona, para elegir Municipio → Parroquia → Urbanización |
 | `..._elegir_trabajadora.sql` | HU-15: `elegir_trabajadora()` asigna la solicitud a una postulante, la acepta y marca a las demás como No seleccionada |
 | `..._completar_servicio.sql` | HU-17: `completar_servicio()` pasa a Completado un servicio Asignado que ya empezó (solo el cliente) |
+| `..._cancelar_servicio.sql` | HU-28: `cancelar_servicio()` cancela un servicio Asignado con motivo (cliente o trabajadora) y la vista `solicitudes_publicas` suma `cancelada_por` |
 
 ## Diagrama entidad-relación
 

@@ -6,6 +6,7 @@ import '../entities/solicitud.dart';
 /// Reglas de negocio de los servicios agendados:
 /// HU-15 · Elegir a una trabajadora.
 /// HU-17 · Marcar un servicio como completado.
+/// HU-28 · Cancelar un servicio asignado.
 ///
 /// Vive en el dominio y no conoce Supabase, igual que `PostulacionService`:
 /// así las reglas se prueban solas, sin red ni base de datos.
@@ -71,6 +72,52 @@ abstract final class ServicioService {
   static bool puedeCompletar(Solicitud solicitud, DateTime ahora) =>
       solicitud.estado == EstadoSolicitud.asignada &&
       !solicitud.inicio.isAfter(ahora);
+
+  // --- HU-28 · Cancelar un servicio asignado --------------------------------
+
+  /// Motivos que se ofrecen al cliente.
+  static const motivosCancelarCliente = [
+    'Cambio de planes',
+    'Ya no necesito el servicio',
+    'Tuve un imprevisto',
+    'Otro',
+  ];
+
+  /// Motivos que se ofrecen a la trabajadora.
+  static const motivosCancelarTrabajadora = [
+    'Tengo un imprevisto',
+    'Problema de salud',
+    'No puedo llegar a la dirección',
+    'Otro',
+  ];
+
+  /// c2 · Intentó cancelar sin elegir un motivo.
+  static const mensajeEligeMotivo = 'Elige un motivo';
+
+  /// Mensajes que devuelve la función `cancelar_servicio` de la base.
+  static const mensajesCancelar = [
+    mensajeEligeMotivo,
+    'No encontramos ese servicio',
+    'Un servicio completado ya no se puede cancelar',
+    'Solo puedes cancelar un servicio asignado',
+  ];
+
+  /// Cualquier otro fallo al cancelar (sin red, base de datos).
+  static const mensajeErrorCancelar =
+      'No pudimos cancelar el servicio. Intenta de nuevo.';
+
+  /// Confirmación al cancelar (c1).
+  static const mensajeServicioCancelado =
+      'Servicio cancelado. Le avisamos a la otra parte con tu motivo.';
+
+  /// c1 y c3 · Solo se cancela un servicio Asignado: uno Completado ya no.
+  static bool puedeCancelar(EstadoSolicitud estado) =>
+      estado == EstadoSolicitud.asignada;
+
+  /// Si faltan menos de 24 horas, la base la marca como cancelación tardía.
+  /// La app lo avisa antes de confirmar.
+  static bool esCancelacionTardia(DateTime inicio, DateTime ahora) =>
+      inicio.difference(ahora) < const Duration(hours: 24);
 
   /// Convierte el error de la base en un mensaje para el usuario: si es uno
   /// de [conocidos] lo devuelve tal cual; si no, [porDefecto].
