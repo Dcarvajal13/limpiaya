@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,6 +36,9 @@ import 'dialogo_invitar.dart';
 /// 4. Sin resultados: "No hay trabajadoras con esos filtros".
 ///
 /// Solo aparecen trabajadoras con la identidad verificada.
+///
+/// Feedback del Product Review: las cajas de una misma fila miden lo mismo
+/// y los botones quedan alineados abajo.
 class BuscarTrabajadorasScreen extends ConsumerStatefulWidget {
   const BuscarTrabajadorasScreen({super.key});
 
@@ -292,6 +298,12 @@ class _Resultados extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
     final cantidad = trabajadoras.length;
 
+    Widget tarjeta(PerfilPublico t) => _TarjetaTrabajadora(
+          trabajadora: t,
+          onVerPerfil: () => onVerPerfil(t),
+          onInvitar: () => onInvitar(t),
+        );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -307,21 +319,37 @@ class _Resultados extends StatelessWidget {
           builder: (context, restricciones) {
             final columnas = restricciones.maxWidth >= 760 ? 2 : 1;
             const espacio = 16.0;
-            final ancho =
-                (restricciones.maxWidth - espacio * (columnas - 1)) / columnas;
-            return Wrap(
-              spacing: espacio,
-              runSpacing: espacio,
+
+            // En el teléfono: una caja debajo de otra, cada una con su alto.
+            if (columnas == 1) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final t in trabajadoras) ...[
+                    tarjeta(t),
+                    const SizedBox(height: espacio),
+                  ],
+                ],
+              );
+            }
+
+            // En pantallas grandes: filas de cajas con la misma altura.
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final t in trabajadoras)
-                  SizedBox(
-                    width: ancho,
-                    child: _TarjetaTrabajadora(
-                      trabajadora: t,
-                      onVerPerfil: () => onVerPerfil(t),
-                      onInvitar: () => onInvitar(t),
-                    ),
+                for (var i = 0; i < trabajadoras.length; i += columnas) ...[
+                  _FilaIgual(
+                    columnas: columnas,
+                    espacio: espacio,
+                    children: [
+                      for (var j = i; j < i + columnas; j++)
+                        j < trabajadoras.length
+                            ? tarjeta(trabajadoras[j])
+                            : const SizedBox.shrink(),
+                    ],
                   ),
+                  const SizedBox(height: espacio),
+                ],
               ],
             );
           },
@@ -372,109 +400,124 @@ class _TarjetaTrabajadora extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borde),
       ),
+      // spaceBetween: si la caja se estira para igualar a la de al lado, la
+      // información queda arriba y los botones abajo.
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Arriba: foto, nombre, reputación y datos.
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AvatarUsuario(nombre: t.nombre, fotoUrl: t.fotoUrl, tamano: 56),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AvatarUsuario(nombre: t.nombre, fotoUrl: t.fotoUrl, tamano: 56),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          child: Text(
-                            t.nombre,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textos.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                t.nombre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textos.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
+                            if (t.verificada) ...[
+                              const SizedBox(width: 6),
+                              const InsigniaVerificada(compacta: true),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          reputacion,
+                          style: textos.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.texto,
                           ),
                         ),
-                        if (t.verificada) ...[
-                          const SizedBox(width: 6),
-                          const InsigniaVerificada(compacta: true),
+                        if (t.destacada) ...[
+                          const SizedBox(height: 6),
+                          const InsigniaDestacada(),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      reputacion,
-                      style: textos.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.texto,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                datos,
+                style:
+                    textos.bodySmall?.copyWith(color: AppColors.textoSecundario),
+              ),
+              if (zonas.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.place_outlined,
+                      size: 16,
+                      color: AppColors.textoSecundario,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        zonas,
+                        style: textos.bodySmall
+                            ?.copyWith(color: AppColors.textoSecundario),
                       ),
                     ),
-                    if (t.destacada) ...[
-                      const SizedBox(height: 6),
-                      const InsigniaDestacada(),
-                    ],
                   ],
                 ),
-              ),
+              ],
+              if (t.tarifaReferencia != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Desde ${Formato.dinero(t.tarifaReferencia!)} por hora',
+                  style:
+                      textos.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            datos,
-            style: textos.bodySmall?.copyWith(color: AppColors.textoSecundario),
-          ),
-          if (zonas.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Abajo: los botones, alineados en toda la fila.
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Row(
               children: [
-                const Icon(
-                  Icons.place_outlined,
-                  size: 16,
-                  color: AppColors.textoSecundario,
-                ),
-                const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    zonas,
-                    style: textos.bodySmall
-                        ?.copyWith(color: AppColors.textoSecundario),
+                  child: OutlinedButton(
+                    key: Key('ver-perfil-${t.id}'),
+                    onPressed: onVerPerfil,
+                    child: const Text('Ver perfil'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    key: Key('invitar-${t.id}'),
+                    onPressed: onInvitar,
+                    icon: const Icon(Icons.send_rounded, size: 18),
+                    label: Text(
+                      'Invitar',
+                      semanticsLabel: 'Invitar a $primerNombre',
+                    ),
                   ),
                 ),
               ],
             ),
-          ],
-          if (t.tarifaReferencia != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Desde ${Formato.dinero(t.tarifaReferencia!)} por hora',
-              style: textos.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: Key('ver-perfil-${t.id}'),
-                  onPressed: onVerPerfil,
-                  child: const Text('Ver perfil'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  key: Key('invitar-${t.id}'),
-                  onPressed: onInvitar,
-                  icon: const Icon(Icons.send_rounded, size: 18),
-                  label: Text(
-                    'Invitar',
-                    semanticsLabel: 'Invitar a $primerNombre',
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -501,4 +544,101 @@ class _Caja extends StatelessWidget {
       child: child,
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Fila de cajas con la misma altura
+// ---------------------------------------------------------------------------
+
+/// Pone [columnas] cajas en una fila, del mismo ancho, y les da a todas la
+/// altura de la más alta (feedback del Product Review).
+class _FilaIgual extends MultiChildRenderObjectWidget {
+  const _FilaIgual({
+    required this.columnas,
+    required this.espacio,
+    required super.children,
+  });
+
+  final int columnas;
+  final double espacio;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderFilaIgual(columnas: columnas, espacio: espacio);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderFilaIgual renderObject) {
+    renderObject
+      ..columnas = columnas
+      ..espacio = espacio;
+  }
+}
+
+class _DatosFilaIgual extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderFilaIgual extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _DatosFilaIgual>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _DatosFilaIgual> {
+  _RenderFilaIgual({required int columnas, required double espacio})
+      : _columnas = columnas,
+        _espacio = espacio;
+
+  int _columnas;
+  set columnas(int valor) {
+    if (valor == _columnas) return;
+    _columnas = valor;
+    markNeedsLayout();
+  }
+
+  double _espacio;
+  set espacio(double valor) {
+    if (valor == _espacio) return;
+    _espacio = valor;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _DatosFilaIgual) {
+      child.parentData = _DatosFilaIgual();
+    }
+  }
+
+  @override
+  void performLayout() {
+    final ancho = constraints.maxWidth;
+    final anchoCaja = (ancho - _espacio * (_columnas - 1)) / _columnas;
+
+    // 1) Cada caja con su altura natural.
+    var alto = 0.0;
+    var hijo = firstChild;
+    while (hijo != null) {
+      hijo.layout(BoxConstraints.tightFor(width: anchoCaja),
+          parentUsesSize: true);
+      alto = math.max(alto, hijo.size.height);
+      hijo = childAfter(hijo);
+    }
+
+    // 2) Todas con la altura de la más alta, una al lado de la otra.
+    var x = 0.0;
+    hijo = firstChild;
+    while (hijo != null) {
+      hijo.layout(BoxConstraints.tight(Size(anchoCaja, alto)),
+          parentUsesSize: true);
+      (hijo.parentData! as _DatosFilaIgual).offset = Offset(x, 0);
+      x += anchoCaja + _espacio;
+      hijo = childAfter(hijo);
+    }
+
+    size = constraints.constrain(Size(ancho, alto));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }
