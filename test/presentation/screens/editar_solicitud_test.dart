@@ -57,6 +57,7 @@ class _RepositorioFalso implements SolicitudRepository {
 Solicitud _solicitud({
   EstadoSolicitud estado = EstadoSolicitud.publicada,
   int postulantes = 2,
+  DateTime? inicio,
 }) =>
     Solicitud(
       id: 's1',
@@ -65,8 +66,8 @@ Solicitud _solicitud({
       tipo: TipoLimpieza.general,
       zonaId: 1,
       zona: 'Chacao',
-      // Siempre en el futuro, para que la validación de fecha pase.
-      inicio: DateTime(DateTime.now().year + 1, 3, 14, 9),
+      // Siempre en el futuro por defecto, para que la validación de fecha pase.
+      inicio: inicio ?? DateTime(DateTime.now().year + 1, 3, 14, 9),
       horasEstimadas: 4,
       pagoOfrecido: 30,
       metodoPago: MetodoPago.pagoMovil,
@@ -216,5 +217,27 @@ void main() {
 
     expect(find.text('Esta solicitud ya no se puede editar'), findsOneWidget);
     expect(find.text('Guardar cambios'), findsNothing);
+  });
+
+  testWidgets(
+      'permite abrir y cambiar la fecha sin fallar aunque la fecha anterior fuera pasada',
+      (tester) async {
+    _pantallaGrande(tester);
+    // Solicitud cuya fecha quedó en el pasado.
+    final anterior = _solicitud(
+      inicio: DateTime.now().subtract(const Duration(days: 3)),
+    );
+    final repo = _RepositorioFalso(anterior);
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    // Al tocar el campo de fecha, debe abrir el DatePicker correctamente sin lanzar excepción.
+    await tester.tap(find.widgetWithText(InkWell, 'Fecha'));
+    await tester.pumpAndSettle();
+
+    // Debe mostrar los controles del calendario.
+    expect(find.text('OK'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
   });
 }

@@ -46,8 +46,16 @@ class PublicarSolicitudScreen extends ConsumerStatefulWidget {
 class _PublicarSolicitudScreenState
     extends ConsumerState<PublicarSolicitudScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
   final _direccion = TextEditingController();
   final _pago = TextEditingController(text: '30');
+
+  // Claves para desplazamiento interactivo al faltar datos.
+  final _fechaKey = GlobalKey();
+  final _zonaKey = GlobalKey();
+  final _direccionKey = GlobalKey();
+  final _productosKey = GlobalKey();
+  final _pagoKey = GlobalKey();
 
   /// Null solo al repetir (HU-44 c1): hay que elegir la fecha nueva.
   DateTime? _fecha;
@@ -125,6 +133,7 @@ class _PublicarSolicitudScreenState
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _direccion.dispose();
     _pago.dispose();
     super.dispose();
@@ -202,27 +211,111 @@ class _PublicarSolicitudScreenState
       double.tryParse(_pago.text.trim().replaceAll(',', '.')) ?? 0;
 
   Future<void> _elegirFecha() async {
-    final hoy = DateTime.now();
-    final elegida = await showDatePicker(
-      context: context,
-      initialDate: _fecha ?? _manana(),
-      // H5: los días pasados no se pueden elegir.
-      firstDate: DateTime(hoy.year, hoy.month, hoy.day),
-      lastDate: hoy.add(const Duration(days: 90)),
-    );
-    if (elegida != null) setState(() => _fecha = elegida);
+    try {
+      final hoy = DateTime.now();
+      final hoySoloFecha = DateTime(hoy.year, hoy.month, hoy.day);
+      final primerDia = hoySoloFecha;
+      final limiteFuturo = hoySoloFecha.add(const Duration(days: 365));
+      final ultimoDia = (_fecha != null && _fecha!.isAfter(limiteFuturo))
+          ? _fecha!.add(const Duration(days: 30))
+          : limiteFuturo;
+
+      final fechaBase = (_fecha != null && !_fecha!.isBefore(primerDia))
+          ? _fecha!
+          : _manana();
+      final fechaInicial =
+          fechaBase.isAfter(ultimoDia) ? ultimoDia : fechaBase;
+
+      final elegida = await showDatePicker(
+        context: context,
+        initialDate: fechaInicial,
+        firstDate: primerDia,
+        lastDate: ultimoDia,
+      );
+      if (elegida != null) setState(() => _fecha = elegida);
+    } catch (e) {
+      debugPrint('Error al abrir selector de fecha: $e');
+    }
   }
 
   Future<void> _elegirHora() async {
-    final elegida = await showTimePicker(context: context, initialTime: _hora);
-    if (elegida != null) setState(() => _hora = elegida);
+    try {
+      final elegida =
+          await showTimePicker(context: context, initialTime: _hora);
+      if (elegida != null) setState(() => _hora = elegida);
+    } catch (e) {
+      debugPrint('Error al abrir selector de hora: $e');
+    }
+  }
+
+  List<({String nombre, GlobalKey key})> _camposFaltantes() {
+    final faltantes = <({String nombre, GlobalKey key})>[];
+    final inicio = _inicio;
+    if (inicio == null) {
+      faltantes.add((nombre: 'Fecha del servicio', key: _fechaKey));
+    } else if (!inicio.isAfter(DateTime.now())) {
+      faltantes.add((nombre: 'Fecha futura', key: _fechaKey));
+    }
+    if (_zonaId == null) {
+      faltantes.add((nombre: 'Zona o urbanización', key: _zonaKey));
+    }
+    if (_direccion.text.trim().length < 5) {
+      faltantes.add((nombre: 'Dirección completa', key: _direccionKey));
+    }
+    if (_productos == null) {
+      faltantes.add((nombre: 'Quién pone los productos', key: _productosKey));
+    }
+    if (_montoPago <= 0) {
+      faltantes.add((nombre: 'Pago ofrecido', key: _pagoKey));
+    }
+    return faltantes;
+  }
+
+  void _irACampo(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+        alignment: 0.1,
+      );
+    }
   }
 
   Future<void> _publicar() async {
     setState(() => _intentoEnviar = true);
     final valido = _formKey.currentState!.validate();
     final inicio = _inicio;
-    if (!valido || _zonaId == null || _productos == null || inicio == null) {
+    final faltantes = _camposFaltantes();
+
+    if (!valido ||
+        _zonaId == null ||
+        _productos == null ||
+        inicio == null ||
+        !inicio.isAfter(DateTime.now())) {
+      if (faltantes.isNotEmpty) {
+        _irACampo(faltantes.first.key);
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Faltan datos obligatorios: ${faltantes.map((e) => e.nombre).join(', ')}.',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       return;
     }
 
@@ -362,24 +455,30 @@ class _PublicarSolicitudScreenState
           children: [
             Text('Fecha y tipo de servicio', style: tema.textTheme.titleLarge),
             const SizedBox(height: 16),
-            _DosColumnas(
-              izquierda: _CampoBoton(
-                etiqueta: 'Fecha',
-                valor: _fecha == null ? 'Elige la fecha' : _fechaCorta(_fecha!),
-                icono: Icons.calendar_today_outlined,
-                onTap: _elegirFecha,
-              ),
-              derecha: _CampoBoton(
-                etiqueta: 'Hora de inicio',
-                valor: _horaTexto(_hora),
-                icono: Icons.schedule,
-                onTap: _elegirHora,
+            KeyedSubtree(
+              key: _fechaKey,
+              child: _DosColumnas(
+                izquierda: _CampoBoton(
+                  etiqueta: 'Fecha',
+                  valor: _fecha == null ? 'Elige la fecha' : _fechaCorta(_fecha!),
+                  icono: Icons.calendar_today_outlined,
+                  onTap: _elegirFecha,
+                  errorText: _intentoEnviar && _fecha == null
+                      ? 'Elige la fecha del servicio'
+                      : (_intentoEnviar &&
+                              _inicio != null &&
+                              !_inicio!.isAfter(DateTime.now())
+                          ? 'La fecha debe ser futura'
+                          : null),
+                ),
+                derecha: _CampoBoton(
+                  etiqueta: 'Hora de inicio',
+                  valor: _horaTexto(_hora),
+                  icono: Icons.schedule,
+                  onTap: _elegirHora,
+                ),
               ),
             ),
-            if (_intentoEnviar && _inicio == null)
-              const _TextoError(texto: 'Elige la fecha del servicio')
-            else if (_intentoEnviar && !_inicio!.isAfter(DateTime.now()))
-              const _TextoError(texto: 'La fecha debe ser futura'),
             const SizedBox(height: 16),
             _Contador(
               etiqueta: 'Horas estimadas',
@@ -408,35 +507,50 @@ class _PublicarSolicitudScreenState
             const SizedBox(height: 16),
             // Corrección de la revisión: la zona se elige en orden
             // Municipio → Parroquia → Urbanización.
-            zonas.when(
-              data: (lista) => SelectorZona(
-                zonas: lista,
-                valor: _zonaId,
-                onChanged: (id) => setState(() => _zonaId = id),
-                validator: (_) => _zonaId == null ? 'Elige una zona' : null,
-              ),
-              loading: () => const LinearProgressIndicator(),
-              error: (_, _) => Row(
+            KeyedSubtree(
+              key: _zonaKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(child: Text('No pudimos cargar las zonas.')),
-                  // H9: el error trae su solución.
-                  TextButton(
-                    onPressed: () => ref.invalidate(zonasCatalogoProvider),
-                    child: const Text('Reintentar'),
+                  zonas.when(
+                    data: (lista) => SelectorZona(
+                      zonas: lista,
+                      valor: _zonaId,
+                      onChanged: (id) => setState(() => _zonaId = id),
+                      validator: (_) => _zonaId == null ? 'Elige una zona' : null,
+                    ),
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) => Row(
+                      children: [
+                        const Expanded(child: Text('No pudimos cargar las zonas.')),
+                        // H9: el error trae su solución.
+                        TextButton(
+                          onPressed: () => ref.invalidate(zonasCatalogoProvider),
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
                   ),
+                  if (_intentoEnviar && _zonaId == null)
+                    const _TextoError(
+                      texto: 'Elige una zona (municipio, parroquia y urbanización)',
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _direccion,
-              decoration: const InputDecoration(
-                labelText: 'Dirección',
-                helperText: 'Privada hasta que elijas a una trabajadora',
+            KeyedSubtree(
+              key: _direccionKey,
+              child: TextFormField(
+                controller: _direccion,
+                decoration: const InputDecoration(
+                  labelText: 'Dirección',
+                  helperText: 'Privada hasta que elijas a una trabajadora',
+                ),
+                validator: (v) => (v == null || v.trim().length < 5)
+                    ? 'Escribe la dirección completa'
+                    : null,
               ),
-              validator: (v) => (v == null || v.trim().length < 5)
-                  ? 'Escribe la dirección completa'
-                  : null,
             ),
             const SizedBox(height: 16),
             _DosColumnas(
@@ -468,33 +582,39 @@ class _PublicarSolicitudScreenState
                 valor: _mascotas,
                 onCambio: (v) => setState(() => _mascotas = v),
               ),
-              derecha: _Opciones<QuienPoneProductos>(
-                etiqueta: '¿Quién pone los productos?',
-                opciones: {
-                  for (final p in QuienPoneProductos.values) p: p.etiqueta,
-                },
-                valor: _productos,
-                error: _intentoEnviar && _productos == null
-                    ? 'Indica quién pone los productos'
-                    : null,
-                onCambio: (v) => setState(() => _productos = v),
+              derecha: KeyedSubtree(
+                key: _productosKey,
+                child: _Opciones<QuienPoneProductos>(
+                  etiqueta: '¿Quién pone los productos?',
+                  opciones: {
+                    for (final p in QuienPoneProductos.values) p: p.etiqueta,
+                  },
+                  valor: _productos,
+                  error: _intentoEnviar && _productos == null
+                      ? 'Indica quién pone los productos'
+                      : null,
+                  onCambio: (v) => setState(() => _productos = v),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             _DosColumnas(
-              izquierda: TextFormField(
-                controller: _pago,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Pago ofrecido (USD)',
-                  prefixText: r'$ ',
+              izquierda: KeyedSubtree(
+                key: _pagoKey,
+                child: TextFormField(
+                  controller: _pago,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Pago ofrecido (USD)',
+                    prefixText: r'$ ',
+                  ),
+                  validator: (_) =>
+                      _montoPago <= 0 ? 'Escribe cuánto vas a pagar' : null,
                 ),
-                validator: (_) =>
-                    _montoPago <= 0 ? 'Escribe cuánto vas a pagar' : null,
               ),
               derecha: DropdownButtonFormField<MetodoPago>(
                 initialValue: _metodo,
@@ -513,6 +633,9 @@ class _PublicarSolicitudScreenState
       ),
     );
 
+    final faltantes =
+        _intentoEnviar ? _camposFaltantes() : const <({String nombre, GlobalKey key})>[];
+
     final vistaPrevia = _VistaPrevia(
       tipo: _tipo,
       fecha: _fecha,
@@ -530,11 +653,17 @@ class _PublicarSolicitudScreenState
       aviso: _editando && (_original?.numPostulantes ?? 0) > 0
           ? 'Las postulantes verán los datos nuevos'
           : null,
+      faltantes: faltantes,
+      onIrACampo: _irACampo,
+      errorFecha: _intentoEnviar &&
+          (_fecha == null || (_inicio != null && !_inicio!.isAfter(DateTime.now()))),
+      errorZona: _intentoEnviar && _zonaId == null,
     );
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(24),
           child: Center(
             child: ConstrainedBox(
@@ -635,6 +764,10 @@ class _VistaPrevia extends StatelessWidget {
     required this.onPublicar,
     this.textoBoton = 'Publicar solicitud',
     this.aviso,
+    this.faltantes = const [],
+    this.onIrACampo,
+    this.errorFecha = false,
+    this.errorZona = false,
   });
 
   final TipoLimpieza tipo;
@@ -653,6 +786,12 @@ class _VistaPrevia extends StatelessWidget {
 
   /// Aviso ámbar sobre el botón (HU-09: hay postulantes).
   final String? aviso;
+
+  /// Lista interactiva de campos que faltan por completar.
+  final List<({String nombre, GlobalKey key})> faltantes;
+  final void Function(GlobalKey key)? onIrACampo;
+  final bool errorFecha;
+  final bool errorZona;
 
   @override
   Widget build(BuildContext context) {
@@ -675,14 +814,20 @@ class _VistaPrevia extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             fecha == null ? 'Fecha por elegir' : _fechaLarga(fecha!),
-            style: tema.textTheme.titleLarge,
+            style: tema.textTheme.titleLarge?.copyWith(
+              color: errorFecha ? AppColors.error : null,
+            ),
           ),
           const SizedBox(height: 8),
           _Dato(
             icono: Icons.schedule,
             texto: '${_horaTexto(hora)} · $horas horas',
           ),
-          _Dato(icono: Icons.place_outlined, texto: zona ?? 'Elige una zona'),
+          _Dato(
+            icono: Icons.place_outlined,
+            texto: zona ?? 'Elige una zona',
+            colorTexto: errorZona ? AppColors.error : null,
+          ),
           _Dato(
             icono: Icons.bed_outlined,
             texto: '$habitaciones habitaciones · $banos baños',
@@ -749,6 +894,86 @@ class _VistaPrevia extends StatelessWidget {
                 style: tema.textTheme.bodySmall?.copyWith(
                   color: AppColors.aviso,
                 ),
+              ),
+            ),
+          ],
+          if (faltantes.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.insigniaRojaFondo,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.error),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 20,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Faltan datos obligatorios:',
+                          style: tema.textTheme.labelMedium?.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final f in faltantes)
+                        InkWell(
+                          onTap: onIrACampo != null
+                              ? () => onIrACampo!(f.key)
+                              : null,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.error.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  f.nombre,
+                                  style: tema.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_upward_rounded,
+                                  size: 14,
+                                  color: AppColors.error,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -830,12 +1055,14 @@ class _CampoBoton extends StatelessWidget {
     required this.valor,
     required this.icono,
     required this.onTap,
+    this.errorText,
   });
 
   final String etiqueta;
   final String valor;
   final IconData icono;
   final VoidCallback onTap;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -846,6 +1073,7 @@ class _CampoBoton extends StatelessWidget {
         decoration: InputDecoration(
           labelText: etiqueta,
           suffixIcon: Icon(icono),
+          errorText: errorText,
         ),
         child: Text(valor),
       ),
@@ -915,21 +1143,40 @@ class _Opciones<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(etiqueta, style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          etiqueta,
+          style: tema.textTheme.titleSmall?.copyWith(
+            color: error != null ? AppColors.error : null,
+          ),
+        ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final entrada in opciones.entries)
-              ChoiceChip(
-                label: Text(entrada.value),
-                selected: valor == entrada.key,
-                onSelected: (_) => onCambio(entrada.key),
-              ),
-          ],
+        Container(
+          padding: error != null ? const EdgeInsets.all(6) : EdgeInsets.zero,
+          decoration: error != null
+              ? BoxDecoration(
+                  color: AppColors.insigniaRojaFondo.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.6),
+                  ),
+                )
+              : null,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final entrada in opciones.entries)
+                ChoiceChip(
+                  label: Text(entrada.value),
+                  selected: valor == entrada.key,
+                  onSelected: (_) => onCambio(entrada.key),
+                ),
+            ],
+          ),
         ),
         if (error != null) _TextoError(texto: error!),
       ],
@@ -938,9 +1185,10 @@ class _Opciones<T> extends StatelessWidget {
 }
 
 class _Dato extends StatelessWidget {
-  const _Dato({required this.icono, required this.texto});
+  const _Dato({required this.icono, required this.texto, this.colorTexto});
   final IconData icono;
   final String texto;
+  final Color? colorTexto;
 
   @override
   Widget build(BuildContext context) {
@@ -948,9 +1196,19 @@ class _Dato extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Icon(icono, size: 20),
+          Icon(icono, size: 20, color: colorTexto),
           const SizedBox(width: 8),
-          Expanded(child: Text(texto)),
+          Expanded(
+            child: Text(
+              texto,
+              style: colorTexto != null
+                  ? TextStyle(
+                      color: colorTexto,
+                      fontWeight: FontWeight.w600,
+                    )
+                  : null,
+            ),
+          ),
         ],
       ),
     );
