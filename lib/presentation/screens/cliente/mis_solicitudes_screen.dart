@@ -40,7 +40,8 @@ import 'tarjeta_solicitud_cliente.dart';
 /// 2. Cuando una solicitud tiene postulaciones, se muestra el número de postulantes.
 /// 3. Si no tiene solicitudes, muestra un mensaje y un botón para publicar la primera.
 /// 4. Filtros interactivos por estado: Todas, Publicadas, Asignadas, Completadas, Canceladas.
-/// 5. Diseño responsivo con banner superior, métricas y tarjetas horizontales.
+/// 5. Diseño responsivo con banner superior, métricas y tarjetas en cuadrícula
+///    de igual altura por fila (feedback del Product Review).
 class MisSolicitudesScreen extends ConsumerStatefulWidget {
   const MisSolicitudesScreen({super.key});
 
@@ -177,6 +178,36 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
       ..showSnackBar(
         SnackBar(content: Text(error ?? CalificacionService.mensajeEnviada)),
       );
+  }
+
+  /// Tarjeta de una solicitud en formato de caja, con todas sus acciones.
+  Widget _tarjeta(Solicitud solicitud) {
+    return TarjetaSolicitudCliente(
+      solicitud: solicitud,
+      vertical: true,
+      llenarAlto: true,
+      // HU-09: la tarjeta solo ofrece "Editar" mientras está Publicada (c2).
+      onEditar: () => context.go(Rutas.editarSolicitud(solicitud.id)),
+      onCancelar: () => _cancelar(solicitud),
+      // HU-17: solo si está Asignado y ya empezó.
+      onCompletar: ServicioService.puedeCompletar(solicitud, DateTime.now())
+          ? () => _completar(solicitud)
+          : null,
+      // HU-29: calificar o ver mi calificación.
+      onCalificar: () => _calificar(solicitud),
+      // HU-44 · Repetir una Completada o Cancelada.
+      onRepetir: SolicitudService.sePuedeRepetir(solicitud)
+          ? () => context.go(Rutas.repetirSolicitud(solicitud.id))
+          : null,
+      // HU-28: solo mientras está Asignado.
+      onCancelarServicio: ServicioService.puedeCancelar(solicitud.estado)
+          ? () => _cancelarServicio(solicitud)
+          : null,
+      // HU-14: abre la lista de postulantes.
+      onVerPostulantes: () => context.go(Rutas.postulantes(solicitud.id)),
+      // HU-16 c2: detalle con dirección y datos.
+      onVerServicio: () => context.push(Rutas.servicioCliente(solicitud.id)),
+    );
   }
 
   String _construirResumen(List<Solicitud> solicitudes) {
@@ -343,56 +374,56 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                           );
                         }
 
-                        // Criterios 1 y 2: solicitudes con estado y postulantes en tarjetas horizontales.
-                        return Column(
-                          children: [
-                            for (final solicitud in filtradas) ...[
-                              TarjetaSolicitudCliente(
-                                solicitud: solicitud,
-                                // HU-09: la tarjeta solo ofrece "Editar"
-                                // mientras está Publicada (c2).
-                                onEditar: () => context.go(
-                                  Rutas.editarSolicitud(solicitud.id),
-                                ),
-                                onCancelar: () => _cancelar(solicitud),
-                                // HU-17: solo si está Asignado y ya empezó.
-                                onCompletar: ServicioService.puedeCompletar(
-                                  solicitud,
-                                  DateTime.now(),
-                                )
-                                    ? () => _completar(solicitud)
-                                    : null,
-                                // HU-28: solo mientras está Asignado.
-                                // HU-29: calificar o ver mi calificación.
-                                onCalificar: () => _calificar(solicitud),
-                                // HU-44 · Repetir una Completada o Cancelada.
-                                onRepetir: SolicitudService.sePuedeRepetir(
-                                  solicitud,
-                                )
-                                    ? () => context.go(
-                                          Rutas.repetirSolicitud(solicitud.id),
-                                        )
-                                    : null,
-                                onCancelarServicio:
-                                    ServicioService.puedeCancelar(
-                                  solicitud.estado,
-                                )
-                                        ? () => _cancelarServicio(solicitud)
-                                        : null,
+                        // Criterios 1 y 2: solicitudes con estado y postulantes.
+                        // Feedback del Product Review: cuadrícula de cajas
+                        // (3 por fila en pantallas grandes, 2 en medianas y 1
+                        // en el teléfono). Cada fila toma la altura de su caja
+                        // más alta, para que todas midan lo mismo.
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final ancho = constraints.maxWidth;
+                            final columnas = ancho >= 1100
+                                ? 3
+                                : ancho >= 700
+                                    ? 2
+                                    : 1;
+                            const espacio = 16.0;
 
-                                  // HU-14: abre la lista de postulantes.
-                                onVerPostulantes: () => context.go(
-                                  Rutas.postulantes(solicitud.id),
+                            final filas = <List<Solicitud>>[
+                              for (var i = 0;
+                                  i < filtradas.length;
+                                  i += columnas)
+                                filtradas.sublist(
+                                  i,
+                                  (i + columnas).clamp(0, filtradas.length),
                                 ),
+                            ];
 
-                                // HU-16 c2: detalle con dirección y datos.
-                                onVerServicio: () => context.push(
-                                  Rutas.servicioCliente(solicitud.id),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                          ],
+                            return Column(
+                              children: [
+                                for (final fila in filas) ...[
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        for (var j = 0; j < columnas; j++) ...[
+                                          if (j > 0)
+                                            const SizedBox(width: espacio),
+                                          Expanded(
+                                            child: j < fila.length
+                                                ? _tarjeta(fila[j])
+                                                : const SizedBox.shrink(),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: espacio),
+                                ],
+                              ],
+                            );
+                          },
                         );
                       },
                     ),
