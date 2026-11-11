@@ -21,17 +21,25 @@ String _iniciales(String nombre) {
       .toUpperCase();
 }
 
-/// Tarjeta horizontal de solicitud del cliente (Figma C05).
+/// Tarjeta de solicitud del cliente (Figma C05).
+///
+/// Tiene dos formatos:
+/// - Horizontal (por defecto): fecha a la izquierda, información al centro y
+///   botones a la derecha.
+/// - Caja ([vertical] = true): para la cuadrícula de Mis solicitudes
+///   (feedback del Product Review). Franja de color según el estado con la
+///   fecha arriba, información en el medio y botones abajo. Con
+///   [llenarAlto] = true ocupa todo el alto de su fila y deja los botones al
+///   fondo, para que las cajas de una misma fila midan lo mismo.
 ///
 /// Muestra:
-/// - Bloque con día y mes en grande a la izquierda.
-/// - Insignia de estado + tipo de limpieza ("Limpieza general", etc.).
-/// - Día y hora del servicio (ej. "Sábado, 9:00 a. m.").
-/// - Zona, duración estimada y monto ("Los Palos Grandes, Chacao · 4 horas · $30").
-/// - Postulantes (con ícono rojo/terracota), trabajadora asignada o motivo de cancelación.
-/// - Botones de acción a la derecha ("Ver postulantes", "Ver servicio", "Calificar", "Editar").
+/// - Día y mes, insignia de estado y tipo de limpieza.
+/// - Día y hora del servicio, zona, duración y monto, con el desglose (HU-52).
+/// - Postulantes, trabajadora asignada, motivo de cancelación o calificación.
+/// - Botones según el estado: "Ver postulantes", "Ver servicio", "Calificar",
+///   "Editar", "Cancelar", "Repetir"…
 class TarjetaSolicitudCliente extends StatelessWidget {
-    const TarjetaSolicitudCliente({
+  const TarjetaSolicitudCliente({
     super.key,
     required this.solicitud,
     this.onTap,
@@ -43,9 +51,9 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     this.onCancelarServicio,
     this.onCalificar,
     this.onRepetir,
+    this.vertical = false,
+    this.llenarAlto = false,
   });
-
-  
 
   final Solicitud solicitud;
   final VoidCallback? onTap;
@@ -53,7 +61,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
 
   /// HU-10 · Cancelar la solicitud (solo si está Publicada).
   final VoidCallback? onCancelar;
-  
+
   /// HU-14 · Abrir la lista de postulantes (solo si está Publicada).
   final VoidCallback? onVerPostulantes;
 
@@ -76,11 +84,28 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   /// el botón no aparece.
   final VoidCallback? onRepetir;
 
+  /// true = formato de caja para la cuadrícula (todo apilado en columna),
+  /// aunque sea en computadora.
+  final bool vertical;
+
+  /// Solo en la caja: true = ocupa todo el alto de su fila y deja los
+  /// botones abajo, para que las cajas de una misma fila midan lo mismo.
+  final bool llenarAlto;
+
   TonoInsignia _tono(EstadoSolicitud estado) => switch (estado) {
         EstadoSolicitud.publicada => TonoInsignia.azul,
         EstadoSolicitud.asignada => TonoInsignia.verde,
         EstadoSolicitud.completada => TonoInsignia.gris,
         EstadoSolicitud.cancelada => TonoInsignia.rojo,
+      };
+
+  /// Color de la franja superior de la caja, con la paleta de la marca.
+  Color _franja(EstadoSolicitud estado) => switch (estado) {
+        EstadoSolicitud.publicada =>
+          AppColors.primarioClaro.withValues(alpha: 0.45),
+        EstadoSolicitud.asignada => AppColors.primarioClaro,
+        EstadoSolicitud.completada => AppColors.arena,
+        EstadoSolicitud.cancelada => AppColors.error.withValues(alpha: 0.08),
       };
 
   void _accion(BuildContext context, String mensaje) {
@@ -90,16 +115,13 @@ class TarjetaSolicitudCliente extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final movil = Responsive.esMovil(context);
-    final textos = Theme.of(context).textTheme;
-
-    final badgeFecha = Container(
+  /// Bloque con el día y el mes.
+  Widget _badgeFecha(TextTheme textos, {Color fondo = AppColors.fondo}) {
+    return Container(
       width: 58,
       height: 64,
       decoration: BoxDecoration(
-        color: AppColors.fondo,
+        color: fondo,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.arena),
       ),
@@ -128,6 +150,38 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// "Los Palos Grandes · 4 horas · $30".
+  Widget _zonaHorasPago(TextTheme textos) {
+    return Row(
+      children: [
+        const Icon(
+          Icons.location_on_outlined,
+          size: 16,
+          color: AppColors.textoSecundario,
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            '${solicitud.zona} · '
+            '${Formato.horas(solicitud.horasEstimadas)} · '
+            '${Formato.dinero(solicitud.pagoOfrecido)}',
+            style: textos.bodySmall?.copyWith(fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (vertical) return _construirCaja(context);
+
+    final movil = Responsive.esMovil(context);
+    final textos = Theme.of(context).textTheme;
+    final badgeFecha = _badgeFecha(textos);
 
     final infoCentral = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,25 +215,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Row(
-          children: [
-            const Icon(
-              Icons.location_on_outlined,
-              size: 16,
-              color: AppColors.textoSecundario,
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                '${solicitud.zona} · '
-                '${Formato.horas(solicitud.horasEstimadas)} · '
-                '${Formato.dinero(solicitud.pagoOfrecido)}',
-                style: textos.bodySmall?.copyWith(fontSize: 13),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        _zonaHorasPago(textos),
         // HU-52 c3: el mismo desglose que se vio al publicar.
         const SizedBox(height: 4),
         DesgloseCosto(
@@ -233,6 +269,99 @@ class TarjetaSolicitudCliente extends StatelessWidget {
     );
   }
 
+  /// Formato de caja para la cuadrícula: franja de color con la fecha y el
+  /// estado arriba, datos en el medio y botones a lo ancho abajo.
+  Widget _construirCaja(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final acciones = _construirBotones(context);
+
+    // Cuerpo blanco: datos, estado y botones.
+    final cuerpo = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: llenarAlto ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _zonaHorasPago(textos),
+          // HU-52 c3: el mismo desglose que se vio al publicar.
+          const SizedBox(height: 4),
+          DesgloseCosto(
+            key: Key('desglose-${solicitud.id}'),
+            pago: solicitud.pagoOfrecido,
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _construirDetalleEstado(context),
+          ),
+          if (acciones != null) ...[
+            // Empuja los botones al fondo para alinearlos en la fila.
+            if (llenarAlto) const Spacer(),
+            const SizedBox(height: 16),
+            acciones,
+          ],
+        ],
+      ),
+    );
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.superficie,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borde),
+      ),
+      child: Column(
+        mainAxisSize: llenarAlto ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Franja de color según el estado.
+          Container(
+            color: _franja(solicitud.estado),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              children: [
+                _badgeFecha(textos, fondo: AppColors.superficie),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InsigniaEstado(
+                        solicitud.estado.etiqueta,
+                        tono: _tono(solicitud.estado),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        Formato.diaCompletoHora(solicitud.inicio),
+                        style: textos.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Limpieza ${solicitud.tipo.etiqueta.toLowerCase()}',
+                        style: textos.bodySmall?.copyWith(
+                          fontSize: 13,
+                          color: AppColors.textoSecundario,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (llenarAlto) Expanded(child: cuerpo) else cuerpo,
+        ],
+      ),
+    );
+  }
+
   Widget _construirDetalleEstado(BuildContext context) {
     final textos = Theme.of(context).textTheme;
 
@@ -261,7 +390,8 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         }
         return Text(
           'Sin postulantes aún',
-          style: textos.bodySmall?.copyWith(fontSize: 13, fontStyle: FontStyle.italic),
+          style: textos.bodySmall
+              ?.copyWith(fontSize: 13, fontStyle: FontStyle.italic),
         );
 
       case EstadoSolicitud.asignada:
@@ -354,7 +484,8 @@ class TarjetaSolicitudCliente extends StatelessWidget {
   }
 
   Widget? _construirBotones(BuildContext context) {
-    final movil = Responsive.esMovil(context);
+    // En la caja, los botones van a lo ancho, como en el teléfono.
+    final movil = Responsive.esMovil(context) || vertical;
 
     switch (solicitud.estado) {
       case EstadoSolicitud.publicada:
@@ -363,7 +494,7 @@ class TarjetaSolicitudCliente extends StatelessWidget {
           crossAxisAlignment:
               movil ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
           children: [
-              FilledButton(
+            FilledButton(
               onPressed: () {
                 if (onVerPostulantes != null) return onVerPostulantes!();
                 _accion(
@@ -428,8 +559,8 @@ class TarjetaSolicitudCliente extends StatelessWidget {
         if (onCompletar == null && onCancelarServicio == null) {
           return verServicio;
         }
-        // Los botones con el mismo ancho: en el teléfono ocupan toda la
-        // fila y en pantallas grandes toman el ancho del más largo.
+        // Los botones con el mismo ancho: en el teléfono y en la caja ocupan
+        // toda la fila; en pantallas grandes toman el ancho del más largo.
         final botones = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
