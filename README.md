@@ -36,7 +36,7 @@ Proyecto de **Ingeniería de Software · UNIMET**. Equipo: Derek Carvajal, Ruben
 En el panel de Supabase (una sola vez por proyecto):
 
 1. **Authentication → Sign In / Providers → Email**: activar **Confirm email** (HU-40). Sin esto, las cuentas nuevas entran sin verificar su correo.
-2. **Authentication → URL Configuration → Redirect URLs**: agregar `http://localhost:*/**` (y la dirección de producción, si hay). Los enlaces de los correos vuelven a la app con `?verificado=1` (HU-40) o `?recuperar=1` (HU-19).
+2. **Authentication → URL Configuration**: **Site URL** = `https://dcarvajal13.github.io/limpiaya/` (la demo en GitHub Pages) y en **Redirect URLs** agregar `https://dcarvajal13.github.io/limpiaya/**` y `http://localhost:*/**` (para desarrollo). Los enlaces de los correos vuelven a la app con `?verificado=1` (HU-40) o `?recuperar=1` (HU-19).
 3. **Authentication → Emails → Confirm signup**: pegar la plantilla en español de `supabase/plantillas/confirmar_correo.html`.
 
 ## Documentación del equipo
