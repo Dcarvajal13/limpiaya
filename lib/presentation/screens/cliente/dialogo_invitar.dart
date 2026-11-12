@@ -15,13 +15,15 @@ enum ResultadoInvitar { invitada, irAPublicar }
 /// trabajadora.
 ///
 /// [publicadas]: todas mis solicitudes Publicadas y futuras.
-/// [disponibles]: las que son en una zona donde ella trabaja (solo a esas se
-/// puede invitar).
+/// [disponibles]: las que son en una zona donde ella trabaja y a las que
+/// todavía no la invité (solo a esas se puede invitar).
+/// [yaInvitadaEn]: a cuántas solicitudes de sus zonas ya la invité.
 Future<ResultadoInvitar?> mostrarDialogoInvitar(
   BuildContext context, {
   required PerfilPublico trabajadora,
   required List<Solicitud> publicadas,
   required List<Solicitud> disponibles,
+  int yaInvitadaEn = 0,
 }) {
   return showDialog<ResultadoInvitar>(
     context: context,
@@ -29,6 +31,7 @@ Future<ResultadoInvitar?> mostrarDialogoInvitar(
       trabajadora: trabajadora,
       publicadas: publicadas,
       disponibles: disponibles,
+      yaInvitadaEn: yaInvitadaEn,
     ),
   );
 }
@@ -39,11 +42,13 @@ class DialogoInvitar extends ConsumerStatefulWidget {
     required this.trabajadora,
     required this.publicadas,
     required this.disponibles,
+    this.yaInvitadaEn = 0,
   });
 
   final PerfilPublico trabajadora;
   final List<Solicitud> publicadas;
   final List<Solicitud> disponibles;
+  final int yaInvitadaEn;
 
   @override
   ConsumerState<DialogoInvitar> createState() => _DialogoInvitarState();
@@ -90,12 +95,19 @@ class _DialogoInvitarState extends ConsumerState<DialogoInvitar> {
     // Sin solicitudes Publicadas: primero hay que publicar una.
     if (widget.publicadas.isEmpty) {
       return AlertDialog(
-        title: Text('Invitar a $_nombre'),
-        content: const SizedBox(
+        key: const Key('sin-publicaciones'),
+        icon: const Icon(
+          Icons.post_add_rounded,
+          size: 32,
+          color: AppColors.primario,
+        ),
+        title: const Text('Primero publica una solicitud'),
+        content: SizedBox(
           width: 420,
           child: Text(
-            'Para invitarla necesitas una solicitud publicada. Publica una '
-            'y vuelve a invitarla.',
+            'Para invitar a $_nombre necesitas una solicitud publicada: '
+            'así sabrá qué día, a qué hora y en qué zona es el trabajo. '
+            'Publícala y luego vuelve a invitarla.',
           ),
         ),
         actions: [
@@ -108,6 +120,30 @@ class _DialogoInvitarState extends ConsumerState<DialogoInvitar> {
             onPressed: () =>
                 Navigator.of(context).pop(ResultadoInvitar.irAPublicar),
             child: const Text('Publicar solicitud'),
+          ),
+        ],
+      );
+    }
+
+    // Ya la invitó a todas las que son en sus zonas.
+    if (widget.disponibles.isEmpty && widget.yaInvitadaEn > 0) {
+      return AlertDialog(
+        key: const Key('ya-invitada'),
+        title: Text('Ya invitaste a $_nombre'),
+        content: SizedBox(
+          width: 420,
+          child: Text(
+            widget.yaInvitadaEn == 1
+                ? 'Ya la invitaste a tu solicitud en sus zonas. Verás su '
+                    'postulación cuando se postule.'
+                : 'Ya la invitaste a tus ${widget.yaInvitadaEn} solicitudes '
+                    'en sus zonas. Verás su postulación cuando se postule.',
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
           ),
         ],
       );
@@ -147,6 +183,18 @@ class _DialogoInvitarState extends ConsumerState<DialogoInvitar> {
                 '«Te invitaron» y podrá postularse.',
                 style: textos.bodyMedium,
               ),
+              if (widget.yaInvitadaEn > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.yaInvitadaEn == 1
+                      ? 'Ya la invitaste a otra solicitud; aquí solo salen '
+                          'las demás.'
+                      : 'Ya la invitaste a ${widget.yaInvitadaEn} '
+                          'solicitudes; aquí solo salen las demás.',
+                  style: textos.bodySmall
+                      ?.copyWith(color: AppColors.textoSecundario),
+                ),
+              ],
               const SizedBox(height: 12),
               for (final s in widget.disponibles)
                 _OpcionSolicitud(

@@ -17,6 +17,7 @@ import '../../../domain/services/verificacion_service.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/verificaciones_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
 import 'barra_trabajadora.dart';
@@ -163,7 +164,7 @@ class _VerificacionIdentidadScreenState
             fotoUrl: sesion?.fotoUrl,
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 anchoMaximo: 980,
                 vertical: movil ? 32 : 56,

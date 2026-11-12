@@ -15,6 +15,8 @@ import 'package:limpiaya/domain/repositories/auth_repository.dart';
 import 'package:limpiaya/domain/repositories/cliente_repository.dart';
 import 'package:limpiaya/presentation/screens/cliente/perfil_cliente_screen.dart';
 
+import '../../helpers/direcciones_falsas.dart';
+
 /// Repositorio falso: guarda en memoria lo que le mandan.
 class _ClienteFalso implements ClienteRepository {
   PerfilCliente perfil = const PerfilCliente();
@@ -117,6 +119,7 @@ Widget _app(_ClienteFalso repo) {
     overrides: [
       clienteRepositoryProvider.overrideWithValue(repo),
       authRepositoryProvider.overrideWithValue(_AuthFalso()),
+      direccionesRepositoryProvider.overrideWithValue(DireccionesFalsas()),
     ],
     child: MaterialApp.router(
       theme: AppTheme.claro,

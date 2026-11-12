@@ -58,6 +58,26 @@ class SupabaseBusquedaTrabajadorasRepository
     }
   }
 
+  @override
+  Future<List<({String solicitudId, String trabajadoraId})>>
+      misInvitaciones() async {
+    try {
+      // La RLS solo deja ver las invitaciones de mis solicitudes.
+      final filas = await _client
+          .from('invitaciones')
+          .select('solicitud_id, trabajadora_id');
+      return [
+        for (final fila in filas)
+          (
+            solicitudId: fila['solicitud_id'] as String,
+            trabajadoraId: fila['trabajadora_id'] as String,
+          ),
+      ];
+    } on Exception {
+      throw const AppException(BusquedaService.mensajeError);
+    }
+  }
+
   String? _fotoUrl(String? fotoPath) => fotoPath == null
       ? null
       : _client.storage.from('avatars').getPublicUrl(fotoPath);

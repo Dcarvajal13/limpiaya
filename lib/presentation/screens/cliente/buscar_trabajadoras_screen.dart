@@ -21,6 +21,7 @@ import '../../providers/publicar_solicitud_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_destacada.dart';
 import '../../widgets/insignia_verificada.dart';
@@ -65,14 +66,26 @@ class _BuscarTrabajadorasScreenState
         );
       return;
     }
+    // A qué solicitudes ya la invité (si no cargan, se ofrecen todas: la
+    // base igual avisa "Ya la invitaste a esta solicitud").
+    var invitaciones = const <({String solicitudId, String trabajadoraId})>[];
+    try {
+      invitaciones = await ref.read(misInvitacionesProvider.future);
+    } on Object {
+      // Se sigue sin la lista de invitaciones.
+    }
     if (!mounted) return;
 
+    final enSusZonas =
+        BusquedaService.solicitudesParaInvitar(solicitudes, trabajadora);
+    final pendientes =
+        BusquedaService.sinInvitar(enSusZonas, invitaciones, trabajadora.id);
     final resultado = await mostrarDialogoInvitar(
       context,
       trabajadora: trabajadora,
       publicadas: BusquedaService.publicadas(solicitudes),
-      disponibles:
-          BusquedaService.solicitudesParaInvitar(solicitudes, trabajadora),
+      disponibles: pendientes,
+      yaInvitadaEn: enSusZonas.length - pendientes.length,
     );
     if (!mounted) return;
 
@@ -96,7 +109,14 @@ class _BuscarTrabajadorasScreenState
     final resultado = ref.watch(buscarTrabajadorasProvider(_zonaId));
     final zonas = ref.watch(zonasCatalogoProvider).value ?? const <Zona>[];
     // Se carga desde ya para que "Invitar" abra sin esperar (c3).
-    ref.watch(misSolicitudesProvider);
+    final misSolicitudes =
+        ref.watch(misSolicitudesProvider).value ?? const <Solicitud>[];
+    // A quién ya invité: su botón dice "Invitada".
+    final invitadas = BusquedaService.invitadas(
+      ref.watch(misInvitacionesProvider).value ??
+          const <({String solicitudId, String trabajadoraId})>[],
+      BusquedaService.publicadas(misSolicitudes),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.fondo,
@@ -104,7 +124,7 @@ class _BuscarTrabajadorasScreenState
         children: [
           BarraCliente(nombre: sesion?.nombre ?? '', fotoUrl: sesion?.fotoUrl),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 20 : 40,
                 child: Column(
@@ -171,6 +191,7 @@ class _BuscarTrabajadorasScreenState
                           : _Resultados(
                               trabajadoras:
                                   BusquedaService.ordenar(lista, _orden),
+                              invitadas: invitadas,
                               movil: movil,
                               onVerPerfil: (t) => context
                                   .push(Rutas.perfilPublicoTrabajadora(t.id)),
@@ -283,12 +304,16 @@ class _Filtros extends StatelessWidget {
 class _Resultados extends StatelessWidget {
   const _Resultados({
     required this.trabajadoras,
+    this.invitadas = const <String>{},
     required this.movil,
     required this.onVerPerfil,
     required this.onInvitar,
   });
 
   final List<PerfilPublico> trabajadoras;
+
+  /// Ids de las trabajadoras que ya invité a una solicitud publicada.
+  final Set<String> invitadas;
   final bool movil;
   final ValueChanged<PerfilPublico> onVerPerfil;
   final ValueChanged<PerfilPublico> onInvitar;
@@ -300,6 +325,7 @@ class _Resultados extends StatelessWidget {
 
     Widget tarjeta(PerfilPublico t) => _TarjetaTrabajadora(
           trabajadora: t,
+          invitada: invitadas.contains(t.id),
           onVerPerfil: () => onVerPerfil(t),
           onInvitar: () => onInvitar(t),
         );
@@ -362,11 +388,15 @@ class _Resultados extends StatelessWidget {
 class _TarjetaTrabajadora extends StatelessWidget {
   const _TarjetaTrabajadora({
     required this.trabajadora,
+    this.invitada = false,
     required this.onVerPerfil,
     required this.onInvitar,
   });
 
   final PerfilPublico trabajadora;
+
+  /// Ya la invité a una de mis solicitudes: el botón dice "Invitada".
+  final bool invitada;
   final VoidCallback onVerPerfil;
   final VoidCallback onInvitar;
 
@@ -506,15 +536,31 @@ class _TarjetaTrabajadora extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: FilledButton.icon(
-                    key: Key('invitar-${t.id}'),
-                    onPressed: onInvitar,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    label: Text(
-                      'Invitar',
-                      semanticsLabel: 'Invitar a $primerNombre',
-                    ),
-                  ),
+                  // Si ya la invité, el botón lo dice. Se puede tocar igual
+                  // para invitarla a otra de mis solicitudes.
+                  child: invitada
+                      ? FilledButton.tonalIcon(
+                          key: Key('invitar-${t.id}'),
+                          onPressed: onInvitar,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primarioClaro,
+                            foregroundColor: AppColors.primario,
+                          ),
+                          icon: const Icon(Icons.check_rounded, size: 18),
+                          label: Text(
+                            'Invitada',
+                            semanticsLabel: 'Ya invitaste a $primerNombre',
+                          ),
+                        )
+                      : FilledButton.icon(
+                          key: Key('invitar-${t.id}'),
+                          onPressed: onInvitar,
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          label: Text(
+                            'Invitar',
+                            semanticsLabel: 'Invitar a $primerNombre',
+                          ),
+                        ),
                 ),
               ],
             ),

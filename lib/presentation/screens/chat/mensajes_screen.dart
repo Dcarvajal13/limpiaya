@@ -13,6 +13,7 @@ import '../../providers/chat_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../cliente/barra_cliente.dart';
 import '../trabajadora/barra_trabajadora.dart';
@@ -52,7 +53,7 @@ class MensajesScreen extends ConsumerWidget {
         children: [
           barra,
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 20 : 40,
                 child: Column(

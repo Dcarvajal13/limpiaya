@@ -23,6 +23,7 @@ import '../../presentation/screens/inicio/inicio_screen.dart';
 import '../../presentation/screens/perfil/perfil_publico_screen.dart';
 import '../../presentation/screens/landing/landing_screen.dart';
 import '../../presentation/screens/sistema_diseno/sistema_diseno_screen.dart';
+import '../../presentation/screens/terminos/terminos_screen.dart';
 import '../../presentation/screens/trabajadora/detalle_solicitud_screen.dart';
 import '../../presentation/screens/trabajadora/mi_reputacion_screen.dart';
 import '../../presentation/screens/trabajadora/mis_servicios_screen.dart';
@@ -180,6 +181,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.sistemaDiseno,
         builder: (context, state) => const SistemaDisenoScreen(),
+      ),
+      GoRoute(
+        path: Rutas.terminos,
+        builder: (context, state) => TerminosScreen(
+          seccion: state.uri.queryParameters['seccion'],
+        ),
       ),
       GoRoute(
         path: Rutas.publicarSolicitud,

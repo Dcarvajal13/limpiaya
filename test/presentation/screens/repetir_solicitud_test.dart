@@ -21,6 +21,8 @@ import 'package:limpiaya/presentation/providers/publicar_solicitud_provider.dart
 import 'package:limpiaya/presentation/screens/cliente/publicar_solicitud_screen.dart';
 import 'package:limpiaya/presentation/screens/cliente/tarjeta_solicitud_cliente.dart';
 
+import '../../helpers/direcciones_falsas.dart';
+
 class _RepositorioFalso implements SolicitudRepository {
   _RepositorioFalso(this.anterior);
 
@@ -103,6 +105,7 @@ Widget _app(_RepositorioFalso repo) {
   return ProviderScope(
     overrides: [
       solicitudRepositoryProvider.overrideWithValue(repo),
+      direccionesRepositoryProvider.overrideWithValue(DireccionesFalsas()),
       zonasCatalogoProvider.overrideWith(
         (ref) async => const [Zona(id: 1, nombre: 'Chacao')],
       ),

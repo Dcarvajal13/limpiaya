@@ -111,6 +111,29 @@ void main() {
     expect(BusquedaService.traducir('algo raro'), BusquedaService.errorInvitar);
   });
 
+  group('Invitada', () {
+    final invitaciones = [
+      (solicitudId: 'vigente', trabajadoraId: 't1'),
+      (solicitudId: 'vieja', trabajadoraId: 't2'),
+    ];
+
+    test('solo cuentan las invitaciones a solicitudes publicadas', () {
+      final publicadas = [_s('vigente'), _s('otra')];
+      expect(BusquedaService.invitadas(invitaciones, publicadas), {'t1'});
+    });
+
+    test('el diálogo solo ofrece las solicitudes a las que no la invité', () {
+      final disponibles = [_s('vigente'), _s('otra')];
+      final pendientes =
+          BusquedaService.sinInvitar(disponibles, invitaciones, 't1');
+      expect([for (final s in pendientes) s.id], ['otra']);
+      expect(
+        BusquedaService.sinInvitar(disponibles, invitaciones, 't3').length,
+        2,
+      );
+    });
+  });
+
   test('confirmación con el primer nombre', () {
     expect(
       BusquedaService.invitada('Carmen Pérez'),

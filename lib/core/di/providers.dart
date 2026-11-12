@@ -7,6 +7,7 @@ import '../../data/repositories/supabase_calificacion_repository.dart';
 import '../../data/repositories/supabase_chat_repository.dart';
 import '../../data/repositories/supabase_cliente_publico_repository.dart';
 import '../../data/repositories/supabase_cliente_repository.dart';
+import '../../data/repositories/supabase_direcciones_repository.dart';
 import '../../data/repositories/supabase_trabajadora_publica_repository.dart';
 import '../../data/repositories/supabase_mi_reputacion_repository.dart';
 import '../../data/repositories/supabase_perfil_repository.dart';
@@ -22,6 +23,7 @@ import '../../domain/repositories/calificacion_repository.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../../domain/repositories/cliente_publico_repository.dart';
 import '../../domain/repositories/cliente_repository.dart';
+import '../../domain/repositories/direcciones_repository.dart';
 import '../../domain/repositories/mi_reputacion_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/repositories/postulacion_repository.dart';
@@ -58,6 +60,11 @@ final solicitudRepositoryProvider = Provider<SolicitudRepository>(
 
 final clienteRepositoryProvider = Provider<ClienteRepository>(
   (ref) => SupabaseClienteRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// Direcciones guardadas del cliente ("Casa", "Oficina"…).
+final direccionesRepositoryProvider = Provider<DireccionesRepository>(
+  (ref) => SupabaseDireccionesRepository(ref.watch(supabaseClientProvider)),
 );
 
 final trabajadoraPublicaRepositoryProvider =

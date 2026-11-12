@@ -15,6 +15,7 @@ import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/dialogo_postular.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
@@ -35,6 +36,11 @@ import 'caja_cliente.dart';
 /// JobDetail del Figma: en escritorio, el detalle a la izquierda y la tarjeta
 /// "Lo que recibes" con el botón a la derecha; en móvil, todo en una columna
 /// con el pago arriba.
+///
+/// Segunda corrección: la columna de la derecha quedaba casi vacía. Ahora
+/// las dos columnas se reparten el contenido (a la derecha van el pago, el
+/// cliente y los consejos), la página usa el mismo ancho que el resto y el
+/// encabezado es un banner con el resumen del trabajo.
 class DetalleSolicitudScreen extends ConsumerWidget {
   const DetalleSolicitudScreen({super.key, required this.solicitudId});
 
@@ -101,10 +107,9 @@ class DetalleSolicitudScreen extends ConsumerWidget {
           onPressed: () => context.go(Rutas.inicioTrabajadora),
         ),
       ),
-      body: SingleChildScrollView(
+      body: DesplazableConPie(
         child: ContenidoCentrado(
-          vertical: movil ? 20 : 40,
-          anchoMaximo: 1080,
+          vertical: movil ? 20 : 32,
           child: detalle.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(48),
@@ -172,49 +177,74 @@ class _Contenido extends ConsumerWidget {
       onPostular: () => identidadVerificada ? onPostular() : onSinVerificar(),
     );
 
-    final secciones = <Widget>[
-      // HU-46 · Quién la publicó y qué tal cliente es.
-      if (solicitud.clienteId != null) ...[
-        CajaCliente(clienteId: solicitud.clienteId!),
-        const SizedBox(height: 16),
-      ],
-      _Horario(solicitud: solicitud),
-      const SizedBox(height: 16),
-      _Casa(solicitud: solicitud),
-      const SizedBox(height: 16),
-      _Ubicacion(zona: solicitud.zona),
-      const SizedBox(height: 16),
-      _Consejos(solicitud: solicitud),
-    ];
+    const espacio = SizedBox(height: 16);
+    final cliente = solicitud.clienteId == null
+        ? null
+        : CajaCliente(clienteId: solicitud.clienteId!);
 
     if (movil) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Encabezado(solicitud: solicitud),
-          const SizedBox(height: 16),
+          espacio,
           pago,
-          const SizedBox(height: 16),
-          ...secciones,
+          espacio,
+          _Horario(solicitud: solicitud),
+          espacio,
+          _Casa(solicitud: solicitud),
+          espacio,
+          _Ubicacion(zona: solicitud.zona),
+          // HU-46 · Quién la publicó y qué tal cliente es.
+          if (cliente != null) ...[espacio, cliente],
+          espacio,
+          _Consejos(solicitud: solicitud),
         ],
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Escritorio: el encabezado arriba a lo ancho y debajo dos columnas
+    // parejas. Izquierda: cuándo, la casa y dónde. Derecha: lo que recibe,
+    // el cliente y los consejos.
+    final anchoDerecha =
+        MediaQuery.sizeOf(context).width >= 1100 ? 380.0 : 320.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Encabezado(solicitud: solicitud),
-              const SizedBox(height: 16),
-              ...secciones,
-            ],
-          ),
+        _Encabezado(solicitud: solicitud),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Horario(solicitud: solicitud),
+                  espacio,
+                  _Casa(solicitud: solicitud),
+                  espacio,
+                  _Ubicacion(zona: solicitud.zona),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            SizedBox(
+              width: anchoDerecha,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  pago,
+                  // HU-46 · Quién la publicó y qué tal cliente es.
+                  if (cliente != null) ...[espacio, cliente],
+                  espacio,
+                  _Consejos(solicitud: solicitud),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 24),
-        SizedBox(width: 340, child: pago),
       ],
     );
   }
@@ -258,7 +288,8 @@ class _Caja extends StatelessWidget {
   }
 }
 
-/// Tipo de limpieza, título y número de postulantes.
+/// Banner verde con el tipo de limpieza, el título, los postulantes y un
+/// resumen rápido (día y hora, duración y zona).
 class _Encabezado extends StatelessWidget {
   const _Encabezado({required this.solicitud});
 
@@ -267,8 +298,19 @@ class _Encabezado extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
+    final movil = Responsive.esMovil(context);
+    final claro = textos.bodyMedium?.copyWith(color: AppColors.textoSobreOscuro);
 
-    return _Caja(
+    return Container(
+      padding: EdgeInsets.all(movil ? 20 : 28),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primarioOscuro, AppColors.primario],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -292,14 +334,15 @@ class _Encabezado extends StatelessWidget {
                     const Icon(
                       Icons.people_outline,
                       size: 18,
-                      color: AppColors.textoSecundario,
+                      color: AppColors.textoSobreOscuro,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         Formato.postulantes(solicitud.numPostulantes),
                         textAlign: TextAlign.right,
-                        style: textos.bodySmall,
+                        style: textos.bodySmall
+                            ?.copyWith(color: AppColors.textoSobreOscuro),
                       ),
                     ),
                   ],
@@ -307,21 +350,74 @@ class _Encabezado extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             '${solicitud.tipo.servicio} en ${solicitud.zona}',
-            style: textos.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.texto,
-            ),
+            style: (movil ? textos.headlineSmall : textos.headlineMedium)
+                ?.copyWith(fontWeight: FontWeight.w800, color: Colors.white),
           ),
           const SizedBox(height: 6),
           Text(
             solicitud.numPostulantes == 0
                 ? 'Nadie se ha postulado todavía: sé la primera.'
                 : 'El cliente elegirá entre las trabajadoras que se postulen.',
-            style: textos.bodyMedium?.copyWith(
-              color: AppColors.textoSecundario,
+            style: claro,
+          ),
+          const SizedBox(height: 18),
+          // Resumen rápido; el detalle completo está más abajo.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _DatoBanner(
+                icono: Icons.calendar_month_outlined,
+                texto: '${Formato.diaTarjeta(solicitud.inicio)} · '
+                    '${Formato.hora(solicitud.inicio)}',
+              ),
+              _DatoBanner(
+                icono: Icons.timelapse,
+                texto: '${Formato.horas(solicitud.horasEstimadas)} de trabajo',
+              ),
+              _DatoBanner(
+                icono: Icons.location_on_outlined,
+                texto: solicitud.zona,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Píldora translúcida del banner: ícono + texto.
+class _DatoBanner extends StatelessWidget {
+  const _DatoBanner({required this.icono, required this.texto});
+
+  final IconData icono;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              texto,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         ],

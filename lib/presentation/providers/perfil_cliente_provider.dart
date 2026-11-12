@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/di/providers.dart';
 import '../../domain/entities/perfil_cliente.dart';
 import '../../domain/entities/zona.dart';
+import 'direcciones_provider.dart';
 import 'sesion_provider.dart';
 
 /// Perfil del cliente que inició sesión (HU-05).
@@ -36,6 +37,8 @@ class PerfilClienteController extends AsyncNotifier<PerfilCliente?> {
           );
       // La sesión sabe si el perfil está completo (HU-02A, criterio 4).
       ref.invalidate(sesionProvider);
+      // La primera vez, la base copia esta dirección como "Casa".
+      ref.invalidate(misDireccionesProvider);
       // Esperamos a que se recargue: si no, al volver a Mis solicitudes el
       // router todavía cree que el perfil está incompleto y rebota al perfil.
       try {

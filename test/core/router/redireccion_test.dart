@@ -158,6 +158,11 @@ void main() {
     });
   });
 
+  test('los términos y condiciones se ven siempre', () {
+    expect(ir(Rutas.terminos, haySesion: false), isNull);
+    expect(ir(Rutas.terminos, rol: RolUsuario.trabajadora), isNull);
+  });
+
   test('el sistema de diseño se ve siempre', () {
     expect(ir(Rutas.sistemaDiseno, haySesion: false), isNull);
     expect(ir(Rutas.sistemaDiseno, rol: RolUsuario.cliente), isNull);

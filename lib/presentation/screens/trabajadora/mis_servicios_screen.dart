@@ -23,6 +23,7 @@ import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/calificar_contraparte.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/dialogo_calificar.dart';
 import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
@@ -87,7 +88,7 @@ class _MisServiciosScreenState extends ConsumerState<MisServiciosScreen> {
             noLeidos: ref.watch(noLeidosProvider),
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 20 : 40,
                 child: Column(

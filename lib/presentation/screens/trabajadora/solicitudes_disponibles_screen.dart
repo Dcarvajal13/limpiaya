@@ -16,6 +16,8 @@ import '../../providers/mis_postulaciones_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/cuadricula_igual.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/dialogo_postular.dart';
 import '../../widgets/estado_vacio.dart';
 import 'banner_trabajadora.dart';
@@ -59,7 +61,7 @@ class SolicitudesDisponiblesScreen extends ConsumerWidget {
             noLeidos: ref.watch(noLeidosProvider),
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 16 : 24,
                 child: Column(
@@ -247,6 +249,9 @@ class _ListaSolicitudes extends ConsumerWidget {
 }
 
 /// Reparte las tarjetas en 2 columnas (Figma W06), o 1 en pantallas angostas.
+///
+/// Todas las tarjetas miden lo mismo (el alto de la más alta), aunque una
+/// tenga "Te invitaron" o un texto más largo.
 class _Cuadricula extends StatelessWidget {
   const _Cuadricula({
     required this.solicitudes,
@@ -268,26 +273,23 @@ class _Cuadricula extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, restricciones) {
-        final ancho = restricciones.maxWidth;
-        final columnas = ancho >= 640 ? 2 : 1;
-        final anchoTarjeta = (ancho - _separacion * (columnas - 1)) / columnas;
+        final columnas = restricciones.maxWidth >= 640 ? 2 : 1;
 
-        return Wrap(
-          spacing: _separacion,
-          runSpacing: _separacion,
+        return CuadriculaIgual(
+          columnas: columnas,
+          espacio: _separacion,
+          espacioFilas: _separacion,
           children: [
             for (final solicitud in solicitudes)
-              SizedBox(
-                width: anchoTarjeta,
-                child: TarjetaSolicitud(
-                  solicitud: solicitud,
-                  yaPostulada: yaPostuladas.contains(solicitud.id),
-                  identidadVerificada: identidadVerificada,
-                  onPostular: onPostular == null
-                      ? null
-                      : () => onPostular!(solicitud),
-                  onTap: onVer == null ? null : () => onVer!(solicitud),
-                ),
+              TarjetaSolicitud(
+                key: ValueKey('tarjeta-${solicitud.id}'),
+                solicitud: solicitud,
+                llenarAlto: true,
+                yaPostulada: yaPostuladas.contains(solicitud.id),
+                identidadVerificada: identidadVerificada,
+                onPostular:
+                    onPostular == null ? null : () => onPostular!(solicitud),
+                onTap: onVer == null ? null : () => onVer!(solicitud),
               ),
           ],
         );

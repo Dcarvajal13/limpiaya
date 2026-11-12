@@ -115,6 +115,11 @@ abstract final class Rutas {
 
   static const sistemaDiseno = '/diseno';
 
+  /// Términos y condiciones (y política de privacidad, en la misma página).
+  /// Se ven igual con o sin sesión.
+  static const terminos = '/terminos';
+  static const privacidad = '$terminos?seccion=privacidad';
+
   /// Registro con el rol ya sugerido, desde los botones de la landing.
   /// TODO(HU-01): leer `rol` de la URL y dejar marcada esa opción.
   static const registroCliente = '$registro?rol=cliente';
@@ -132,5 +137,5 @@ abstract final class Rutas {
   };
 
   /// Pantallas que se ven igual con o sin sesión (nunca redirigen).
-  static const libres = {sistemaDiseno};
+  static const libres = {sistemaDiseno, terminos};
 }

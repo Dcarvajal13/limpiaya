@@ -16,4 +16,8 @@ abstract interface class BusquedaTrabajadorasRepository {
     required String solicitudId,
     required String trabajadoraId,
   });
+
+  /// Invitaciones que hice: a qué trabajadora y en qué solicitud. Sirve para
+  /// mostrar "Invitada" en vez de "Invitar".
+  Future<List<({String solicitudId, String trabajadoraId})>> misInvitaciones();
 }

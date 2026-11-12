@@ -14,6 +14,14 @@ final buscarTrabajadorasProvider =
   retry: (intentos, error) => null,
 );
 
+/// Mis invitaciones (a quién invité y en qué solicitud), para mostrar
+/// "Invitada" en la tarjeta de cada trabajadora.
+final misInvitacionesProvider = FutureProvider.autoDispose<
+    List<({String solicitudId, String trabajadoraId})>>(
+  (ref) => ref.watch(busquedaTrabajadorasRepositoryProvider).misInvitaciones(),
+  retry: (intentos, error) => null,
+);
+
 /// HU-25 c3 · Invitar a una trabajadora a una solicitud.
 ///
 /// `invitar()` devuelve `null` si se envió, o el mensaje que debe ver el
@@ -45,6 +53,8 @@ class InvitarTrabajadoraNotifier extends Notifier<AsyncValue<void>> {
       final error = resultado.error;
       return error is AppException ? error.mensaje : BusquedaService.errorInvitar;
     }
+    // La tarjeta de la trabajadora pasa a decir "Invitada".
+    ref.invalidate(misInvitacionesProvider);
     return null;
   }
 }
