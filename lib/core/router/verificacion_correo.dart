@@ -23,16 +23,32 @@ abstract final class VerificacionCorreo {
   }
 
   /// Dirección a la que vuelve el enlace del correo: la misma app, en la
-  /// raíz, con la marca. Ej.: http://localhost:54116/?verificado=1
+  /// carpeta donde está publicada, con la marca. Ej.:
+  /// http://localhost:54116/?verificado=1 o
+  /// https://dcarvajal13.github.io/limpiaya/?verificado=1
   static String enlaceDeRegreso([Uri? base]) {
     final actual = base ?? Uri.base;
     return Uri(
       scheme: actual.scheme,
       host: actual.host,
       port: actual.hasPort ? actual.port : null,
-      path: '/',
+      // GitHub Pages publica la app dentro de una carpeta (/limpiaya/):
+      // se conserva esa ruta para no volver a la raíz del dominio.
+      path: _carpetaDeLaApp(actual),
       queryParameters: {parametro: '1'},
     ).toString();
+  }
+
+  /// La ruta de la app sin la pantalla (que va después del #). Siempre
+  /// termina en '/'.
+  static String _carpetaDeLaApp(Uri direccion) {
+    final ruta = direccion.path;
+    if (ruta.isEmpty || ruta.endsWith('/')) return ruta.isEmpty ? '/' : ruta;
+    final ultimo = ruta.substring(ruta.lastIndexOf('/') + 1);
+    // ".../limpiaya/index.html" → ".../limpiaya/"; ".../limpiaya" → ".../limpiaya/"
+    return ultimo.contains('.')
+        ? ruta.substring(0, ruta.lastIndexOf('/') + 1)
+        : '$ruta/';
   }
 
   /// El error puede venir en la consulta (?error_code=...) o, según el

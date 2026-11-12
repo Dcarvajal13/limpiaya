@@ -75,6 +75,41 @@ void main() {
     );
   });
 
+  group('publicada en GitHub Pages (dentro de /limpiaya/)', () {
+    test('HU-40: el enlace vuelve a la carpeta de la app', () {
+      expect(
+        VerificacionCorreo.enlaceDeRegreso(
+          Uri.parse('https://dcarvajal13.github.io/limpiaya/#/registro'),
+        ),
+        'https://dcarvajal13.github.io/limpiaya/?verificado=1',
+      );
+    });
+
+    test('HU-19: el enlace de recuperación también', () {
+      expect(
+        Recuperacion.enlaceDeRegreso(
+          Uri.parse('https://dcarvajal13.github.io/limpiaya/#/recuperar'),
+        ),
+        'https://dcarvajal13.github.io/limpiaya/?recuperar=1',
+      );
+    });
+
+    test('sin la barra final o con index.html', () {
+      expect(
+        VerificacionCorreo.enlaceDeRegreso(
+          Uri.parse('https://dcarvajal13.github.io/limpiaya'),
+        ),
+        'https://dcarvajal13.github.io/limpiaya/?verificado=1',
+      );
+      expect(
+        Recuperacion.enlaceDeRegreso(
+          Uri.parse('https://dcarvajal13.github.io/limpiaya/index.html#/login'),
+        ),
+        'https://dcarvajal13.github.io/limpiaya/?recuperar=1',
+      );
+    });
+  });
+
   test('el login no muestra el error de HU-19 por un enlace de HU-40', () {
     expect(
       Recuperacion.errorDelEnlace(
