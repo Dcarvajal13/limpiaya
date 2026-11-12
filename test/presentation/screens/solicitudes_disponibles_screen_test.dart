@@ -309,7 +309,21 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Altamira'), findsNothing);
-      expect(find.widgetWithText(FilterChip, 'El Cafetal'), findsOneWidget);
+
+      // Las zonas ya no se muestran sueltas como chips: el campo "Zonas" las
+      // resume y la ventana "Mis zonas" las lista (feedback del Product
+      // Review, H8).
+      expect(find.text('Todas mis zonas (2)'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('filtro-zonas')));
+      await tester.pumpAndSettle();
+      expect(find.text('Mis zonas'), findsOneWidget);
+      // Se abre el municipio y aparecen las zonas nuevas.
+      await tester.tap(find.byType(ExpansionTile).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.widgetWithText(CheckboxListTile, 'El Cafetal'),
+        findsOneWidget,
+      );
     },
   );
 }
