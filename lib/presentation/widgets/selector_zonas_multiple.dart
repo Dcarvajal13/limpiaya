@@ -11,6 +11,8 @@ import '../../domain/services/arbol_zonas.dart';
 /// - La casilla del municipio elige o quita todas sus urbanizaciones.
 /// - Cada parroquia tiene "Seleccionar todas" / "Quitar todas".
 /// - Arriba se ven las urbanizaciones elegidas, con una × para quitarlas.
+///   Si son muchas, solo se muestran las primeras y "Ver todas" despliega
+///   el resto (feedback del Product Review: menos carga visual, H8).
 /// - La barra de búsqueda filtra por urbanización, parroquia o municipio
 ///   (sin importar acentos) y muestra solo lo que coincide, ya abierto.
 class SelectorZonasMultiple extends StatefulWidget {
@@ -30,7 +32,13 @@ class SelectorZonasMultiple extends StatefulWidget {
 }
 
 class _SelectorZonasMultipleState extends State<SelectorZonasMultiple> {
+  /// Cuántas urbanizaciones elegidas se ven antes de "Ver todas".
+  static const _maxVisibles = 6;
+
   final _busqueda = TextEditingController();
+
+  /// true = se ven todas las urbanizaciones elegidas.
+  bool _verTodas = false;
 
   @override
   void dispose() {
@@ -62,6 +70,12 @@ class _SelectorZonasMultipleState extends State<SelectorZonasMultiple> {
         if (seleccionadas.contains(zona.id)) zona,
     ]..sort((a, b) => a.nombre.compareTo(b.nombre));
 
+    final hayMuchas = elegidas.length > _maxVisibles;
+    final visibles = (_verTodas || !hayMuchas)
+        ? elegidas
+        : elegidas.take(_maxVisibles).toList();
+    final ocultas = elegidas.length - visibles.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -79,14 +93,30 @@ class _SelectorZonasMultipleState extends State<SelectorZonasMultiple> {
           Wrap(
             spacing: 6,
             runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              for (final zona in elegidas)
+              for (final zona in visibles)
                 Chip(
                   key: Key('elegida-${zona.id}'),
                   label: Text(zona.nombre),
                   visualDensity: VisualDensity.compact,
                   deleteButtonTooltipMessage: 'Quitar ${zona.nombre}',
                   onDeleted: () => _cambiar([zona], elegir: false),
+                ),
+              // H8 · Con muchas elegidas, el resto se ve a pedido.
+              if (hayMuchas)
+                TextButton.icon(
+                  key: const Key('ver-todas-zonas'),
+                  onPressed: () => setState(() => _verTodas = !_verTodas),
+                  icon: Icon(
+                    _verTodas
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _verTodas ? 'Ver menos' : 'y $ocultas más · Ver todas',
+                  ),
                 ),
             ],
           ),
@@ -99,11 +129,14 @@ class _SelectorZonasMultipleState extends State<SelectorZonasMultiple> {
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.superficie,
+        // Material (no Container con color): así las casillas muestran su
+        // efecto al tocarlas y Flutter no lanza el aviso de "ink splashes
+        // may be invisible".
+        Material(
+          color: AppColors.superficie,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borde),
+            side: const BorderSide(color: AppColors.borde),
           ),
           clipBehavior: Clip.antiAlias,
           child: _busqueda.text.trim().isEmpty
