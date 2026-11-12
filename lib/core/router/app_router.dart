@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../presentation/providers/recuperacion_provider.dart';
 import '../../presentation/providers/sesion_provider.dart';
+import '../../presentation/providers/verificacion_correo_provider.dart';
 import '../../presentation/screens/admin/admin_inicio_screen.dart';
+import '../../presentation/screens/auth/correo_verificado_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/nueva_contrasena_screen.dart';
 import '../../presentation/screens/auth/recuperar_contrasena_screen.dart';
 import '../../presentation/screens/auth/registro_screen.dart';
+import '../../presentation/screens/auth/revisa_tu_correo_screen.dart';
 import '../../presentation/screens/chat/chat_screen.dart';
 import '../../presentation/screens/chat/mensajes_screen.dart';
 import '../../presentation/screens/cliente/buscar_trabajadoras_screen.dart';
@@ -30,6 +33,7 @@ import '../../presentation/screens/trabajadora/solicitudes_disponibles_screen.da
 import '../../presentation/screens/trabajadora/verificacion_identidad_screen.dart';
 import '../di/providers.dart';
 import 'redireccion.dart';
+import 'verificacion_correo.dart';
 import 'rutas.dart';
 
 /// Rutas de la app y protección de pantallas.
@@ -47,6 +51,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     recuperandoContrasenaProvider,
     (anterior, siguiente) => refrescar.value++,
   );
+  ref.listen(enlaceCorreoProvider, (anterior, siguiente) => refrescar.value++);
   ref.onDispose(refrescar.dispose);
 
   final router = GoRouter(
@@ -58,6 +63,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       rol: ref.read(sesionProvider).value?.rol,
       perfilCompleto: ref.read(sesionProvider).value?.perfilCompleto ?? true,
       recuperandoContrasena: ref.read(recuperandoContrasenaProvider),
+      verificandoCorreo:
+          ref.read(enlaceCorreoProvider) != EstadoEnlaceCorreo.ninguno,
     ),
     routes: [
       GoRoute(
@@ -79,6 +86,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.nuevaContrasena,
         builder: (context, state) => const NuevaContrasenaScreen(),
+      ),
+      // HU-40 · Verificar mi correo.
+      GoRoute(
+        path: Rutas.revisaTuCorreo,
+        builder: (context, state) => RevisaTuCorreoScreen(
+          email: state.uri.queryParameters['correo'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: Rutas.correoVerificado,
+        builder: (context, state) => const CorreoVerificadoScreen(),
       ),
       GoRoute(
         path: Rutas.inicio,

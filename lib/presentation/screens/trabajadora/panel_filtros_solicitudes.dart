@@ -11,11 +11,14 @@ import '../../../domain/services/filtro_solicitudes.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 
 /// Barra de filtros de HU-11 (criterio 2), igual al Figma W06:
-/// "Tipo de limpieza", "Desde la fecha", "Sin mascotas" y el botón "Filtrar".
+/// "Tipo de limpieza", "Desde la fecha", "Zonas", "Sin mascotas" y "Filtrar".
 ///
 /// El tipo, la fecha y las mascotas se eligen primero y se aplican al tocar
-/// "Filtrar". Debajo están las zonas de la trabajadora como chips: esas se
-/// aplican al instante (si solo tiene una zona, no se muestran).
+/// "Filtrar". Las zonas se eligen en una ventana agrupada por municipio y se
+/// aplican al instante (si solo tiene una zona, el campo no se muestra).
+///
+/// Feedback del Product Review: en vez de mostrar todas las zonas como
+/// chips (mucha carga visual, H8), el campo "Zonas" muestra un resumen.
 class PanelFiltrosSolicitudes extends ConsumerStatefulWidget {
   const PanelFiltrosSolicitudes({super.key, required this.zonas});
 
@@ -67,14 +70,118 @@ class _PanelFiltrosSolicitudesState
         );
   }
 
+  /// Ventana "Mis zonas": las zonas agrupadas por municipio, con casillas.
+  /// Cada cambio se aplica al instante (como los chips de antes).
+  Future<void> _elegirZonas(ArbolZonas arbol) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogo) => Consumer(
+        builder: (dialogo, ref, _) {
+          final textos = Theme.of(dialogo).textTheme;
+          final filtro = ref.watch(filtroSolicitudesProvider);
+          final notificador = ref.read(filtroSolicitudesProvider.notifier);
+
+          bool visible(Zona zona) => !filtro.zonasOcultas.contains(zona.id);
+
+          // Deja todas las zonas del grupo visibles (ver = true) u ocultas.
+          void poner(Iterable<Zona> grupo, {required bool ver}) {
+            for (final zona in grupo) {
+              if (visible(zona) != ver) notificador.alternarZona(zona.id);
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Mis zonas'),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Elige en qué zonas quieres ver trabajos.',
+                      style: textos.bodySmall
+                          ?.copyWith(color: AppColors.textoSecundario),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final municipio in arbol.municipios)
+                      Builder(
+                        builder: (context) {
+                          final zonas = arbol.zonasDelMunicipio(municipio);
+                          final cuantas = zonas.where(visible).length;
+                          final todas = cuantas == zonas.length;
+                          return ExpansionTile(
+                            key: PageStorageKey('filtro-municipio-$municipio'),
+                            shape: const Border(),
+                            collapsedShape: const Border(),
+                            tilePadding: EdgeInsets.zero,
+                            leading: Checkbox(
+                              key: Key('filtro-todo-$municipio'),
+                              tristate: true,
+                              value: cuantas == 0 ? false : (todas ? true : null),
+                              onChanged: (_) => poner(zonas, ver: !todas),
+                            ),
+                            title: Text(
+                              municipio,
+                              style: textos.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            subtitle: Text(
+                              '$cuantas de ${zonas.length} zonas',
+                              style: textos.bodySmall?.copyWith(
+                                color: cuantas == 0
+                                    ? AppColors.textoSecundario
+                                    : AppColors.primario,
+                              ),
+                            ),
+                            children: [
+                              for (final zona in zonas)
+                                CheckboxListTile(
+                                  key: Key('filtro-zona-${zona.id}'),
+                                  dense: true,
+                                  contentPadding:
+                                      const EdgeInsets.only(left: 24),
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  value: visible(zona),
+                                  title: Text(zona.nombre),
+                                  onChanged: (_) =>
+                                      notificador.alternarZona(zona.id),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                key: const Key('filtro-zonas-ver-todas'),
+                onPressed: () => poner(widget.zonas, ver: true),
+                child: const Text('Ver todas'),
+              ),
+              FilledButton(
+                key: const Key('filtro-zonas-listo'),
+                onPressed: () => Navigator.of(dialogo).pop(),
+                child: const Text('Listo'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final filtro = ref.watch(filtroSolicitudesProvider);
     final notificador = ref.read(filtroSolicitudesProvider.notifier);
     final movil = Responsive.esMovil(context);
-    // Corrección de la revisión: las zonas se agrupan por municipio, como en
-    // el perfil, en vez de una fila suelta de urbanizaciones.
+    // Las zonas se agrupan por municipio, como en el perfil.
     final arbol = ArbolZonas(widget.zonas);
 
     // Si los filtros cambian desde fuera ("Quitar filtros"), el formulario
@@ -135,6 +242,41 @@ class _PanelFiltrosSolicitudesState
       ),
     );
 
+    // "Zonas": un resumen en vez de todos los chips (H8).
+    final mostrarZonas = widget.zonas.length > 1;
+    final totalZonas = widget.zonas.length;
+    final zonasVisibles = widget.zonas
+        .where((z) => !filtro.zonasOcultas.contains(z.id))
+        .length;
+    final resumenZonas = zonasVisibles == totalZonas
+        ? 'Todas mis zonas ($totalZonas)'
+        : zonasVisibles == 0
+            ? 'Ninguna zona'
+            : '$zonasVisibles de $totalZonas zonas';
+
+    final zonas = _Campo(
+      etiqueta: 'Zonas',
+      child: InkWell(
+        key: const Key('filtro-zonas'),
+        onTap: () => _elegirZonas(arbol),
+        borderRadius: BorderRadius.circular(12),
+        child: InputDecorator(
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            prefixIcon: Icon(Icons.place_outlined, size: 18),
+            suffixIcon: Icon(Icons.expand_more_rounded, size: 20),
+          ),
+          child: Text(
+            resumenZonas,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textos.bodyMedium?.copyWith(fontSize: 14),
+          ),
+        ),
+      ),
+    );
+
     final mascotas = InkWell(
       onTap: () => setState(() => _sinMascotas = !_sinMascotas),
       borderRadius: BorderRadius.circular(8),
@@ -178,52 +320,29 @@ class _PanelFiltrosSolicitudesState
               tipo,
               const SizedBox(height: 12),
               fecha,
+              if (mostrarZonas) ...[
+                const SizedBox(height: 12),
+                zonas,
+              ],
               const SizedBox(height: 8),
               Row(children: [mascotas, const Spacer(), boton]),
             ] else
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(flex: 5, child: tipo),
+                  Expanded(flex: 4, child: tipo),
                   const SizedBox(width: 12),
-                  Expanded(flex: 4, child: fecha),
+                  Expanded(flex: 3, child: fecha),
+                  if (mostrarZonas) ...[
+                    const SizedBox(width: 12),
+                    Expanded(flex: 4, child: zonas),
+                  ],
                   const SizedBox(width: 12),
                   mascotas,
-                  const Spacer(flex: 2),
+                  const SizedBox(width: 12),
                   boton,
                 ],
               ),
-            if (widget.zonas.length > 1) ...[
-              const SizedBox(height: 14),
-              Text('Mis zonas:', style: textos.bodySmall?.copyWith(fontSize: 13)),
-              for (final municipio in arbol.municipios)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        municipio,
-                        style: textos.labelMedium?.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textoSecundario,
-                        ),
-                      ),
-                      for (final zona in arbol.zonasDelMunicipio(municipio))
-                        FilterChip(
-                          label: Text(zona.nombre),
-                          labelStyle:
-                              textos.labelMedium?.copyWith(fontSize: 13),
-                          selected: !filtro.zonasOcultas.contains(zona.id),
-                          onSelected: (_) => notificador.alternarZona(zona.id),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
             if (filtro.hayFiltros)
               Align(
                 alignment: Alignment.centerRight,

@@ -163,7 +163,7 @@ void main() {
     (tester) async {
       _pantallaGrande(tester);
 
-            // Fechas lejanas en el futuro: el resumen solo anuncia servicios que
+      // Fechas lejanas en el futuro: el resumen solo anuncia servicios que
       // todavía no pasaron, así la prueba no "vence" con el calendario.
       // 3/11/2030 es domingo y 7/11/2030 es jueves, como espera el texto.
       final fecha1 = DateTime(2030, 11, 3, 9);
@@ -231,22 +231,17 @@ void main() {
       expect(find.textContaining(r'$25'), findsWidgets);
       expect(find.textContaining(r'$60'), findsWidgets);
 
-      // Orden visual por fecha del servicio (criterio 1).
-      final yGeneral = tester
-          .getTopLeft(find.textContaining('Limpieza general'))
-          .dy;
-      final yProfunda = tester
-          .getTopLeft(find.textContaining('Limpieza profunda'))
-          .dy;
-      final yPlanchado = tester
-          .getTopLeft(find.textContaining('Limpieza planchado'))
-          .dy;
-      final yPostMudanza = tester
-          .getTopLeft(find.textContaining('Limpieza post-mudanza'))
-          .dy;
-      expect(yGeneral, lessThan(yProfunda));
-      expect(yProfunda, lessThan(yPlanchado));
-      expect(yPlanchado, lessThan(yPostMudanza));
+      // Orden visual por fecha del servicio (criterio 1). En la cuadrícula
+      // se lee de izquierda a derecha y de arriba hacia abajo.
+      bool vaAntes(String a, String b) {
+        final pa = tester.getTopLeft(find.textContaining(a).first);
+        final pb = tester.getTopLeft(find.textContaining(b).first);
+        return pa.dy < pb.dy || (pa.dy == pb.dy && pa.dx < pb.dx);
+      }
+
+      expect(vaAntes('Limpieza general', 'Limpieza profunda'), isTrue);
+      expect(vaAntes('Limpieza profunda', 'Limpieza planchado'), isTrue);
+      expect(vaAntes('Limpieza planchado', 'Limpieza post-mudanza'), isTrue);
 
       // La trabajadora asignada sale de los datos, no está hardcodeada.
       expect(find.text('Ana Gómez'), findsOneWidget);
@@ -263,7 +258,6 @@ void main() {
       expect(resumen.data, isNot(contains('..')));
     },
   );
-
   testWidgets('HU-08: muestra la calificación real del cliente o su ausencia', (
     tester,
   ) async {

@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +28,10 @@ import '../../widgets/selector_zona.dart';
 /// Con [repetirDe] es HU-44 · Repetir una solicitud anterior: el formulario
 /// sale con los mismos datos y la fecha vacía, y al publicar se crea una
 /// solicitud nueva (la anterior no cambia).
+///
+/// Feedback del Product Review: en pantalla grande, el formulario va a la
+/// izquierda y a la derecha dos cajas (vista previa y pago), todo al mismo
+/// nivel y sin espacio en blanco.
 class PublicarSolicitudScreen extends ConsumerStatefulWidget {
   const PublicarSolicitudScreen({super.key, this.solicitudId, this.repetirDe})
       : assert(
@@ -46,8 +53,16 @@ class PublicarSolicitudScreen extends ConsumerStatefulWidget {
 class _PublicarSolicitudScreenState
     extends ConsumerState<PublicarSolicitudScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
   final _direccion = TextEditingController();
   final _pago = TextEditingController(text: '30');
+
+  // Claves para desplazamiento interactivo al faltar datos.
+  final _fechaKey = GlobalKey();
+  final _zonaKey = GlobalKey();
+  final _direccionKey = GlobalKey();
+  final _productosKey = GlobalKey();
+  final _pagoKey = GlobalKey();
 
   /// Null solo al repetir (HU-44 c1): hay que elegir la fecha nueva.
   DateTime? _fecha;
@@ -125,6 +140,7 @@ class _PublicarSolicitudScreenState
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _direccion.dispose();
     _pago.dispose();
     super.dispose();
@@ -202,27 +218,111 @@ class _PublicarSolicitudScreenState
       double.tryParse(_pago.text.trim().replaceAll(',', '.')) ?? 0;
 
   Future<void> _elegirFecha() async {
-    final hoy = DateTime.now();
-    final elegida = await showDatePicker(
-      context: context,
-      initialDate: _fecha ?? _manana(),
-      // H5: los días pasados no se pueden elegir.
-      firstDate: DateTime(hoy.year, hoy.month, hoy.day),
-      lastDate: hoy.add(const Duration(days: 90)),
-    );
-    if (elegida != null) setState(() => _fecha = elegida);
+    try {
+      final hoy = DateTime.now();
+      final hoySoloFecha = DateTime(hoy.year, hoy.month, hoy.day);
+      final primerDia = hoySoloFecha;
+      final limiteFuturo = hoySoloFecha.add(const Duration(days: 365));
+      final ultimoDia = (_fecha != null && _fecha!.isAfter(limiteFuturo))
+          ? _fecha!.add(const Duration(days: 30))
+          : limiteFuturo;
+
+      final fechaBase = (_fecha != null && !_fecha!.isBefore(primerDia))
+          ? _fecha!
+          : _manana();
+      final fechaInicial =
+          fechaBase.isAfter(ultimoDia) ? ultimoDia : fechaBase;
+
+      final elegida = await showDatePicker(
+        context: context,
+        initialDate: fechaInicial,
+        firstDate: primerDia,
+        lastDate: ultimoDia,
+      );
+      if (elegida != null) setState(() => _fecha = elegida);
+    } catch (e) {
+      debugPrint('Error al abrir selector de fecha: $e');
+    }
   }
 
   Future<void> _elegirHora() async {
-    final elegida = await showTimePicker(context: context, initialTime: _hora);
-    if (elegida != null) setState(() => _hora = elegida);
+    try {
+      final elegida =
+          await showTimePicker(context: context, initialTime: _hora);
+      if (elegida != null) setState(() => _hora = elegida);
+    } catch (e) {
+      debugPrint('Error al abrir selector de hora: $e');
+    }
+  }
+
+  List<({String nombre, GlobalKey key})> _camposFaltantes() {
+    final faltantes = <({String nombre, GlobalKey key})>[];
+    final inicio = _inicio;
+    if (inicio == null) {
+      faltantes.add((nombre: 'Fecha del servicio', key: _fechaKey));
+    } else if (!inicio.isAfter(DateTime.now())) {
+      faltantes.add((nombre: 'Fecha futura', key: _fechaKey));
+    }
+    if (_zonaId == null) {
+      faltantes.add((nombre: 'Zona o urbanización', key: _zonaKey));
+    }
+    if (_direccion.text.trim().length < 5) {
+      faltantes.add((nombre: 'Dirección completa', key: _direccionKey));
+    }
+    if (_productos == null) {
+      faltantes.add((nombre: 'Quién pone los productos', key: _productosKey));
+    }
+    if (_montoPago <= 0) {
+      faltantes.add((nombre: 'Pago ofrecido', key: _pagoKey));
+    }
+    return faltantes;
+  }
+
+  void _irACampo(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+        alignment: 0.1,
+      );
+    }
   }
 
   Future<void> _publicar() async {
     setState(() => _intentoEnviar = true);
     final valido = _formKey.currentState!.validate();
     final inicio = _inicio;
-    if (!valido || _zonaId == null || _productos == null || inicio == null) {
+    final faltantes = _camposFaltantes();
+
+    if (!valido ||
+        _zonaId == null ||
+        _productos == null ||
+        inicio == null ||
+        !inicio.isAfter(DateTime.now())) {
+      if (faltantes.isNotEmpty) {
+        _irACampo(faltantes.first.key);
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Faltan datos obligatorios: ${faltantes.map((e) => e.nombre).join(', ')}.',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       return;
     }
 
@@ -351,23 +451,28 @@ class _PublicarSolicitudScreenState
     final zonas = ref.watch(zonasCatalogoProvider);
     final tema = Theme.of(context);
 
+    // Izquierda: fecha, tipo, lugar y detalles para la trabajadora.
     final formulario = _Tarjeta(
-      child: Form(
-        key: _formKey,
-        autovalidateMode: _intentoEnviar
-            ? AutovalidateMode.onUserInteraction
-            : AutovalidateMode.disabled,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Fecha y tipo de servicio', style: tema.textTheme.titleLarge),
-            const SizedBox(height: 16),
-            _DosColumnas(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Fecha y tipo de servicio', style: tema.textTheme.titleLarge),
+          const SizedBox(height: 16),
+          KeyedSubtree(
+            key: _fechaKey,
+            child: _DosColumnas(
               izquierda: _CampoBoton(
                 etiqueta: 'Fecha',
                 valor: _fecha == null ? 'Elige la fecha' : _fechaCorta(_fecha!),
                 icono: Icons.calendar_today_outlined,
                 onTap: _elegirFecha,
+                errorText: _intentoEnviar && _fecha == null
+                    ? 'Elige la fecha del servicio'
+                    : (_intentoEnviar &&
+                            _inicio != null &&
+                            !_inicio!.isAfter(DateTime.now())
+                        ? 'La fecha debe ser futura'
+                        : null),
               ),
               derecha: _CampoBoton(
                 etiqueta: 'Hora de inicio',
@@ -376,59 +481,70 @@ class _PublicarSolicitudScreenState
                 onTap: _elegirHora,
               ),
             ),
-            if (_intentoEnviar && _inicio == null)
-              const _TextoError(texto: 'Elige la fecha del servicio')
-            else if (_intentoEnviar && !_inicio!.isAfter(DateTime.now()))
-              const _TextoError(texto: 'La fecha debe ser futura'),
-            const SizedBox(height: 16),
-            _Contador(
-              etiqueta: 'Horas estimadas',
-              valor: _horas,
-              minimo: SolicitudService.horasMinimas,
-              maximo: SolicitudService.horasMaximas,
-              onCambio: (v) => setState(() => _horas = v),
-            ),
-            const SizedBox(height: 20),
-            Text('Tipo de limpieza', style: tema.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          ),
+          const SizedBox(height: 16),
+          _Contador(
+            etiqueta: 'Horas estimadas',
+            valor: _horas,
+            minimo: SolicitudService.horasMinimas,
+            maximo: SolicitudService.horasMaximas,
+            onCambio: (v) => setState(() => _horas = v),
+          ),
+          const SizedBox(height: 20),
+          Text('Tipo de limpieza', style: tema.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final tipo in TipoLimpieza.values)
+                ChoiceChip(
+                  label: Text(tipo.etiqueta),
+                  selected: _tipo == tipo,
+                  onSelected: (_) => setState(() => _tipo = tipo),
+                ),
+            ],
+          ),
+          const Divider(height: 40),
+          Text('Lugar', style: tema.textTheme.titleLarge),
+          const SizedBox(height: 16),
+          // Corrección de la revisión: la zona se elige en orden
+          // Municipio → Parroquia → Urbanización.
+          KeyedSubtree(
+            key: _zonaKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final tipo in TipoLimpieza.values)
-                  ChoiceChip(
-                    label: Text(tipo.etiqueta),
-                    selected: _tipo == tipo,
-                    onSelected: (_) => setState(() => _tipo = tipo),
+                zonas.when(
+                  data: (lista) => SelectorZona(
+                    zonas: lista,
+                    valor: _zonaId,
+                    onChanged: (id) => setState(() => _zonaId = id),
+                    validator: (_) => _zonaId == null ? 'Elige una zona' : null,
+                  ),
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, _) => Row(
+                    children: [
+                      const Expanded(child: Text('No pudimos cargar las zonas.')),
+                      // H9: el error trae su solución.
+                      TextButton(
+                        onPressed: () => ref.invalidate(zonasCatalogoProvider),
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_intentoEnviar && _zonaId == null)
+                  const _TextoError(
+                    texto: 'Elige una zona (municipio, parroquia y urbanización)',
                   ),
               ],
             ),
-            const Divider(height: 40),
-            Text('Lugar', style: tema.textTheme.titleLarge),
-            const SizedBox(height: 16),
-            // Corrección de la revisión: la zona se elige en orden
-            // Municipio → Parroquia → Urbanización.
-            zonas.when(
-              data: (lista) => SelectorZona(
-                zonas: lista,
-                valor: _zonaId,
-                onChanged: (id) => setState(() => _zonaId = id),
-                validator: (_) => _zonaId == null ? 'Elige una zona' : null,
-              ),
-              loading: () => const LinearProgressIndicator(),
-              error: (_, _) => Row(
-                children: [
-                  const Expanded(child: Text('No pudimos cargar las zonas.')),
-                  // H9: el error trae su solución.
-                  TextButton(
-                    onPressed: () => ref.invalidate(zonasCatalogoProvider),
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
+          ),
+          const SizedBox(height: 16),
+          KeyedSubtree(
+            key: _direccionKey,
+            child: TextFormField(
               controller: _direccion,
               decoration: const InputDecoration(
                 labelText: 'Dirección',
@@ -438,37 +554,40 @@ class _PublicarSolicitudScreenState
                   ? 'Escribe la dirección completa'
                   : null,
             ),
-            const SizedBox(height: 16),
-            _DosColumnas(
-              izquierda: _Contador(
-                etiqueta: 'Habitaciones',
-                valor: _habitaciones,
-                minimo: 0,
-                maximo: 20,
-                onCambio: (v) => setState(() => _habitaciones = v),
-              ),
-              derecha: _Contador(
-                etiqueta: 'Baños',
-                valor: _banos,
-                minimo: 0,
-                maximo: 20,
-                onCambio: (v) => setState(() => _banos = v),
-              ),
+          ),
+          const SizedBox(height: 16),
+          _DosColumnas(
+            izquierda: _Contador(
+              etiqueta: 'Habitaciones',
+              valor: _habitaciones,
+              minimo: 0,
+              maximo: 20,
+              onCambio: (v) => setState(() => _habitaciones = v),
             ),
-            const Divider(height: 40),
-            Text(
-              'Detalles para la trabajadora',
-              style: tema.textTheme.titleLarge,
+            derecha: _Contador(
+              etiqueta: 'Baños',
+              valor: _banos,
+              minimo: 0,
+              maximo: 20,
+              onCambio: (v) => setState(() => _banos = v),
             ),
-            const SizedBox(height: 16),
-            _DosColumnas(
-              izquierda: _Opciones<bool>(
-                etiqueta: '¿Hay mascotas?',
-                opciones: const {false: 'No', true: 'Sí'},
-                valor: _mascotas,
-                onCambio: (v) => setState(() => _mascotas = v),
-              ),
-              derecha: _Opciones<QuienPoneProductos>(
+          ),
+          const Divider(height: 40),
+          Text(
+            'Detalles para la trabajadora',
+            style: tema.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          _DosColumnas(
+            izquierda: _Opciones<bool>(
+              etiqueta: '¿Hay mascotas?',
+              opciones: const {false: 'No', true: 'Sí'},
+              valor: _mascotas,
+              onCambio: (v) => setState(() => _mascotas = v),
+            ),
+            derecha: KeyedSubtree(
+              key: _productosKey,
+              child: _Opciones<QuienPoneProductos>(
                 etiqueta: '¿Quién pone los productos?',
                 opciones: {
                   for (final p in QuienPoneProductos.values) p: p.etiqueta,
@@ -480,39 +599,45 @@ class _PublicarSolicitudScreenState
                 onCambio: (v) => setState(() => _productos = v),
               ),
             ),
-            const SizedBox(height: 16),
-            _DosColumnas(
-              izquierda: TextFormField(
-                controller: _pago,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Pago ofrecido (USD)',
-                  prefixText: r'$ ',
-                ),
-                validator: (_) =>
-                    _montoPago <= 0 ? 'Escribe cuánto vas a pagar' : null,
-              ),
-              derecha: DropdownButtonFormField<MetodoPago>(
-                initialValue: _metodo,
-                decoration: const InputDecoration(labelText: 'Método de pago'),
-                items: [
-                  for (final m in MetodoPago.values)
-                    DropdownMenuItem(value: m, child: Text(m.etiqueta)),
-                ],
-                onChanged: (m) {
-                  if (m != null) setState(() => _metodo = m);
-                },
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 
+    // Campos de pago: van en la caja "Pago", junto al total.
+    final campoPago = KeyedSubtree(
+      key: _pagoKey,
+      child: TextFormField(
+        controller: _pago,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+        ],
+        decoration: const InputDecoration(
+          labelText: 'Pago ofrecido (USD)',
+          prefixText: r'$ ',
+        ),
+        validator: (_) =>
+            _montoPago <= 0 ? 'Escribe cuánto vas a pagar' : null,
+      ),
+    );
+
+    final campoMetodo = DropdownButtonFormField<MetodoPago>(
+      initialValue: _metodo,
+      decoration: const InputDecoration(labelText: 'Método de pago'),
+      items: [
+        for (final m in MetodoPago.values)
+          DropdownMenuItem(value: m, child: Text(m.etiqueta)),
+      ],
+      onChanged: (m) {
+        if (m != null) setState(() => _metodo = m);
+      },
+    );
+
+    final faltantes =
+        _intentoEnviar ? _camposFaltantes() : const <({String nombre, GlobalKey key})>[];
+
+    // Derecha arriba: "Así la verán las trabajadoras".
     final vistaPrevia = _VistaPrevia(
       tipo: _tipo,
       fecha: _fecha,
@@ -521,6 +646,16 @@ class _PublicarSolicitudScreenState
       zona: _nombreZona(zonas),
       habitaciones: _habitaciones,
       banos: _banos,
+      errorFecha: _intentoEnviar &&
+          (_fecha == null ||
+              (_inicio != null && !_inicio!.isAfter(DateTime.now()))),
+      errorZona: _intentoEnviar && _zonaId == null,
+    );
+
+    // Derecha abajo: pago, total y botón.
+    final cajaPago = _CajaPago(
+      campoPago: campoPago,
+      campoMetodo: campoMetodo,
       pago: _montoPago,
       cargando: estado.isLoading,
       error: estado.hasError ? _mensajeDeError(estado.error!) : null,
@@ -530,11 +665,14 @@ class _PublicarSolicitudScreenState
       aviso: _editando && (_original?.numPostulantes ?? 0) > 0
           ? 'Las postulantes verán los datos nuevos'
           : null,
+      faltantes: faltantes,
+      onIrACampo: _irACampo,
     );
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(24),
           child: Center(
             child: ConstrainedBox(
@@ -567,27 +705,34 @@ class _PublicarSolicitudScreenState
                     style: tema.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 24),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      if (constraints.maxWidth < 900) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            formulario,
-                            const SizedBox(height: 16),
-                            vistaPrevia,
-                          ],
+                  // El Form envuelve las dos columnas, porque el pago quedó
+                  // en la caja de la derecha y también se valida.
+                  Form(
+                    key: _formKey,
+                    autovalidateMode: _intentoEnviar
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 900) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              formulario,
+                              const SizedBox(height: 16),
+                              vistaPrevia,
+                              const SizedBox(height: 16),
+                              cajaPago,
+                            ],
+                          );
+                        }
+                        // Feedback del Product Review: las dos columnas al
+                        // mismo nivel, sin espacio en blanco.
+                        return _FilaMismaAltura(
+                          children: [formulario, vistaPrevia, cajaPago],
                         );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 3, child: formulario),
-                          const SizedBox(width: 24),
-                          Expanded(flex: 2, child: vistaPrevia),
-                        ],
-                      );
-                    },
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -629,12 +774,8 @@ class _VistaPrevia extends StatelessWidget {
     required this.zona,
     required this.habitaciones,
     required this.banos,
-    required this.pago,
-    required this.cargando,
-    required this.error,
-    required this.onPublicar,
-    this.textoBoton = 'Publicar solicitud',
-    this.aviso,
+    this.errorFecha = false,
+    this.errorZona = false,
   });
 
   final TipoLimpieza tipo;
@@ -645,14 +786,8 @@ class _VistaPrevia extends StatelessWidget {
   final String? zona;
   final int habitaciones;
   final int banos;
-  final double pago;
-  final bool cargando;
-  final String? error;
-  final VoidCallback onPublicar;
-  final String textoBoton;
-
-  /// Aviso ámbar sobre el botón (HU-09: hay postulantes).
-  final String? aviso;
+  final bool errorFecha;
+  final bool errorZona;
 
   @override
   Widget build(BuildContext context) {
@@ -661,6 +796,7 @@ class _VistaPrevia extends StatelessWidget {
 
     return _Tarjeta(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
@@ -675,14 +811,20 @@ class _VistaPrevia extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             fecha == null ? 'Fecha por elegir' : _fechaLarga(fecha!),
-            style: tema.textTheme.titleLarge,
+            style: tema.textTheme.titleLarge?.copyWith(
+              color: errorFecha ? AppColors.error : null,
+            ),
           ),
           const SizedBox(height: 8),
           _Dato(
             icono: Icons.schedule,
             texto: '${_horaTexto(hora)} · $horas horas',
           ),
-          _Dato(icono: Icons.place_outlined, texto: zona ?? 'Elige una zona'),
+          _Dato(
+            icono: Icons.place_outlined,
+            texto: zona ?? 'Elige una zona',
+            colorTexto: errorZona ? AppColors.error : null,
+          ),
           _Dato(
             icono: Icons.bed_outlined,
             texto: '$habitaciones habitaciones · $banos baños',
@@ -709,67 +851,314 @@ class _VistaPrevia extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 32),
-          // HU-52: desglose del costo.
-          _FilaMonto(etiqueta: 'La trabajadora recibe', monto: pago),
-          _FilaMonto(
-            etiqueta: 'Tarifa LimpiaYa (10 %)',
-            monto: SolicitudService.tarifa(pago),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Caja "Pago": campos de pago, desglose (HU-52), avisos y botón
+// ---------------------------------------------------------------------------
+
+class _CajaPago extends StatelessWidget {
+  const _CajaPago({
+    required this.campoPago,
+    required this.campoMetodo,
+    required this.pago,
+    required this.cargando,
+    required this.error,
+    required this.onPublicar,
+    this.textoBoton = 'Publicar solicitud',
+    this.aviso,
+    this.faltantes = const [],
+    this.onIrACampo,
+  });
+
+  final Widget campoPago;
+  final Widget campoMetodo;
+  final double pago;
+  final bool cargando;
+  final String? error;
+  final VoidCallback onPublicar;
+  final String textoBoton;
+
+  /// Aviso ámbar sobre el botón (HU-09: hay postulantes).
+  final String? aviso;
+
+  /// Lista interactiva de campos que faltan por completar.
+  final List<({String nombre, GlobalKey key})> faltantes;
+  final void Function(GlobalKey key)? onIrACampo;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final colores = tema.colorScheme;
+
+    return _Tarjeta(
+      // spaceBetween: si la caja se estira para igualar al formulario, los
+      // campos quedan arriba y el botón abajo.
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'PAGO',
+                style:
+                    tema.textTheme.labelMedium?.copyWith(letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 16),
+              campoPago,
+              const SizedBox(height: 16),
+              campoMetodo,
+              const Divider(height: 32),
+              // HU-52: desglose del costo.
+              _FilaMonto(etiqueta: 'La trabajadora recibe', monto: pago),
+              _FilaMonto(
+                etiqueta: 'Tarifa LimpiaYa (10 %)',
+                monto: SolicitudService.tarifa(pago),
+              ),
+              const SizedBox(height: 4),
+              _FilaMonto(
+                etiqueta: 'Total a pagar',
+                monto: SolicitudService.total(pago),
+                fuerte: true,
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          _FilaMonto(
-            etiqueta: 'Total a pagar',
-            monto: SolicitudService.total(pago),
-            fuerte: true,
-          ),
-          if (error != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colores.errorContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                error!,
-                style: TextStyle(color: colores.onErrorContainer),
-              ),
-            ),
-          ],
-          if (aviso != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.insigniaAmbarFondo,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                aviso!,
-                style: tema.textTheme.bodySmall?.copyWith(
-                  color: AppColors.aviso,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (error != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colores.errorContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    error!,
+                    style: TextStyle(color: colores.onErrorContainer),
+                  ),
                 ),
+              ],
+              if (aviso != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.insigniaAmbarFondo,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    aviso!,
+                    style: tema.textTheme.bodySmall?.copyWith(
+                      color: AppColors.aviso,
+                    ),
+                  ),
+                ),
+              ],
+              if (faltantes.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.insigniaRojaFondo,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.error),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            size: 20,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Faltan datos obligatorios:',
+                              style: tema.textTheme.labelMedium?.copyWith(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final f in faltantes)
+                            InkWell(
+                              onTap: onIrACampo != null
+                                  ? () => onIrACampo!(f.key)
+                                  : null,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color:
+                                        AppColors.error.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      f.nombre,
+                                      style:
+                                          tema.textTheme.bodySmall?.copyWith(
+                                        color: AppColors.error,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.arrow_upward_rounded,
+                                      size: 14,
+                                      color: AppColors.error,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: cargando ? null : onPublicar,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
+                ),
+                child: cargando
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : Text(textoBoton),
               ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: cargando ? null : onPublicar,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(54),
-            ),
-            child: cargando
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : Text(textoBoton),
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Fila de dos columnas de la misma altura (pantalla grande)
+// ---------------------------------------------------------------------------
+
+/// Recibe tres hijos: [izquierda, derechaArriba, derechaAbajo].
+///
+/// La izquierda ocupa 3/5 del ancho y la derecha 2/5. Al final, las dos
+/// columnas miden lo mismo: si la derecha es más corta, se estira la caja de
+/// abajo (la de pago); si es más larga, se estira la izquierda.
+class _FilaMismaAltura extends MultiChildRenderObjectWidget {
+  const _FilaMismaAltura({required super.children});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderFilaMismaAltura();
+}
+
+class _DatosFila extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderFilaMismaAltura extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _DatosFila>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _DatosFila> {
+  static const _espacio = 24.0; // entre la columna izquierda y la derecha
+  static const _separacion = 16.0; // entre las dos cajas de la derecha
+  static const _fraccionIzquierda = 3 / 5;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _DatosFila) child.parentData = _DatosFila();
+  }
+
+  @override
+  void performLayout() {
+    final izquierda = firstChild!;
+    final arriba = childAfter(izquierda)!;
+    final abajo = childAfter(arriba)!;
+
+    final ancho = constraints.maxWidth;
+    final anchoIzquierda = (ancho - _espacio) * _fraccionIzquierda;
+    final anchoDerecha = ancho - _espacio - anchoIzquierda;
+
+    // 1) Cada caja con su altura natural.
+    izquierda.layout(
+      BoxConstraints.tightFor(width: anchoIzquierda),
+      parentUsesSize: true,
+    );
+    arriba.layout(
+      BoxConstraints.tightFor(width: anchoDerecha),
+      parentUsesSize: true,
+    );
+    abajo.layout(
+      BoxConstraints.tightFor(width: anchoDerecha),
+      parentUsesSize: true,
+    );
+
+    // 2) La fila mide lo que la columna más alta.
+    final altoDerecha =
+        arriba.size.height + _separacion + abajo.size.height;
+    final alto = math.max(izquierda.size.height, altoDerecha);
+
+    // 3) Se estiran la izquierda y la caja de abajo hasta esa altura.
+    izquierda.layout(
+      BoxConstraints.tight(Size(anchoIzquierda, alto)),
+      parentUsesSize: true,
+    );
+    abajo.layout(
+      BoxConstraints.tight(
+        Size(anchoDerecha, alto - arriba.size.height - _separacion),
+      ),
+      parentUsesSize: true,
+    );
+
+    (izquierda.parentData! as _DatosFila).offset = Offset.zero;
+    (arriba.parentData! as _DatosFila).offset =
+        Offset(anchoIzquierda + _espacio, 0);
+    (abajo.parentData! as _DatosFila).offset = Offset(
+      anchoIzquierda + _espacio,
+      arriba.size.height + _separacion,
+    );
+
+    size = constraints.constrain(Size(ancho, alto));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }
 
 // ---------------------------------------------------------------------------
@@ -830,12 +1219,14 @@ class _CampoBoton extends StatelessWidget {
     required this.valor,
     required this.icono,
     required this.onTap,
+    this.errorText,
   });
 
   final String etiqueta;
   final String valor;
   final IconData icono;
   final VoidCallback onTap;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -846,6 +1237,7 @@ class _CampoBoton extends StatelessWidget {
         decoration: InputDecoration(
           labelText: etiqueta,
           suffixIcon: Icon(icono),
+          errorText: errorText,
         ),
         child: Text(valor),
       ),
@@ -915,21 +1307,40 @@ class _Opciones<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(etiqueta, style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          etiqueta,
+          style: tema.textTheme.titleSmall?.copyWith(
+            color: error != null ? AppColors.error : null,
+          ),
+        ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final entrada in opciones.entries)
-              ChoiceChip(
-                label: Text(entrada.value),
-                selected: valor == entrada.key,
-                onSelected: (_) => onCambio(entrada.key),
-              ),
-          ],
+        Container(
+          padding: error != null ? const EdgeInsets.all(6) : EdgeInsets.zero,
+          decoration: error != null
+              ? BoxDecoration(
+                  color: AppColors.insigniaRojaFondo.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.6),
+                  ),
+                )
+              : null,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final entrada in opciones.entries)
+                ChoiceChip(
+                  label: Text(entrada.value),
+                  selected: valor == entrada.key,
+                  onSelected: (_) => onCambio(entrada.key),
+                ),
+            ],
+          ),
         ),
         if (error != null) _TextoError(texto: error!),
       ],
@@ -938,9 +1349,10 @@ class _Opciones<T> extends StatelessWidget {
 }
 
 class _Dato extends StatelessWidget {
-  const _Dato({required this.icono, required this.texto});
+  const _Dato({required this.icono, required this.texto, this.colorTexto});
   final IconData icono;
   final String texto;
+  final Color? colorTexto;
 
   @override
   Widget build(BuildContext context) {
@@ -948,9 +1360,19 @@ class _Dato extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Icon(icono, size: 20),
+          Icon(icono, size: 20, color: colorTexto),
           const SizedBox(width: 8),
-          Expanded(child: Text(texto)),
+          Expanded(
+            child: Text(
+              texto,
+              style: colorTexto != null
+                  ? TextStyle(
+                      color: colorTexto,
+                      fontWeight: FontWeight.w600,
+                    )
+                  : null,
+            ),
+          ),
         ],
       ),
     );
