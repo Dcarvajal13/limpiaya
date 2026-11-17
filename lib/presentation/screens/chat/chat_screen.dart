@@ -17,7 +17,6 @@ import '../../providers/chat_provider.dart';
 import '../../providers/mis_servicios_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
-import '../../widgets/contenido_centrado.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
 
@@ -155,8 +154,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           },
         ),
       ),
-      body: ContenidoCentrado(
-        anchoMaximo: 820,
+      body: _Ventana(
+        movil: movil,
         child: servicioAsync.when(
           loading: () =>
               const Center(child: CircularProgressIndicator()),
@@ -190,7 +189,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               children: [
                 _Cabecera(servicio: servicio, movil: movil),
                 Expanded(
-                  child: mensajesAsync.hasError && mensajes.isEmpty
+                  child: ColoredBox(
+                    color: AppColors.fondoChat,
+                    child: mensajesAsync.hasError && mensajes.isEmpty
                       ? EstadoVacio(
                           icono: Icons.wifi_off_rounded,
                           titulo: 'No pudimos cargar los mensajes.',
@@ -211,20 +212,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             )
                           : ListView.builder(
                               controller: _scroll,
-                              padding: const EdgeInsets.fromLTRB(4, 16, 4, 16),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: movil ? 12 : 24,
+                                vertical: 20,
+                              ),
                               itemCount: mensajes.length,
                               itemBuilder: (context, indice) {
                                 final mensaje = mensajes[indice];
                                 final esMio =
                                     mensaje.esMio(sesion?.id ?? '');
+                                // Mensajes seguidos de la misma persona van
+                                // más juntos, como un solo bloque.
+                                final seguido = indice > 0 &&
+                                    mensajes[indice - 1].autorId ==
+                                        mensaje.autorId;
                                 return _Burbuja(
                                   mensaje: mensaje,
                                   esMio: esMio,
+                                  seguido: seguido,
                                   pendiente:
                                       _pendientes.any((p) => p.id == mensaje.id),
                                 );
                               },
                             ),
+                  ),
                 ),
                 if (servicio.chatAbierto)
                   _CampoEnviar(
@@ -263,8 +274,8 @@ class _Cabecera extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: movil ? 16 : 20,
-        vertical: 12,
+        horizontal: movil ? 16 : 24,
+        vertical: 14,
       ),
       decoration: const BoxDecoration(
         color: AppColors.superficie,
@@ -275,17 +286,17 @@ class _Cabecera extends StatelessWidget {
           AvatarUsuario(
             nombre: servicio.contraparteNombre ?? '?',
             fotoUrl: servicio.contraparteFotoUrl,
-            tamano: 40,
+            tamano: 44,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   servicio.contraparteNombre ?? 'Sin nombre',
-                  style: textos.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                  style: textos.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
@@ -312,11 +323,15 @@ class _Burbuja extends StatelessWidget {
   const _Burbuja({
     required this.mensaje,
     required this.esMio,
+    this.seguido = false,
     this.pendiente = false,
   });
 
   final Mensaje mensaje;
   final bool esMio;
+
+  /// Va justo después de otro mensaje de la misma persona.
+  final bool seguido;
   final bool pendiente;
 
   @override
@@ -327,18 +342,26 @@ class _Burbuja extends StatelessWidget {
     return Align(
       alignment: esMio ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
+        margin: EdgeInsets.only(top: seguido ? 3 : 14),
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
         constraints: BoxConstraints(maxWidth: ancho > 820 ? 520 : ancho * 0.78),
         decoration: BoxDecoration(
           color: esMio ? AppColors.primario : AppColors.superficie,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(14),
-            topRight: const Radius.circular(14),
-            bottomLeft: Radius.circular(esMio ? 14 : 4),
-            bottomRight: Radius.circular(esMio ? 4 : 14),
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(esMio ? 18 : 6),
+            bottomRight: Radius.circular(esMio ? 6 : 18),
           ),
-          border: esMio ? null : Border.all(color: AppColors.borde),
+          boxShadow: esMio
+              ? null
+              : [
+                  BoxShadow(
+                    color: AppColors.texto.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Opacity(
           opacity: pendiente ? 0.6 : 1,
@@ -380,10 +403,15 @@ class _CampoEnviar extends StatelessWidget {
   final TextEditingController controlador;
   final Future<void> Function() onEnviar;
 
+  static OutlineInputBorder _borde(Color color) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(24),
+        borderSide: BorderSide(color: color, width: 1.5),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       decoration: const BoxDecoration(
         color: AppColors.superficie,
         border: Border(top: BorderSide(color: AppColors.borde)),
@@ -409,9 +437,18 @@ class _CampoEnviar extends StatelessWidget {
                   maxLength,
                 }) =>
                     null,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Escribe un mensaje…',
                   isDense: true,
+                  filled: true,
+                  fillColor: AppColors.fondoChat,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  border: _borde(Colors.transparent),
+                  enabledBorder: _borde(Colors.transparent),
+                  focusedBorder: _borde(AppColors.primario),
                 ),
               ),
             ),
@@ -420,6 +457,7 @@ class _CampoEnviar extends StatelessWidget {
               key: const Key('enviar-mensaje'),
               tooltip: 'Enviar',
               onPressed: onEnviar,
+              style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
               icon: const Icon(Icons.send_rounded, size: 20),
             ),
           ],
@@ -463,6 +501,49 @@ class _ChatCerrado extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Marco del chat. En computadora es una ventana blanca redondeada que se
+/// separa del fondo de la página; en el teléfono ocupa toda la pantalla.
+class _Ventana extends StatelessWidget {
+  const _Ventana({required this.movil, required this.child});
+
+  final bool movil;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (movil) {
+      return ColoredBox(color: AppColors.superficie, child: child);
+    }
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 880),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.superficie,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.borde),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.texto.withValues(alpha: 0.08),
+                  blurRadius: 40,
+                  spreadRadius: -12,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(23),
+              child: SizedBox.expand(child: child),
+            ),
+          ),
         ),
       ),
     );

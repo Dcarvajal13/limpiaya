@@ -38,10 +38,6 @@ class PiePagina extends StatelessWidget {
         const TextStyle(fontSize: 14, height: 1.45, color: AppColors.textoSecundario),
       );
 
-  static TextStyle get _enlace => AppFonts.texto(
-        const TextStyle(fontSize: 15, color: AppColors.texto),
-      );
-
   List<Widget> _enlacesLegales(BuildContext context, TextStyle estilo) => [
         EnlaceSubrayado(
           key: const Key('pie-terminos'),
@@ -103,52 +99,33 @@ class PiePagina extends StatelessWidget {
     );
   }
 
+  /// Pie de las pantallas: una franja baja con el logo y el correo a la
+  /// izquierda, los enlaces a la derecha y el crédito en una línea abajo.
   Widget _completo(BuildContext context) {
     final movil = Responsive.esMovil(context);
     final ancho = MediaQuery.sizeOf(context).width;
     final margen = Responsive.margen(context);
     final lateral = math.max(margen, (ancho - Responsive.anchoMaximo) / 2 + margen);
 
-    final marca = ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 340),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LogoLimpiaYa(tamano: 34, onTap: onLogo),
-          const SizedBox(height: 12),
-          Text(
-            'Limpieza del hogar con trabajadoras verificadas en Caracas.',
-            style: _pequeno.copyWith(fontSize: 15),
-          ),
-          const SizedBox(height: 12),
-          _correo(),
-        ],
-      ),
+    final marca = Wrap(
+      spacing: 24,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        LogoLimpiaYa(tamano: 28, onTap: onLogo),
+        _correo(),
+      ],
     );
 
-    final legal = _Columna(
-      titulo: 'Legal',
-      enlaces: _enlacesLegales(context, _enlace),
-    );
-
-    final proyecto = _Columna(
-      titulo: 'Proyecto',
-      enlaces: [
+    final enlaces = Wrap(
+      spacing: 24,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ..._enlacesLegales(context, _pequeno.copyWith(color: AppColors.texto)),
         EnlaceSubrayado(
           texto: 'Sistema de diseño',
-          estilo: _enlace,
+          estilo: _pequeno.copyWith(color: AppColors.texto),
           onTap: () => context.push(Rutas.sistemaDiseno),
-        ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            widthFactor: 1,
-            child: Text(
-              'Ingeniería de Software, UNIMET',
-              style: _enlace.copyWith(color: AppColors.textoSecundario),
-            ),
-          ),
         ),
       ],
     );
@@ -160,71 +137,27 @@ class PiePagina extends StatelessWidget {
         color: AppColors.superficie,
         border: Border(top: BorderSide(color: AppColors.borde)),
       ),
-      padding: EdgeInsets.fromLTRB(lateral, movil ? 32 : 44, lateral, 12),
+      padding: EdgeInsets.fromLTRB(lateral, movil ? 20 : 16, lateral, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (movil)
-            Wrap(
-              spacing: 40,
-              runSpacing: 28,
-              children: [marca, legal, proyecto],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 2, child: Align(alignment: Alignment.topLeft, child: marca)),
-                const SizedBox(width: 24),
-                Expanded(child: legal),
-                const SizedBox(width: 24),
-                Expanded(child: proyecto),
-              ],
-            ),
-          SizedBox(height: movil ? 24 : 36),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Text(
-              '© 2026 LimpiaYa, hecho en Caracas, Venezuela',
-              textAlign: movil ? TextAlign.start : TextAlign.center,
-              style: _pequeno,
-            ),
+          // Wrap y no Row: si no caben en una línea (pantallas medianas o
+          // teléfono), los enlaces bajan solos en vez de desbordarse.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 24,
+            runSpacing: 4,
+            children: [marca, enlaces],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '© 2026 LimpiaYa · Proyecto de Ingeniería de Software, UNIMET · '
+            'Hecho en Caracas, Venezuela',
+            style: _pequeno.copyWith(fontSize: 13),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Columna extends StatelessWidget {
-  const _Columna({required this.titulo, required this.enlaces});
-
-  final String titulo;
-  final List<Widget> enlaces;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Semantics(
-          header: true,
-          child: Text(
-            titulo,
-            style: AppFonts.texto(
-              const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textoSecundario,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        ...enlaces,
-      ],
     );
   }
 }

@@ -38,6 +38,7 @@ abstract final class AppColors {
   static const bordeBoton = Color(0xFFA9B4C4);
   static const arenaOscura = Color(0xFFC9D6E8); // bloques de foto
   static const seleccionSuave = Color(0xFFEEF2F7); // fila elegida
+  static const fondoChat = Color(0xFFF3F6FA); // dentro de la ventana del chat
 
   // Texto
   static const texto = Color(0xFF1E2430);
