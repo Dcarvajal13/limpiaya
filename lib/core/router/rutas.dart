@@ -1,3 +1,5 @@
+import '../../domain/entities/rol_usuario.dart';
+
 /// Direcciones (URLs) de las pantallas.
 ///
 /// Siempre navegar con estas constantes, nunca con texto escrito a mano:
@@ -56,6 +58,14 @@ abstract final class Rutas {
   static const postulantesPatron = '/cliente/solicitudes/:id/postulantes';
   static String postulantes(String solicitudId) =>
       '/cliente/solicitudes/$solicitudId/postulantes';
+
+  /// Verificar mi identidad, como cliente. Sin la identidad aprobada no se
+  /// puede publicar (misma pantalla que la de la trabajadora).
+  static const verificacionCliente = '/cliente/verificacion';
+
+  /// Dónde verifica su identidad cada rol.
+  static String verificacionDe(RolUsuario? rol) =>
+      rol == RolUsuario.cliente ? verificacionCliente : verificacionTrabajadora;
 
   /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
   static const buscarTrabajadoras = '/cliente/buscar';

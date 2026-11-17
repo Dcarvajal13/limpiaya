@@ -4,10 +4,17 @@ import '../../core/di/providers.dart';
 import '../../core/errors/app_exception.dart';
 import '../../domain/entities/direccion_guardada.dart';
 import '../../domain/services/direcciones_service.dart';
+import 'sesion_provider.dart';
 
 /// Direcciones guardadas del cliente que inició sesión.
+///
+/// Depende de quién tiene la sesión: si entra otra persona en la misma
+/// pestaña, se vuelven a cargar (no quedan las de la cuenta anterior).
 final misDireccionesProvider = FutureProvider<List<DireccionGuardada>>(
-  (ref) => ref.watch(direccionesRepositoryProvider).misDirecciones(),
+  (ref) {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.id));
+    return ref.watch(direccionesRepositoryProvider).misDirecciones();
+  },
   retry: (intentos, error) => null,
 );
 

@@ -20,7 +20,7 @@ class SupabaseClientePublicoRepository implements ClientePublicoRepository {
     try {
       final perfil = await _client
           .from('perfiles_publicos')
-          .select('id, rol, nombre, foto_path')
+          .select('id, rol, nombre, foto_path, verificada')
           .eq('id', clienteId)
           .maybeSingle();
       if (perfil == null || perfil['rol'] != 'cliente') return null;
@@ -52,6 +52,7 @@ class SupabaseClientePublicoRepository implements ClientePublicoRepository {
       return PerfilClientePublico(
         id: perfil['id'] as String,
         nombre: perfil['nombre'] as String,
+        verificada: perfil['verificada'] as bool? ?? false,
         fotoUrl: fotoPath == null
             ? null
             : _client.storage.from('avatars').getPublicUrl(fotoPath),

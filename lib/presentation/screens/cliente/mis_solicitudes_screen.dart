@@ -31,6 +31,7 @@ import 'barra_cliente.dart';
 import 'dialogo_cancelar_solicitud.dart';
 import 'dialogos_servicio.dart';
 import 'tarjeta_solicitud_cliente.dart';
+import '../trabajadora/tarjeta_verificacion_perfil.dart';
 
 /// HU-08 · Ver mis solicitudes y su estado.
 ///
@@ -293,6 +294,14 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                       onPublicar: () => context.go(Rutas.publicarSolicitud),
                     ),
                     const SizedBox(height: 20),
+
+                    // Sin la identidad aprobada no puede publicar: se le
+                    // avisa aquí, con el botón para verificarla.
+                    if (sesion?.verificacion != null &&
+                        sesion?.verificacion != 'aprobada') ...[
+                      const TarjetaVerificacionPerfil(),
+                      const SizedBox(height: 20),
+                    ],
 
                     // Tarjetas de métricas superiores
                     solicitudesAsync.maybeWhen(

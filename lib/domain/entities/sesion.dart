@@ -29,6 +29,7 @@ class Sesion {
   /// Dirección pública de la foto (para mostrarla), o null si no tiene.
   final String? fotoUrl;
 
-  /// Solo para trabajadoras: pendiente, en_revision, aprobada o rechazada.
+  /// Verificación de identidad (clientes y trabajadoras): pendiente,
+  /// en_revision, aprobada o rechazada. Null para el admin.
   final String? verificacion;
 }

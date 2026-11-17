@@ -17,6 +17,7 @@ import '../../widgets/seccion_cuenta.dart';
 import '../../widgets/selector_zona.dart';
 import 'barra_cliente.dart';
 import 'seccion_mis_direcciones.dart';
+import '../trabajadora/tarjeta_verificacion_perfil.dart';
 
 /// HU-05 · Crear mi perfil de cliente.
 ///
@@ -139,6 +140,11 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                         style: textos.bodySmall,
                       ),
                       const SizedBox(height: 24),
+                      // Verificación de identidad: sin ella no se publica.
+                      if (sesion?.verificacion != null) ...[
+                        const TarjetaVerificacionPerfil(),
+                        const SizedBox(height: 24),
+                      ],
                       if (perfil.isLoading)
                         const Padding(
                           padding: EdgeInsets.all(24),

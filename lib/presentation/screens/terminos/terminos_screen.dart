@@ -266,9 +266,11 @@ final _secciones = <_Seccion>[
         'trabajadora.',
   ]),
   const _Seccion('verificacion', 'Verificación de identidad', [
-    'Antes de postularse, cada trabajadora debe verificar su identidad con '
-        'una foto de su cédula y una selfie. El equipo de LimpiaYa las revisa '
-        'y aprueba o rechaza la verificación.',
+    'Clientes y trabajadoras verifican su identidad con una foto de su cédula '
+        'y una selfie. El equipo de LimpiaYa las revisa y aprueba o rechaza '
+        'la verificación.',
+    '• El cliente necesita la identidad aprobada para publicar solicitudes.',
+    '• La trabajadora la necesita para postularse.',
     'La verificación reduce riesgos, pero no es una garantía absoluta. Revisa '
         'también las reseñas y el perfil antes de elegir.',
   ]),
@@ -323,13 +325,13 @@ final _secciones = <_Seccion>[
   ]),
   const _Seccion('privacidad', 'Política de privacidad', [
     'Datos que guardamos: nombre, correo, teléfono, rol, zonas, direcciones '
-        'que guardes, solicitudes, mensajes del chat, reseñas y, en el caso de '
-        'las trabajadoras, las fotos de verificación.',
+        'que guardes, solicitudes, mensajes del chat, reseñas y las fotos de '
+        'verificación de identidad.',
     '• Tu correo y tu teléfono no se muestran a otros usuarios.',
     '• Tu dirección exacta y tus direcciones guardadas solo las ves tú, y la '
         'dirección de una solicitud solo la ve la trabajadora que eliges.',
-    '• Las fotos de la cédula y la selfie solo las ve el equipo que revisa '
-        'la verificación.',
+    '• Las fotos de la cédula y la selfie (de clientes y trabajadoras) solo '
+        'las ve el equipo que revisa la verificación.',
     '• No vendemos ni compartimos tus datos con terceros para publicidad.',
     'Puedes pedir que corrijamos o borremos tus datos escribiéndole al '
         'equipo de LimpiaYa.',

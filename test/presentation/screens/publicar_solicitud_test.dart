@@ -13,10 +13,12 @@ import 'package:limpiaya/domain/entities/solicitud_disponible.dart';
 import 'package:limpiaya/domain/entities/zona.dart';
 import 'package:limpiaya/domain/repositories/solicitud_repository.dart';
 import 'package:limpiaya/presentation/providers/publicar_solicitud_provider.dart';
+import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/domain/entities/direccion_guardada.dart';
 import 'package:limpiaya/presentation/screens/cliente/publicar_solicitud_screen.dart';
 
 import '../../helpers/direcciones_falsas.dart';
+import '../../helpers/sesion_cliente_falsa.dart';
 
 class _RepositorioFalso implements SolicitudRepository {
   final publicadas = <NuevaSolicitud>[];
@@ -52,7 +54,11 @@ class _RepositorioFalso implements SolicitudRepository {
   Future<List<Solicitud>> misSolicitudes() async => const [];
 }
 
-Widget _app(_RepositorioFalso repo, {DireccionesFalsas? direcciones}) {
+Widget _app(
+  _RepositorioFalso repo, {
+  DireccionesFalsas? direcciones,
+  String verificacion = 'aprobada',
+}) {
   final router = GoRouter(
     initialLocation: Rutas.publicarSolicitud,
     routes: [
@@ -72,6 +78,7 @@ Widget _app(_RepositorioFalso repo, {DireccionesFalsas? direcciones}) {
       direccionesRepositoryProvider.overrideWithValue(
         direcciones ?? DireccionesFalsas(),
       ),
+      sesionProvider.overrideWith(() => SesionClienteFalsa(verificacion)),
       zonasCatalogoProvider.overrideWith(
         (ref) async => const [
           Zona(id: 1, nombre: 'Altamira', municipio: 'Chacao', parroquia: 'Chacao'),
@@ -181,5 +188,32 @@ void main() {
     expect(find.text('Av. Luis Roche, Edificio Sol'), findsNothing);
     // Sin zona todavía, no ofrece guardarla.
     expect(find.byKey(const Key('guardar-direccion-nueva')), findsNothing);
+  });
+
+  testWidgets('sin la identidad aprobada no deja publicar y lleva a verificar',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo = _RepositorioFalso();
+    await tester.pumpWidget(_app(repo, verificacion: 'pendiente'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('aviso-verificar-para-publicar')),
+        findsOneWidget);
+    expect(find.text('Verifica tu identidad para publicar'), findsOneWidget);
+    expect(find.text('Verificar mi identidad'), findsOneWidget);
+    // El formulario no aparece.
+    expect(find.text('Publicar solicitud'), findsNothing);
+  });
+
+  testWidgets('con la verificación en revisión avisa que falta poco',
+      (tester) async {
+    _pantallaGrande(tester);
+    await tester.pumpWidget(
+      _app(_RepositorioFalso(), verificacion: 'en_revision'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Estamos revisando tu identidad'), findsOneWidget);
+    expect(find.text('Publicar solicitud'), findsNothing);
   });
 }

@@ -174,6 +174,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Rutas.verificacionTrabajadora,
         builder: (context, state) => const VerificacionIdentidadScreen(),
       ),
+      // El cliente también verifica su identidad antes de publicar.
+      GoRoute(
+        path: Rutas.verificacionCliente,
+        builder: (context, state) => const VerificacionIdentidadScreen(),
+      ),
       GoRoute(
         path: Rutas.inicioAdmin,
         builder: (context, state) => const AdminInicioScreen(),

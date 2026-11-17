@@ -7,6 +7,7 @@ import '../../domain/entities/solicitud.dart';
 import '../../domain/entities/zona.dart';
 
 import 'mis_solicitudes_provider.dart';
+import 'sesion_provider.dart';
 
 /// Catálogo de zonas de Caracas para el selector (reutiliza HU-04).
 final zonasCatalogoProvider = FutureProvider<List<Zona>>(
@@ -14,8 +15,12 @@ final zonasCatalogoProvider = FutureProvider<List<Zona>>(
 );
 
 /// Zona y dirección guardadas del cliente, para precargar el formulario.
+/// Se vuelve a cargar si entra otra persona en la misma pestaña.
 final direccionGuardadaProvider = FutureProvider<DireccionCliente?>(
-  (ref) => ref.watch(solicitudRepositoryProvider).miDireccion(),
+  (ref) {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.id));
+    return ref.watch(solicitudRepositoryProvider).miDireccion();
+  },
 );
 
 /// HU-09 · La solicitud que se va a editar, con su dirección.

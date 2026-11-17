@@ -58,7 +58,7 @@ class _SesionAdmin extends SesionNotifier {
 VerificacionPendiente _verificacion(String id, String nombre, DateTime enviada) =>
     VerificacionPendiente(
       id: id,
-      trabajadoraId: 't-$id',
+      usuarioId: 't-$id',
       nombre: nombre,
       telefono: '0414-1234567',
       enviada: enviada,

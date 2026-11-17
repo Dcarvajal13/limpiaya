@@ -16,6 +16,7 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._nivel_trabajadora.sql` | HU-61: vista interna `nivel_trabajadoras` (10 servicios, promedio ≥ 4,5 y sin cancelaciones tardías en 30 días), `mi_nivel` para la trabajadora y `trabajadoras_publicas` suma `destacada` |
 | `..._invitaciones.sql` | HU-25: tabla `invitaciones`, `invitar_trabajadora()`, `trabajadoras_publicas` suma `zona_ids` y `solicitudes_publicas` suma `me_invitaron` |
 | `..._chat_leidos.sql` | HU-38: columna `leido_en` en `mensajes`, índice de no leídos y política para marcar como leídos los mensajes de la otra parte |
+| `..._verificacion_clientes.sql` | El cliente también verifica su identidad: `verificaciones.trabajadora_id` pasa a `usuario_id` (apunta a `perfiles`), `clientes.verificacion` (los que ya existían quedan aprobados), `mi_sesion()` la devuelve, solo el cliente aprobado publica y `perfiles_publicos` suma `verificada` |
 | `..._direcciones_guardadas.sql` | Tabla `direcciones_cliente` ("Casa", "Trabajo"…): máximo 10 por cliente, sin nombres repetidos; la dirección del perfil se copia como "Casa" |
 
 ## Diagrama entidad-relación
@@ -158,6 +159,7 @@ Una **solicitud asignada es lo que las historias llaman "servicio"**: es la mism
 - Las **direcciones guardadas** (`direcciones_cliente`) solo las ve y las cambia su dueño. La solicitud guarda su propia copia, así que editar o borrar una dirección guardada no cambia solicitudes ya publicadas.
 - El **teléfono nunca** se muestra a la otra parte (decisión del equipo).
 - Solo una trabajadora **verificada** se postula, y solo a solicitudes Publicadas, futuras y de sus zonas (HU-12).
+- Solo un cliente **verificado** publica solicitudes. La verificación (cédula y selfie) es la misma para los dos roles y la aprueba el admin (HU-21, HU-33).
 - Solo se califica a la otra parte de un servicio **Completado**, una vez (HU-29, HU-30).
 - El chat solo funciona entre las dos partes, mientras el servicio está Asignado y hasta 7 días después (HU-38).
 - Las fotos van en `avatars/<id del usuario>/…` y `verificaciones/<id>/…`: cada quien solo sube a su carpeta, y las cédulas solo las ven su dueña y el admin.

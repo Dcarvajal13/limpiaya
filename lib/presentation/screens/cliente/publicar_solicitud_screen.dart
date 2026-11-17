@@ -10,6 +10,8 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
 import '../../../domain/entities/direccion_guardada.dart';
 import '../../../domain/entities/metodo_pago.dart';
+import '../../../domain/entities/mi_verificacion.dart';
+import '../../../domain/entities/rol_usuario.dart';
 import '../../../domain/entities/direccion_cliente.dart';
 import '../../../domain/entities/nueva_solicitud.dart';
 import '../../../core/theme/app_colors.dart';
@@ -21,6 +23,7 @@ import '../../../domain/services/direcciones_service.dart';
 import '../../../domain/services/solicitud_service.dart';
 import '../../providers/direcciones_provider.dart';
 import '../../providers/publicar_solicitud_provider.dart';
+import '../../providers/sesion_provider.dart';
 import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/selector_zona.dart';
@@ -541,6 +544,19 @@ class _PublicarSolicitudScreenState
       }
     }
 
+    // Sin la identidad aprobada no se publica (ni se repite) una solicitud.
+    // Editar una que ya existe sí se puede. La base también lo exige.
+    final sesion = ref.watch(sesionProvider).value;
+    if (!_editando &&
+        sesion != null &&
+        sesion.rol == RolUsuario.cliente &&
+        sesion.verificacion != null &&
+        sesion.verificacion != 'aprobada') {
+      return _AvisoVerificar(
+        estado: EstadoVerificacion.desdeTexto(sesion.verificacion),
+      );
+    }
+
     final estado = ref.watch(publicarSolicitudProvider);
     final zonas = ref.watch(zonasCatalogoProvider);
     final tema = Theme.of(context);
@@ -929,6 +945,89 @@ class _PublicarSolicitudScreenState
   String _mensajeDeError(Object error) {
     if (error is AppException) return error.mensaje;
     return 'No pudimos publicar la solicitud. Intenta de nuevo.';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sin identidad verificada
+// ---------------------------------------------------------------------------
+
+/// Lo que ve el cliente que todavía no tiene la identidad aprobada: por qué
+/// no puede publicar y qué hacer.
+class _AvisoVerificar extends StatelessWidget {
+  const _AvisoVerificar({required this.estado});
+
+  final EstadoVerificacion estado;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icono, titulo, mensaje, textoBoton, ruta) = switch (estado) {
+      EstadoVerificacion.enRevision => (
+          Icons.hourglass_top_rounded,
+          'Estamos revisando tu identidad',
+          'Podrás publicar solicitudes apenas la aprobemos. Te avisaremos '
+              'cuando termine la revisión.',
+          'Volver a Mis solicitudes',
+          Rutas.inicioCliente,
+        ),
+      EstadoVerificacion.rechazada => (
+          Icons.gpp_bad_outlined,
+          'Tu verificación fue rechazada',
+          'Sube fotos nuevas de tu cédula y tu selfie para poder publicar '
+              'solicitudes.',
+          'Subir otra foto',
+          Rutas.verificacionCliente,
+        ),
+      _ => (
+          Icons.verified_user_outlined,
+          'Verifica tu identidad para publicar',
+          'Para cuidar a las trabajadoras, cada cliente verifica su identidad '
+              'con su cédula y una selfie antes de publicar. Solo toma unos '
+              'minutos.',
+          'Verificar mi identidad',
+          Rutas.verificacionCliente,
+        ),
+    };
+
+    return Scaffold(
+      body: SafeArea(
+        child: DesplazableConPie(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => context.go(Rutas.inicioCliente),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Mis solicitudes'),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    key: const Key('aviso-verificar-para-publicar'),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.superficie,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.borde),
+                    ),
+                    child: EstadoVacio(
+                      icono: icono,
+                      titulo: titulo,
+                      mensaje: mensaje,
+                      textoBoton: textoBoton,
+                      onPressed: () => context.go(ruta),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -13,6 +13,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/archivo_foto.dart';
 import '../../../domain/entities/mi_verificacion.dart';
+import '../../../domain/entities/rol_usuario.dart';
 import '../../../domain/services/verificacion_service.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/verificaciones_provider.dart';
@@ -20,6 +21,7 @@ import '../../widgets/contenido_centrado.dart';
 import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
+import '../cliente/barra_cliente.dart';
 import 'barra_trabajadora.dart';
 
 /// HU-21 · Verificar mi identidad (vista "verificacion" del Figma).
@@ -28,6 +30,10 @@ import 'barra_trabajadora.dart';
 /// - c2: aprobada → "Identidad verificada" (también en Mi perfil).
 /// - c3: rechazada → se ve el motivo y se pueden subir fotos nuevas.
 /// - c4: sin aprobar no se puede postular (PostulacionService, HU-12).
+///
+/// El cliente usa la misma pantalla ('/cliente/verificacion'): sin la
+/// identidad aprobada no puede publicar solicitudes. Cambian la barra de
+/// arriba y a dónde llevan los botones.
 class VerificacionIdentidadScreen extends ConsumerStatefulWidget {
   const VerificacionIdentidadScreen({super.key});
 
@@ -95,6 +101,7 @@ class _VerificacionIdentidadScreenState
   @override
   Widget build(BuildContext context) {
     final sesion = ref.watch(sesionProvider).value;
+    final esCliente = sesion?.rol == RolUsuario.cliente;
     final verificacion = ref.watch(miVerificacionProvider);
     final textos = Theme.of(context).textTheme;
     final movil = Responsive.esMovil(context);
@@ -113,24 +120,33 @@ class _VerificacionIdentidadScreenState
         onPressed: () => ref.invalidate(miVerificacionProvider),
       ),
       data: (actual) => switch (actual?.estado) {
-        EstadoVerificacion.aprobada => const _Resultado(
-            key: Key('verificacion-aprobada'),
-            insignia: InsigniaEstado('Aprobada', tono: TonoInsignia.verde),
+        EstadoVerificacion.aprobada => _Resultado(
+            key: const Key('verificacion-aprobada'),
+            insignia:
+                const InsigniaEstado('Aprobada', tono: TonoInsignia.verde),
             icono: Icons.verified_user_outlined,
             titulo: 'Tu identidad está verificada',
-            mensaje: 'Ya puedes postularte a las solicitudes de tus zonas.',
-            textoBoton: 'Ver trabajos',
-            ruta: Rutas.inicioTrabajadora,
+            mensaje: esCliente
+                ? 'Ya puedes publicar solicitudes de limpieza.'
+                : 'Ya puedes postularte a las solicitudes de tus zonas.',
+            textoBoton: esCliente ? 'Publicar una solicitud' : 'Ver trabajos',
+            ruta: esCliente
+                ? Rutas.publicarSolicitud
+                : Rutas.inicioTrabajadora,
           ),
-        EstadoVerificacion.enRevision => const _Resultado(
-            key: Key('verificacion-en-revision'),
-            insignia: InsigniaEstado('En revisión', tono: TonoInsignia.azul),
+        EstadoVerificacion.enRevision => _Resultado(
+            key: const Key('verificacion-en-revision'),
+            insignia:
+                const InsigniaEstado('En revisión', tono: TonoInsignia.azul),
             icono: Icons.shield_outlined,
             titulo: 'Recibimos tus documentos',
-            mensaje: 'Te avisaremos cuando termine la revisión. Mientras '
-                'tanto puedes completar tu perfil.',
+            mensaje: esCliente
+                ? 'Te avisaremos cuando termine la revisión. Apenas la '
+                    'aprobemos podrás publicar solicitudes.'
+                : 'Te avisaremos cuando termine la revisión. Mientras '
+                    'tanto puedes completar tu perfil.',
             textoBoton: 'Ir a mi perfil',
-            ruta: Rutas.perfilTrabajadora,
+            ruta: esCliente ? Rutas.perfilCliente : Rutas.perfilTrabajadora,
           ),
         _ => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -159,10 +175,13 @@ class _VerificacionIdentidadScreenState
     return Scaffold(
       body: Column(
         children: [
-          BarraTrabajadora(
-            nombre: sesion?.nombre ?? '',
-            fotoUrl: sesion?.fotoUrl,
-          ),
+          if (esCliente)
+            BarraCliente(nombre: sesion?.nombre ?? '', fotoUrl: sesion?.fotoUrl)
+          else
+            BarraTrabajadora(
+              nombre: sesion?.nombre ?? '',
+              fotoUrl: sesion?.fotoUrl,
+            ),
           Expanded(
             child: DesplazableConPie(
               child: ContenidoCentrado(
@@ -187,8 +206,12 @@ class _VerificacionIdentidadScreenState
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Esto protege a toda la comunidad y solo toma unos '
-                      'minutos.',
+                      esCliente
+                          ? 'La necesitas para publicar solicitudes. Así las '
+                              'trabajadoras saben a qué casa van. Solo toma '
+                              'unos minutos.'
+                          : 'Esto protege a toda la comunidad y solo toma unos '
+                              'minutos.',
                       style: textos.bodyLarge,
                     ),
                     const SizedBox(height: 40),
@@ -231,7 +254,7 @@ class _AvisoPrivacidad extends StatelessWidget {
                 ),
                 Text(
                   'Solo el equipo administrador puede revisarlos. Nunca se '
-                  'muestran a clientes.',
+                  'muestran a otros usuarios.',
                   style: textos.bodySmall?.copyWith(color: AppColors.primario),
                 ),
               ],

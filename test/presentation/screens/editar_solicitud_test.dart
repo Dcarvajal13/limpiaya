@@ -17,9 +17,11 @@ import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/entities/zona.dart';
 import 'package:limpiaya/domain/repositories/solicitud_repository.dart';
 import 'package:limpiaya/presentation/providers/publicar_solicitud_provider.dart';
+import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/cliente/publicar_solicitud_screen.dart';
 
 import '../../helpers/direcciones_falsas.dart';
+import '../../helpers/sesion_cliente_falsa.dart';
 
 class _RepositorioFalso implements SolicitudRepository {
   _RepositorioFalso(this.solicitud);
@@ -101,6 +103,7 @@ Widget _app(_RepositorioFalso repo) {
     overrides: [
       solicitudRepositoryProvider.overrideWithValue(repo),
       direccionesRepositoryProvider.overrideWithValue(DireccionesFalsas()),
+      sesionProvider.overrideWith(SesionClienteFalsa.new),
       zonasCatalogoProvider.overrideWith(
         (ref) async => const [Zona(id: 1, nombre: 'Chacao')],
       ),

@@ -1,11 +1,13 @@
 /// HU-33 · Verificación de identidad que espera la revisión del administrador.
 ///
-/// Junta lo que el admin necesita para decidir: los datos de la cuenta de la
-/// trabajadora y las dos fotos que envió en HU-21 (cédula y selfie).
+/// Junta lo que el admin necesita para decidir: los datos de la cuenta (de
+/// una trabajadora o de un cliente) y las dos fotos que envió en HU-21
+/// (cédula y selfie).
 class VerificacionPendiente {
   const VerificacionPendiente({
     required this.id,
-    required this.trabajadoraId,
+    required this.usuarioId,
+    this.esCliente = false,
     required this.nombre,
     required this.enviada,
     required this.cuentaCreada,
@@ -16,7 +18,12 @@ class VerificacionPendiente {
   });
 
   final String id;
-  final String trabajadoraId;
+  final String usuarioId;
+
+  /// Si es de un cliente (si no, es de una trabajadora). Al aprobarla, el
+  /// cliente puede publicar y la trabajadora postularse.
+  final bool esCliente;
+
   final String nombre;
   final String? telefono;
 

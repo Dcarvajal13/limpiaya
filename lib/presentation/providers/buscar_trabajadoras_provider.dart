@@ -4,6 +4,7 @@ import '../../core/di/providers.dart';
 import '../../core/errors/app_exception.dart';
 import '../../domain/entities/perfil_publico.dart';
 import '../../domain/services/busqueda_service.dart';
+import 'sesion_provider.dart';
 
 /// HU-25 c1 · Trabajadoras verificadas, filtradas por zona (`null` = todas).
 /// El orden (c2) lo aplica la pantalla con BusquedaService.ordenar.
@@ -18,7 +19,10 @@ final buscarTrabajadorasProvider =
 /// "Invitada" en la tarjeta de cada trabajadora.
 final misInvitacionesProvider = FutureProvider.autoDispose<
     List<({String solicitudId, String trabajadoraId})>>(
-  (ref) => ref.watch(busquedaTrabajadorasRepositoryProvider).misInvitaciones(),
+  (ref) {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.id));
+    return ref.watch(busquedaTrabajadorasRepositoryProvider).misInvitaciones();
+  },
   retry: (intentos, error) => null,
 );
 
