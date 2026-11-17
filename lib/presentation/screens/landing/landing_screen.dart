@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/movimiento.dart';
 import '../../../core/utils/responsive.dart';
-import '../../widgets/pie_pagina.dart';
 import 'widgets/barra_visitante.dart';
 import 'widgets/seccion_confianza.dart';
 import 'widgets/seccion_final.dart';
@@ -9,7 +9,6 @@ import 'widgets/seccion_hero.dart';
 import 'widgets/seccion_pasos.dart';
 import 'widgets/seccion_precio.dart';
 import 'widgets/seccion_preguntas.dart';
-import 'widgets/seccion_testimonios.dart';
 import 'widgets/seccion_trabajadoras.dart';
 import 'widgets/seccion_zonas.dart';
 
@@ -47,12 +46,20 @@ class _LandingScreenState extends State<LandingScreen> {
   void _irA(DestinoLanding destino) {
     final contexto = _secciones[destino]!.currentContext;
     if (contexto == null) return;
-    Scrollable.ensureVisible(contexto, duration: _duracion, curve: Curves.easeInOut);
+    Scrollable.ensureVisible(
+      contexto,
+      duration: Movimiento.animar(context) ? _duracion : Duration.zero,
+      curve: Movimiento.desplazamiento,
+    );
   }
 
   void _irArriba() {
     if (!_desplazamiento.hasClients) return;
-    _desplazamiento.animateTo(0, duration: _duracion, curve: Curves.easeInOut);
+    if (!Movimiento.animar(context)) {
+      _desplazamiento.jumpTo(0);
+      return;
+    }
+    _desplazamiento.animateTo(0, duration: _duracion, curve: Movimiento.desplazamiento);
   }
 
   @override
@@ -74,10 +81,9 @@ class _LandingScreenState extends State<LandingScreen> {
             SeccionConfianza(key: _secciones[DestinoLanding.confianza]),
             SeccionPrecio(key: _secciones[DestinoLanding.precio]),
             const SeccionZonas(),
-            const SeccionTestimonios(),
             SeccionPreguntas(key: _secciones[DestinoLanding.preguntas]),
             const SeccionFinal(),
-            PiePagina(onLogo: _irArriba),
+            PieLanding(onIrA: _irA, onLogo: _irArriba),
           ],
         ),
       ),

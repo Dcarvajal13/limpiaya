@@ -5,14 +5,18 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/rutas.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_fonts.dart';
+import '../../../widgets/aparecer.dart';
 import '../../../widgets/logo_limpiaya.dart';
+import '../../../widgets/pie_pagina.dart';
+import '../../../widgets/resenas_rotativas.dart';
 
-/// Diseño de las pantallas de inicio de sesión y registro (Figma: Auth).
+/// Diseño de las pantallas de inicio de sesión, registro y recuperación.
 ///
-/// - Escritorio: panel verde oscuro a la izquierda y el formulario en una
-///   tarjeta a la derecha.
-/// - Teléfono: el panel verde arriba (más corto) y el formulario debajo.
+/// - Escritorio: panel azul pizarra a la izquierda con reseñas que se
+///   turnan y, abajo, el título y el texto de la pantalla. A la derecha el
+///   formulario en una tarjeta y el pie con Términos y Privacidad.
+/// - Teléfono: el panel arriba (corto, sin reseñas, así el formulario
+///   queda cerca) y el formulario debajo.
 ///
 /// Uso:
 ///   PlantillaAuth(
@@ -28,10 +32,10 @@ class PlantillaAuth extends StatelessWidget {
     required this.child,
   });
 
-  /// Título grande del panel verde.
+  /// Título grande del panel.
   final String titulo;
 
-  /// Texto debajo del título del panel verde.
+  /// Texto debajo del título del panel.
   final String texto;
 
   /// Lo que va dentro de la tarjeta blanca.
@@ -50,14 +54,32 @@ class PlantillaAuth extends StatelessWidget {
           children: [
             Expanded(
               flex: 9,
-              child: _PanelVerde(titulo: titulo, texto: texto, compacto: false),
+              child: _PanelAmplio(titulo: titulo, texto: texto),
             ),
             Expanded(
               flex: 11,
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
-                  child: _Formulario(compacto: false, child: child),
+              child: LayoutBuilder(
+                builder: (context, restricciones) => SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(48, 40, 48, 16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: math.max(0.0, restricciones.maxHeight - 56),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(height: 8),
+                        Aparecer(
+                          retraso: const Duration(milliseconds: 60),
+                          child: _Formulario(compacto: false, child: child),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(top: 40),
+                          child: _Pie(),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -71,10 +93,14 @@ class PlantillaAuth extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _PanelVerde(titulo: titulo, texto: texto, compacto: true),
+            _PanelCompacto(titulo: titulo, texto: texto),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 48),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
               child: _Formulario(compacto: true, child: child),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _Pie(),
             ),
           ],
         ),
@@ -83,80 +109,45 @@ class PlantillaAuth extends StatelessWidget {
   }
 }
 
-class _PanelVerde extends StatelessWidget {
-  const _PanelVerde({
-    required this.titulo,
-    required this.texto,
-    required this.compacto,
-  });
-
-  final String titulo;
-  final String texto;
-  final bool compacto;
+/// Pie centrado debajo del formulario, del mismo ancho que la tarjeta.
+class _Pie extends StatelessWidget {
+  const _Pie();
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-
-    final contenido = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'LIMPIAYA',
-          style: AppFonts.texto(
-            const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.6,
-              color: AppColors.verdeSobreOscuro,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: Text(
-            titulo,
-            style: textos.displayMedium?.copyWith(
-              fontSize: compacto ? 32 : 48,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Text(
-            texto,
-            style: textos.bodyLarge?.copyWith(
-              fontSize: compacto ? 16 : 18,
-              color: AppColors.textoSobreOscuro,
-            ),
-          ),
-        ),
-      ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 570),
+        child: const PiePagina(compacto: true),
+      ),
     );
+  }
+}
 
-    final logo = LogoLimpiaYa(
-      tamano: compacto ? 36 : 40,
-      sobreOscuro: true,
-      onTap: () => context.go(Rutas.landing),
-    );
+TextStyle? _estiloTitulo(BuildContext context, double tamano) =>
+    Theme.of(context).textTheme.displayMedium?.copyWith(
+          fontSize: tamano,
+          height: 1.1,
+          color: Colors.white,
+        );
 
-    if (compacto) {
-      return Container(
-        color: AppColors.primarioOscuro,
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [logo, const SizedBox(height: 40), contenido],
-        ),
-      );
-    }
+TextStyle? _estiloTexto(BuildContext context, double tamano) =>
+    Theme.of(context).textTheme.bodyLarge?.copyWith(
+          fontSize: tamano,
+          color: AppColors.textoSobreOscuro,
+        );
 
-    // En escritorio: logo arriba, texto al centro y crédito abajo.
-    // Si la ventana es muy baja, el panel se puede desplazar.
+/// Panel de escritorio: logo arriba, reseñas al centro y el título de la
+/// pantalla abajo. Si la ventana es muy baja, se puede desplazar.
+class _PanelAmplio extends StatelessWidget {
+  const _PanelAmplio({required this.titulo, required this.texto});
+
+  final String titulo;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
     return ColoredBox(
       color: AppColors.primarioOscuro,
       child: LayoutBuilder(
@@ -166,26 +157,74 @@ class _PanelVerde extends StatelessWidget {
             constraints: BoxConstraints(
               minHeight: math.max(0.0, restricciones.maxHeight - 96),
             ),
-            child: IntrinsicHeight(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  logo,
-                  const SizedBox(height: 48),
-                  contenido,
-                  const SizedBox(height: 48),
-                  Text(
-                    'Proyecto de Ingeniería de Software · UNIMET',
-                    style: textos.bodySmall?.copyWith(
-                      color: AppColors.textoSobreOscuro,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                LogoLimpiaYa(
+                  tamano: 40,
+                  sobreOscuro: true,
+                  onTap: () => context.go(Rutas.landing),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Aparecer(
+                    child: ResenasRotativas(sobreOscuro: true, tamanoCita: 34),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.only(top: 28),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                   ),
-                ],
-              ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(titulo, style: _estiloTitulo(context, 30)),
+                        const SizedBox(height: 10),
+                        Text(texto, style: _estiloTexto(context, 17)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Panel de teléfono: logo, título y texto, sin animaciones.
+class _PanelCompacto extends StatelessWidget {
+  const _PanelCompacto({required this.titulo, required this.texto});
+
+  final String titulo;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.primarioOscuro,
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LogoLimpiaYa(
+            tamano: 36,
+            sobreOscuro: true,
+            onTap: () => context.go(Rutas.landing),
+          ),
+          const SizedBox(height: 40),
+          Text(titulo, style: _estiloTitulo(context, 32)),
+          const SizedBox(height: 14),
+          Text(texto, style: _estiloTexto(context, 16)),
+        ],
       ),
     );
   }

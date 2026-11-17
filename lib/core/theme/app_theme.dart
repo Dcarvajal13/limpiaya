@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_fonts.dart';
 
-/// Tema global de LimpiaYa, tomado del prototipo de Figma.
+/// Tema global de LimpiaYa (dirección "Testimonio en movimiento").
 ///
 /// Todo lo que se define aquí (botones, campos, tarjetas, chips...) se aplica
 /// solo en todas las pantallas. Una pantalla nueva no necesita estilos propios:
 /// usa FilledButton, OutlinedButton, TextFormField, Card, ChoiceChip, etc.
 ///
 /// Guía rápida de botones:
-/// - Acción principal  → FilledButton            (verde)
-/// - Acción secundaria → OutlinedButton          (borde verde)
+/// - Acción principal  → FilledButton            (azul pizarra)
+/// - Acción secundaria → OutlinedButton          (borde gris azulado)
 /// - Enlace o acción leve → TextButton
-/// - Destacado (ámbar) → FilledButton(style: AppTheme.botonAmbar)
+/// - Sobre fondo oscuro → FilledButton(style: AppTheme.botonAmbar) (blanco)
 /// - Peligro           → FilledButton(style: AppTheme.botonPeligro)
 abstract final class AppTheme {
   static const radioBoton = 12.0;
-  static const radioTarjeta = 16.0;
+  static const radioTarjeta = 20.0;
   static const altoBoton = 48.0;
 
   static final TextTheme textos = _textos();
@@ -55,7 +55,7 @@ abstract final class AppTheme {
       textTheme: textos,
       dividerTheme: const DividerThemeData(color: AppColors.borde, thickness: 1),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.superficie,
+        backgroundColor: AppColors.fondo,
         foregroundColor: AppColors.texto,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -82,7 +82,7 @@ abstract final class AppTheme {
           foregroundColor: AppColors.primario,
           minimumSize: const Size(64, altoBoton),
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          side: const BorderSide(color: AppColors.primario),
+          side: const BorderSide(color: AppColors.bordeBoton, width: 1.5),
           shape: formaBoton,
           textStyle: textos.labelLarge,
         ),
@@ -122,18 +122,19 @@ abstract final class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.superficie,
-        selectedColor: AppColors.primarioClaro,
+        selectedColor: AppColors.primario,
         disabledColor: AppColors.deshabilitado,
         labelStyle: textos.labelMedium,
-        secondaryLabelStyle: textos.labelMedium?.copyWith(color: AppColors.primario),
+        secondaryLabelStyle: textos.labelMedium?.copyWith(color: Colors.white),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        shape: const StadiumBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radioBoton)),
         showCheckmark: false,
         side: WidgetStateBorderSide.resolveWith(
           (estados) => BorderSide(
             color: estados.contains(WidgetState.selected)
                 ? AppColors.primario
-                : AppColors.borde,
+                : AppColors.bordeBoton,
+            width: 1.5,
           ),
         ),
       ),
@@ -149,7 +150,7 @@ abstract final class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.superficie,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         titleTextStyle: textos.headlineSmall,
       ),
       snackBarTheme: SnackBarThemeData(
@@ -172,9 +173,10 @@ abstract final class AppTheme {
     );
   }
 
-  /// Botón ámbar (por ejemplo "Publicar solicitud" sobre fondo oscuro).
+  /// Botón claro para fondos oscuros (por ejemplo "Necesito limpieza" en
+  /// la franja final). Conserva el nombre de la paleta anterior.
   static final ButtonStyle botonAmbar = FilledButton.styleFrom(
-    backgroundColor: AppColors.ambar,
+    backgroundColor: Colors.white,
     foregroundColor: AppColors.primarioOscuro,
   );
 
@@ -197,7 +199,7 @@ abstract final class AppTheme {
             fontSize: tamano,
             fontWeight: peso,
             height: 1.1,
-            letterSpacing: -0.025 * tamano,
+            letterSpacing: -0.015 * tamano,
             color: AppColors.texto,
           ),
         );
@@ -213,19 +215,20 @@ abstract final class AppTheme {
         );
 
     return TextTheme(
-      displayLarge: titulo(64, FontWeight.w800),
-      displayMedium: titulo(48, FontWeight.w800),
-      displaySmall: titulo(40, FontWeight.w800),
-      headlineLarge: titulo(36, FontWeight.w700),
-      headlineMedium: titulo(28, FontWeight.w700),
-      headlineSmall: titulo(24, FontWeight.w700),
-      titleLarge: titulo(20, FontWeight.w700),
+      // Newsreader se ve mejor en peso medio: el tamaño da la jerarquía.
+      displayLarge: titulo(64, FontWeight.w500),
+      displayMedium: titulo(48, FontWeight.w500),
+      displaySmall: titulo(40, FontWeight.w500),
+      headlineLarge: titulo(38, FontWeight.w500),
+      headlineMedium: titulo(30, FontWeight.w500),
+      headlineSmall: titulo(26, FontWeight.w500),
+      titleLarge: titulo(22, FontWeight.w500),
       titleMedium: cuerpo(16, FontWeight.w700),
       titleSmall: cuerpo(14, FontWeight.w700),
       bodyLarge: cuerpo(18, FontWeight.w400, color: AppColors.textoSecundario),
       bodyMedium: cuerpo(16, FontWeight.w400),
       bodySmall: cuerpo(14, FontWeight.w400, color: AppColors.textoSecundario),
-      labelLarge: cuerpo(16, FontWeight.w700),
+      labelLarge: cuerpo(16, FontWeight.w600),
       labelMedium: cuerpo(14, FontWeight.w600),
       labelSmall: cuerpo(12, FontWeight.w700),
     );

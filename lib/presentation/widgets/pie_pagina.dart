@@ -3,83 +3,154 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/router/rutas.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_fonts.dart';
 import '../../core/utils/responsive.dart';
+import 'enlace_subrayado.dart';
 import 'logo_limpiaya.dart';
 
-/// Pie de página de toda la web: logo, enlaces (términos, privacidad,
-/// sistema de diseño) y el crédito del proyecto.
+/// Pie de página de toda la web: logo, correo de contacto, enlaces
+/// (términos, privacidad, sistema de diseño) y el crédito del proyecto.
 ///
 /// Normalmente no se usa solo: [DesplazableConPie] lo pone al final de cada
 /// pantalla y lo empuja al borde de abajo cuando el contenido es corto.
+///
+/// Con [compacto] queda en una sola franja (crédito, correo y enlaces), para
+/// ponerlo debajo de un formulario, como en el inicio de sesión.
+///
+/// La landing usa su propio pie oscuro, más grande (PieLanding).
 class PiePagina extends StatelessWidget {
-  const PiePagina({super.key, this.onLogo});
+  const PiePagina({super.key, this.onLogo, this.compacto = false});
 
-  /// Qué hace el logo al tocarlo (en la landing, subir al inicio).
+  /// Qué hace el logo al tocarlo.
   final VoidCallback? onLogo;
+
+  final bool compacto;
 
   @override
   Widget build(BuildContext context) {
+    return compacto ? _franja(context) : _completo(context);
+  }
+
+  static TextStyle get _pequeno => AppFonts.texto(
+        const TextStyle(fontSize: 14, height: 1.45, color: AppColors.textoSecundario),
+      );
+
+  static TextStyle get _enlace => AppFonts.texto(
+        const TextStyle(fontSize: 15, color: AppColors.texto),
+      );
+
+  List<Widget> _enlacesLegales(BuildContext context, TextStyle estilo) => [
+        EnlaceSubrayado(
+          key: const Key('pie-terminos'),
+          texto: 'Términos y condiciones',
+          estilo: estilo,
+          onTap: () => context.push(Rutas.terminos),
+        ),
+        EnlaceSubrayado(
+          key: const Key('pie-privacidad'),
+          texto: 'Política de privacidad',
+          estilo: estilo,
+          onTap: () => context.push(Rutas.privacidad),
+        ),
+      ];
+
+  Widget _correo() => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.mail_outline_rounded, size: 17, color: AppColors.primario),
+          const SizedBox(width: 8),
+          Flexible(
+            child: SelectableText(
+              AppConstants.correoSoporte,
+              style: AppFonts.texto(
+                const TextStyle(fontSize: 15, color: AppColors.texto),
+              ),
+            ),
+          ),
+        ],
+      );
+
+  /// Versión de una franja, centrada, sin fondo propio.
+  Widget _franja(BuildContext context) {
+    return Container(
+      key: const Key('pie-pagina'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.borde)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 20,
+        runSpacing: 2,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'LimpiaYa, proyecto de Ingeniería de Software, UNIMET, 2026',
+              textAlign: TextAlign.center,
+              style: _pequeno,
+            ),
+          ),
+          _correo(),
+          ..._enlacesLegales(context, _pequeno),
+        ],
+      ),
+    );
+  }
+
+  Widget _completo(BuildContext context) {
     final movil = Responsive.esMovil(context);
     final ancho = MediaQuery.sizeOf(context).width;
     final margen = Responsive.margen(context);
-    final lateral =
-        math.max(margen, (ancho - Responsive.anchoMaximo) / 2 + margen);
-    final textos = Theme.of(context).textTheme;
-    final pequeno =
-        textos.bodySmall?.copyWith(color: AppColors.textoSecundario);
+    final lateral = math.max(margen, (ancho - Responsive.anchoMaximo) / 2 + margen);
 
-    final marca = Column(
-      crossAxisAlignment:
-          movil ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-      children: [
-        LogoLimpiaYa(tamano: 34, onTap: onLogo),
-        const SizedBox(height: 10),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
-          child: Text(
+    final marca = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 340),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LogoLimpiaYa(tamano: 34, onTap: onLogo),
+          const SizedBox(height: 12),
+          Text(
             'Limpieza del hogar con trabajadoras verificadas en Caracas.',
-            textAlign: movil ? TextAlign.center : TextAlign.start,
-            style: pequeno,
+            style: _pequeno.copyWith(fontSize: 15),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          _correo(),
+        ],
+      ),
     );
 
     final legal = _Columna(
       titulo: 'Legal',
-      centrada: movil,
-      enlaces: [
-        _Enlace(
-          'Términos y condiciones',
-          key: const Key('pie-terminos'),
-          onTap: () => context.push(Rutas.terminos),
-        ),
-        _Enlace(
-          'Política de privacidad',
-          key: const Key('pie-privacidad'),
-          onTap: () => context.push(Rutas.privacidad),
-        ),
-      ],
+      enlaces: _enlacesLegales(context, _enlace),
     );
 
     final proyecto = _Columna(
       titulo: 'Proyecto',
-      centrada: movil,
       enlaces: [
-        _Enlace(
-          'Sistema de diseño',
+        EnlaceSubrayado(
+          texto: 'Sistema de diseño',
+          estilo: _enlace,
           onTap: () => context.push(Rutas.sistemaDiseno),
         ),
-        const _Enlace('Ingeniería de Software · UNIMET'),
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 1,
+            child: Text(
+              'Ingeniería de Software, UNIMET',
+              style: _enlace.copyWith(color: AppColors.textoSecundario),
+            ),
+          ),
+        ),
       ],
-    );
-
-    final credito = Text(
-      '© 2026 LimpiaYa · Hecho en Caracas, Venezuela',
-      textAlign: TextAlign.center,
-      style: pequeno,
     );
 
     return Container(
@@ -89,34 +160,37 @@ class PiePagina extends StatelessWidget {
         color: AppColors.superficie,
         border: Border(top: BorderSide(color: AppColors.borde)),
       ),
-      padding: EdgeInsets.fromLTRB(lateral, movil ? 28 : 36, lateral, 20),
+      padding: EdgeInsets.fromLTRB(lateral, movil ? 32 : 44, lateral, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (movil) ...[
-            marca,
-            const SizedBox(height: 20),
+          if (movil)
             Wrap(
-              alignment: WrapAlignment.center,
               spacing: 40,
-              runSpacing: 16,
-              children: [legal, proyecto],
-            ),
-          ] else
+              runSpacing: 28,
+              children: [marca, legal, proyecto],
+            )
+          else
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(flex: 2, child: marca),
+                Expanded(flex: 2, child: Align(alignment: Alignment.topLeft, child: marca)),
                 const SizedBox(width: 24),
                 Expanded(child: legal),
                 const SizedBox(width: 24),
                 Expanded(child: proyecto),
               ],
             ),
-          const SizedBox(height: 24),
+          SizedBox(height: movil ? 24 : 36),
           const Divider(height: 1),
-          const SizedBox(height: 16),
-          credito,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Text(
+              '© 2026 LimpiaYa, hecho en Caracas, Venezuela',
+              textAlign: movil ? TextAlign.start : TextAlign.center,
+              style: _pequeno,
+            ),
+          ),
         ],
       ),
     );
@@ -124,63 +198,33 @@ class PiePagina extends StatelessWidget {
 }
 
 class _Columna extends StatelessWidget {
-  const _Columna({
-    required this.titulo,
-    required this.enlaces,
-    this.centrada = false,
-  });
+  const _Columna({required this.titulo, required this.enlaces});
 
   final String titulo;
   final List<Widget> enlaces;
-  final bool centrada;
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          centrada ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          titulo.toUpperCase(),
-          style: textos.labelSmall?.copyWith(
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primario,
+        Semantics(
+          header: true,
+          child: Text(
+            titulo,
+            style: AppFonts.texto(
+              const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textoSecundario,
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         ...enlaces,
       ],
-    );
-  }
-}
-
-/// Texto del pie que, si tiene [onTap], se comporta como enlace.
-class _Enlace extends StatelessWidget {
-  const _Enlace(this.texto, {super.key, this.onTap});
-
-  final String texto;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final estilo = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: onTap == null ? AppColors.textoSecundario : AppColors.texto,
-        );
-    final contenido = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Text(texto, style: estilo),
-    );
-    if (onTap == null) return contenido;
-    return Semantics(
-      link: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: contenido,
-      ),
     );
   }
 }

@@ -12,4 +12,7 @@ abstract final class AppConstants {
 
   /// Largo máximo de un mensaje del chat (HU-38, criterio 5).
   static const int largoMaximoMensaje = 500;
+
+  /// Correo de contacto y soporte (pies de página y Términos).
+  static const String correoSoporte = 'limpiaya.soporte@gmail.com';
 }
