@@ -3,13 +3,11 @@ import '../../domain/entities/verificacion_pendiente.dart';
 /// Conversión de las filas de Supabase a VerificacionPendiente.
 ///
 /// La consulta trae la verificación con los datos de la cuenta anidados:
-///   { id, trabajadora_id, created_at, cedula_path, selfie_path,
-///     trabajadoras: { perfiles: { nombre, telefono, foto_path, created_at } } }
+///   { id, usuario_id, created_at, cedula_path, selfie_path,
+///     usuario: { nombre, telefono, foto_path, created_at, rol } }
 abstract final class VerificacionModel {
   static Map<String, dynamic>? _perfil(Map<String, dynamic> json) {
-    final trabajadora = json['trabajadoras'];
-    if (trabajadora is! Map) return null;
-    final perfil = trabajadora['perfiles'];
+    final perfil = json['usuario'];
     return perfil is Map ? Map<String, dynamic>.from(perfil) : null;
   }
 
@@ -29,7 +27,8 @@ abstract final class VerificacionModel {
 
     return VerificacionPendiente(
       id: json['id'] as String,
-      trabajadoraId: json['trabajadora_id'] as String,
+      usuarioId: json['usuario_id'] as String,
+      esCliente: perfil?['rol'] == 'cliente',
       nombre: (perfil?['nombre'] as String?) ?? 'Sin nombre',
       telefono: perfil?['telefono'] as String?,
       fotoUrl: fotoUrl,

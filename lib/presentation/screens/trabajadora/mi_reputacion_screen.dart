@@ -12,6 +12,7 @@ import '../../../domain/services/respuesta_service.dart';
 import '../../providers/mi_reputacion_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/dialogo_responder.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/estrellas.dart';
@@ -72,7 +73,7 @@ class MiReputacionScreen extends ConsumerWidget {
             fotoUrl: sesion?.fotoUrl,
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 20 : 40,
                 child: Column(

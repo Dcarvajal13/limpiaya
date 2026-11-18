@@ -1,14 +1,10 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/rutas.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../widgets/logo_limpiaya.dart';
 
 /// Llamado final, en verde, con los dos caminos: cliente o trabajadora.
 class SeccionFinal extends StatelessWidget {
@@ -66,58 +62,37 @@ class SeccionFinal extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              // Los términos, a la vista desde la página principal.
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'Al registrarte aceptas los ',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textoSobreOscuro,
+                        ),
+                  ),
+                  InkWell(
+                    key: const Key('landing-terminos'),
+                    onTap: () => context.push(Rutas.terminos),
+                    child: Text(
+                      'Términos y condiciones',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Pie de página.
-class PiePagina extends StatelessWidget {
-  const PiePagina({super.key, required this.onLogo});
-
-  final VoidCallback onLogo;
-
-  @override
-  Widget build(BuildContext context) {
-    final movil = Responsive.esMovil(context);
-    final ancho = MediaQuery.sizeOf(context).width;
-    final margen = Responsive.margen(context);
-    final lateral = math.max(margen, (ancho - Responsive.anchoMaximo) / 2 + margen);
-
-    final logo = LogoLimpiaYa(tamano: 36, onTap: onLogo);
-    final enlace = TextButton(
-      style: TextButton.styleFrom(foregroundColor: AppColors.textoSecundario),
-      onPressed: () => context.go(Rutas.sistemaDiseno),
-      child: const Text('Sistema de diseño'),
-    );
-    final credito = Text(
-      'Proyecto de Ingeniería de Software · UNIMET · 2026',
-      textAlign: movil ? TextAlign.center : TextAlign.end,
-      style: AppFonts.texto(
-        const TextStyle(fontSize: 13, color: AppColors.textoSecundario),
-      ),
-    );
-
-    return Container(
-      width: double.infinity,
-      color: AppColors.superficie,
-      padding: EdgeInsets.symmetric(vertical: 38, horizontal: lateral),
-      child: movil
-          ? Column(
-              children: [logo, const SizedBox(height: 12), enlace, const SizedBox(height: 8), credito],
-            )
-          : Row(
-              children: [
-                logo,
-                const SizedBox(width: 40),
-                Expanded(child: Align(alignment: Alignment.centerLeft, child: enlace)),
-                const SizedBox(width: 40),
-                Flexible(child: credito),
-              ],
-            ),
     );
   }
 }

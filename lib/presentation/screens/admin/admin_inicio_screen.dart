@@ -20,7 +20,9 @@ import '../../widgets/logo_limpiaya.dart';
 /// HU-33 · Revisar verificaciones de identidad (vista "admin" del Figma).
 ///
 /// - c1: lista de la más antigua a la más reciente, con fotos y datos.
-/// - c2: "Aprobar identidad" marca a la trabajadora como verificada.
+/// - c2: "Aprobar identidad" marca a la trabajadora (o al cliente) como
+///   verificada. Desde la verificación de clientes, en la cola también
+///   llegan clientes: aprobados pueden publicar solicitudes.
 /// - c3: "Rechazar" sin motivo muestra "Indica el motivo".
 /// - c4: solo el admin entra a /admin (core/router/redireccion.dart).
 class AdminInicioScreen extends ConsumerStatefulWidget {
@@ -42,12 +44,17 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
   Future<void> _aprobar(VerificacionPendiente verificacion) async {
     final confirmado = await _confirmar(
       titulo: '¿Aprobar esta identidad?',
-      mensaje: 'La trabajadora podrá postularse a solicitudes disponibles.',
+      mensaje: verificacion.esCliente
+          ? 'El cliente podrá publicar solicitudes.'
+          : 'La trabajadora podrá postularse a solicitudes disponibles.',
     );
     if (!confirmado) return;
     await _guardar(
       () => ref.read(verificacionServiceProvider).aprobar(verificacion.id),
-      'Identidad aprobada. ${verificacion.nombre} ya puede postularse.',
+      verificacion.esCliente
+          ? 'Identidad aprobada. ${verificacion.nombre} ya puede publicar '
+              'solicitudes.'
+          : 'Identidad aprobada. ${verificacion.nombre} ya puede postularse.',
     );
   }
 
@@ -204,8 +211,8 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
       return const EstadoVacio(
         icono: Icons.verified_user_outlined,
         titulo: 'No hay verificaciones pendientes',
-        mensaje: 'Cuando una trabajadora envíe su cédula y su selfie, '
-            'aparecerá aquí.',
+        mensaje: 'Cuando un cliente o una trabajadora envíe su cédula y su '
+            'selfie, aparecerá aquí.',
       );
     }
 
@@ -405,6 +412,13 @@ class _FilaVerificacion extends StatelessWidget {
                   children: [
                     Text(verificacion.nombre, style: textos.titleMedium),
                     Text(
+                      verificacion.esCliente ? 'Cliente' : 'Trabajadora',
+                      style: textos.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primario,
+                      ),
+                    ),
+                    Text(
                       'Enviada ${Formato.fechaHoraCorta(verificacion.enviada)}',
                       style: textos.bodySmall,
                     ),
@@ -494,7 +508,20 @@ class _DetalleVerificacion extends StatelessWidget {
                       style: movil ? textos.headlineMedium : textos.headlineLarge,
                     ),
                     const SizedBox(height: 7),
-                    const InsigniaEstado('En revisión', tono: TonoInsignia.azul),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        const InsigniaEstado(
+                          'En revisión',
+                          tono: TonoInsignia.azul,
+                        ),
+                        InsigniaEstado(
+                          verificacion.esCliente ? 'Cliente' : 'Trabajadora',
+                          tono: TonoInsignia.gris,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 7),
                     Text(
                       'Cuenta creada el '

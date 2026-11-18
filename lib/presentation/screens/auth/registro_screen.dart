@@ -236,6 +236,30 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                               )
                             : const Text('Crear cuenta'),
                       ),
+                      const SizedBox(height: 12),
+                      // Los términos, a la vista antes de crear la cuenta.
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Al crear tu cuenta aceptas los ',
+                            style: tema.textTheme.bodySmall,
+                          ),
+                          InkWell(
+                            key: const Key('registro-terminos'),
+                            onTap: () => context.push(Rutas.terminos),
+                            child: Text(
+                              'Términos y condiciones',
+                              style: tema.textTheme.bodySmall?.copyWith(
+                                color: colores.primary,
+                                fontWeight: FontWeight.w700,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

@@ -7,13 +7,17 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validadores.dart';
 import '../../../domain/entities/perfil_cliente.dart';
+import '../../../domain/entities/zona.dart';
 import '../../providers/perfil_cliente_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/campo_texto.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/seccion_cuenta.dart';
 import '../../widgets/selector_zona.dart';
 import 'barra_cliente.dart';
+import 'seccion_mis_direcciones.dart';
+import '../trabajadora/tarjeta_verificacion_perfil.dart';
 
 /// HU-05 · Crear mi perfil de cliente.
 ///
@@ -120,7 +124,7 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
             fotoUrl: sesion?.fotoUrl,
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: 32,
                 child: Form(
@@ -136,6 +140,11 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                         style: textos.bodySmall,
                       ),
                       const SizedBox(height: 24),
+                      // Verificación de identidad: sin ella no se publica.
+                      if (sesion?.verificacion != null) ...[
+                        const TarjetaVerificacionPerfil(),
+                        const SizedBox(height: 24),
+                      ],
                       if (perfil.isLoading)
                         const Padding(
                           padding: EdgeInsets.all(24),
@@ -223,6 +232,15 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                             ),
                           ),
                         ),
+                        // Direcciones guardadas: se eligen con un toque al
+                        // publicar. Aparecen cuando el perfil ya está
+                        // completo (su dirección se copia como "Casa").
+                        if (perfil.value?.completo ?? false) ...[
+                          const SizedBox(height: 32),
+                          SeccionMisDirecciones(
+                            zonas: zonasAsync.value ?? const <Zona>[],
+                          ),
+                        ],
                         const SeccionCuenta(),
                         const SizedBox(height: 24),
                       ],

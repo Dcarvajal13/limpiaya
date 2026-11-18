@@ -1,3 +1,5 @@
+import '../../domain/entities/rol_usuario.dart';
+
 /// Direcciones (URLs) de las pantallas.
 ///
 /// Siempre navegar con estas constantes, nunca con texto escrito a mano:
@@ -57,6 +59,14 @@ abstract final class Rutas {
   static String postulantes(String solicitudId) =>
       '/cliente/solicitudes/$solicitudId/postulantes';
 
+  /// Verificar mi identidad, como cliente. Sin la identidad aprobada no se
+  /// puede publicar (misma pantalla que la de la trabajadora).
+  static const verificacionCliente = '/cliente/verificacion';
+
+  /// Dónde verifica su identidad cada rol.
+  static String verificacionDe(RolUsuario? rol) =>
+      rol == RolUsuario.cliente ? verificacionCliente : verificacionTrabajadora;
+
   /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
   static const buscarTrabajadoras = '/cliente/buscar';
 
@@ -115,6 +125,11 @@ abstract final class Rutas {
 
   static const sistemaDiseno = '/diseno';
 
+  /// Términos y condiciones (y política de privacidad, en la misma página).
+  /// Se ven igual con o sin sesión.
+  static const terminos = '/terminos';
+  static const privacidad = '$terminos?seccion=privacidad';
+
   /// Registro con el rol ya sugerido, desde los botones de la landing.
   /// TODO(HU-01): leer `rol` de la URL y dejar marcada esa opción.
   static const registroCliente = '$registro?rol=cliente';
@@ -132,5 +147,5 @@ abstract final class Rutas {
   };
 
   /// Pantallas que se ven igual con o sin sesión (nunca redirigen).
-  static const libres = {sistemaDiseno};
+  static const libres = {sistemaDiseno, terminos};
 }

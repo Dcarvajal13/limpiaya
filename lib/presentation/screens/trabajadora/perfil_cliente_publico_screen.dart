@@ -11,6 +11,8 @@ import '../../../domain/services/reputacion_service.dart';
 import '../../providers/perfil_cliente_publico_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/insignia_verificada.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/estrellas.dart';
 import '../../widgets/resena_item.dart';
@@ -47,7 +49,7 @@ class PerfilClientePublicoScreen extends ConsumerWidget {
           child: Divider(height: 1, color: AppColors.borde),
         ),
       ),
-      body: SingleChildScrollView(
+      body: DesplazableConPie(
         child: ContenidoCentrado(
           vertical: movil ? 16 : 28,
           child: perfil.when(
@@ -112,6 +114,10 @@ class _Contenido extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                    if (p.verificada) ...[
+                      const SizedBox(height: 6),
+                      const InsigniaVerificada(),
+                    ],
                     const SizedBox(height: 8),
                     if (p.esNuevo)
                       Text(

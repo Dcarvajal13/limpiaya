@@ -8,6 +8,7 @@ import '../../../domain/entities/perfil_cliente_publico.dart';
 import '../../../domain/services/reputacion_service.dart';
 import '../../providers/perfil_cliente_publico_provider.dart';
 import '../../widgets/avatar_usuario.dart';
+import '../../widgets/insignia_verificada.dart';
 
 /// HU-46 · Quién publicó la solicitud y qué tal cliente es.
 ///
@@ -110,16 +111,26 @@ class _Cliente extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      perfil.nombre,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textos.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primario,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primario,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            perfil.nombre,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textos.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primario,
+                              decoration: TextDecoration.underline,
+                              decorationColor: AppColors.primario,
+                            ),
+                          ),
+                        ),
+                        if (perfil.verificada) ...[
+                          const SizedBox(width: 6),
+                          const InsigniaVerificada(compacta: true),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(

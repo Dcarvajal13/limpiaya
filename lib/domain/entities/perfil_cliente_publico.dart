@@ -11,6 +11,7 @@ class PerfilClientePublico {
     required this.id,
     required this.nombre,
     this.fotoUrl,
+    this.verificada = false,
     this.promedio,
     this.totalResenas = 0,
     this.serviciosCompletados = 0,
@@ -20,6 +21,9 @@ class PerfilClientePublico {
   final String id;
   final String nombre;
   final String? fotoUrl;
+
+  /// Su identidad está aprobada (cédula y selfie revisadas por el admin).
+  final bool verificada;
 
   /// Promedio de 1 a 5, o null si nadie lo ha calificado todavía.
   final double? promedio;

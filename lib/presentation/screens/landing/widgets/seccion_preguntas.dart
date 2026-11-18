@@ -13,7 +13,8 @@ class SeccionPreguntas extends StatelessWidget {
     (
       '¿Cómo sé que la trabajadora es quien dice ser?',
       'Cada trabajadora debe completar una verificación de identidad con su '
-          'cédula y una selfie antes de poder postularse.',
+          'cédula y una selfie antes de poder postularse. Los clientes también '
+          'se verifican antes de publicar.',
     ),
     (
       '¿En qué zonas está disponible?',

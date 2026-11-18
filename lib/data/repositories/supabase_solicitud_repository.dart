@@ -108,6 +108,12 @@ class SupabaseSolicitudRepository implements SolicitudRepository {
       if (e.message.contains('La fecha debe ser futura')) {
         throw const AppException('La fecha debe ser futura');
       }
+      // 42501: la RLS no deja publicar sin la identidad aprobada.
+      if (e.code == '42501') {
+        throw const AppException(
+          'Verifica tu identidad para publicar solicitudes.',
+        );
+      }
       throw const AppException(
         'No pudimos publicar la solicitud. Revisa los datos e intenta de nuevo.',
       );

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/mi_verificacion.dart';
+import '../../../domain/entities/rol_usuario.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/verificaciones_provider.dart';
 import '../../widgets/insignia_verificada.dart';
@@ -15,14 +16,18 @@ import '../../widgets/insignia_verificada.dart';
 /// - c3: rechazada → el motivo y el botón para subir otra foto.
 ///
 /// El estado sale de la sesión; el motivo solo se pide si fue rechazada.
+///
+/// También va en el perfil del cliente: ahí la verificación es para poder
+/// publicar solicitudes.
 class TarjetaVerificacionPerfil extends ConsumerWidget {
   const TarjetaVerificacionPerfil({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final estado = EstadoVerificacion.desdeTexto(
-      ref.watch(sesionProvider).value?.verificacion,
-    );
+    final sesion = ref.watch(sesionProvider).value;
+    final estado = EstadoVerificacion.desdeTexto(sesion?.verificacion);
+    final esCliente = sesion?.rol == RolUsuario.cliente;
+    final para = esCliente ? 'publicar solicitudes' : 'postularte a solicitudes';
     final textos = Theme.of(context).textTheme;
 
     if (estado == EstadoVerificacion.aprobada) {
@@ -42,7 +47,9 @@ class TarjetaVerificacionPerfil extends ConsumerWidget {
     switch (estado) {
       case EstadoVerificacion.enRevision:
         titulo = 'Tu verificación está en revisión';
-        detalle = 'Podrás postularte cuando sea aprobada.';
+        detalle = esCliente
+            ? 'Podrás publicar cuando sea aprobada.'
+            : 'Podrás postularte cuando sea aprobada.';
         icono = Icons.hourglass_top_rounded;
       case EstadoVerificacion.rechazada:
         final motivo = ref.watch(miVerificacionProvider).value?.motivoRechazo;
@@ -56,7 +63,7 @@ class TarjetaVerificacionPerfil extends ConsumerWidget {
         icono = Icons.gpp_bad_outlined;
       default:
         titulo = 'Aún no verificas tu identidad';
-        detalle = 'La necesitas para postularte a solicitudes.';
+        detalle = 'La necesitas para $para.';
         textoBoton = 'Verificar mi identidad';
     }
 
@@ -83,7 +90,7 @@ class TarjetaVerificacionPerfil extends ConsumerWidget {
           if (textoBoton != null) ...[
             const SizedBox(width: 12),
             OutlinedButton(
-              onPressed: () => context.go(Rutas.verificacionTrabajadora),
+              onPressed: () => context.go(Rutas.verificacionDe(sesion?.rol)),
               child: Text(textoBoton),
             ),
           ],

@@ -39,6 +39,13 @@ class _BusquedaFalsa implements BusquedaTrabajadorasRepository {
     required String trabajadoraId,
   }) async =>
       invitaciones.add((solicitudId, trabajadoraId));
+
+  @override
+  Future<List<({String solicitudId, String trabajadoraId})>>
+      misInvitaciones() async => [
+            for (final (s, t) in invitaciones)
+              (solicitudId: s, trabajadoraId: t),
+          ];
 }
 
 class _SesionFalsa extends SesionNotifier {
@@ -195,6 +202,31 @@ void main() {
     );
   });
 
+  testWidgets('después de invitarla, su botón dice "Invitada"',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo = _BusquedaFalsa([_carmen, _marisol]);
+    await tester.pumpWidget(_app(repo, misSolicitudes: [_publicada()]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Invitada'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('invitar-t1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirmar-invitar')));
+    await tester.pumpAndSettle();
+
+    // Carmen quedó "Invitada"; Marisol sigue con "Invitar".
+    expect(find.text('Invitada'), findsOneWidget);
+    expect(find.text('Invitar'), findsOneWidget);
+
+    // Si se vuelve a tocar, avisa que ya está invitada a esa solicitud.
+    await tester.tap(find.byKey(const Key('invitar-t1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ya-invitada')), findsOneWidget);
+    expect(repo.invitaciones, [('s1', 't1')]);
+  });
+
   testWidgets('HU-25 c3: sin solicitudes publicadas pide publicar una',
       (tester) async {
     _pantallaGrande(tester);
@@ -205,6 +237,7 @@ void main() {
     await tester.tap(find.byKey(const Key('invitar-t1')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Primero publica una solicitud'), findsOneWidget);
     expect(find.textContaining('necesitas una solicitud publicada'),
         findsOneWidget);
     expect(find.byKey(const Key('ir-a-publicar')), findsOneWidget);

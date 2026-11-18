@@ -12,14 +12,15 @@ abstract interface class VerificacionRepository {
   Future<List<VerificacionPendiente>> pendientes();
 
   /// HU-33 c2 · Aprueba la verificación. La base de datos marca a la
-  /// trabajadora como verificada (trigger sincronizar_verificacion).
+  /// trabajadora o al cliente como verificado (trigger
+  /// sincronizar_verificacion).
   Future<void> aprobar(String id);
 
   /// HU-33 c3 · Rechaza la verificación con el motivo que verá la trabajadora.
   Future<void> rechazar(String id, String motivo);
 
-  /// HU-21 · Última verificación de la trabajadora con sesión, o null si
-  /// nunca envió documentos.
+  /// HU-21 · Última verificación de quien tiene la sesión (cliente o
+  /// trabajadora), o null si nunca envió documentos.
   Future<MiVerificacion?> miUltima();
 
   /// HU-21 c1 · Sube la foto de la cédula y la selfie al bucket privado y

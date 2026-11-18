@@ -17,6 +17,7 @@ import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/postulantes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/desglose_costo.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_destacada.dart';
@@ -66,7 +67,7 @@ class PostulantesScreen extends ConsumerWidget {
             fotoUrl: sesion?.fotoUrl,
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 16 : 28,
                 child: Column(

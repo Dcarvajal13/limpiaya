@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/responsive.dart';
+import '../../widgets/pie_pagina.dart';
 import 'widgets/barra_visitante.dart';
 import 'widgets/seccion_confianza.dart';
 import 'widgets/seccion_final.dart';

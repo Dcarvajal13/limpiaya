@@ -11,7 +11,8 @@ class SeccionConfianza extends StatelessWidget {
     (
       Icons.verified_user_outlined,
       'Identidad verificada',
-      'Revisamos cédula y selfie antes de permitir postulaciones.',
+      'Revisamos cédula y selfie de clientes y trabajadoras antes de '
+          'publicar o postularse.',
     ),
     (
       Icons.star_outline_rounded,
