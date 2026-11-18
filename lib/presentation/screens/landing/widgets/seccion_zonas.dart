@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/movimiento.dart';
 import '../../../../core/utils/responsive.dart';
 import 'comunes.dart';
 
@@ -55,17 +56,47 @@ class _SeccionZonasState extends State<SeccionZonas> {
                 ),
             ],
           ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.arena,
-              borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 22),
+          AnimatedSwitcher(
+            duration: Movimiento.animar(context) ? Movimiento.normal : Duration.zero,
+            switchInCurve: Movimiento.salida,
+            transitionBuilder: (child, animacion) => FadeTransition(
+              opacity: animacion,
+              child: SlideTransition(
+                position: Tween(begin: const Offset(0, 0.08), end: Offset.zero)
+                    .animate(animacion),
+                child: child,
+              ),
             ),
-            child: Text(
-              _zonasPorMunicipio[_municipio]!.join(' · '),
-              textAlign: centrado ? TextAlign.center : TextAlign.start,
-              style: Theme.of(context).textTheme.bodyMedium,
+            layoutBuilder: (actual, anteriores) => Stack(
+              alignment: centrado ? Alignment.topCenter : Alignment.topLeft,
+              children: [...anteriores, ?actual],
+            ),
+            child: Wrap(
+              key: ValueKey(_municipio),
+              alignment: centrado ? WrapAlignment.center : WrapAlignment.start,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final zona in _zonasPorMunicipio[_municipio]!)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.superficie,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: AppColors.borde),
+                    ),
+                    child: LineaConIcono(
+                      icono: Icons.location_on_outlined,
+                      texto: zona,
+                      espacio: 6,
+                      tamanoIcono: 17,
+                      estilo: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.texto,
+                          ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],

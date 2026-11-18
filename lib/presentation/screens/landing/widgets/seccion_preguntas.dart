@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../core/theme/movimiento.dart';
 import '../../../../core/utils/responsive.dart';
 import 'comunes.dart';
 
-/// Preguntas frecuentes, que se abren y cierran.
+/// Preguntas frecuentes, que se abren y cierran. La primera empieza abierta.
 class SeccionPreguntas extends StatelessWidget {
   const SeccionPreguntas({super.key});
 
@@ -38,18 +39,8 @@ class SeccionPreguntas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    const borde = Border(bottom: BorderSide(color: AppColors.borde));
-    final estiloPregunta = AppFonts.titulos(
-      TextStyle(
-        fontSize: Responsive.esMovil(context) ? 17 : 18,
-        fontWeight: FontWeight.w700,
-        color: AppColors.texto,
-      ),
-    );
-
     return FranjaLanding(
-      anchoMaximo: 850 + 2 * Responsive.margen(context),
+      anchoMaximo: 860 + 2 * Responsive.margen(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -57,26 +48,113 @@ class SeccionPreguntas extends StatelessWidget {
             antetitulo: 'Preguntas frecuentes',
             titulo: 'Lo importante, sin vueltas.',
           ),
-          for (var i = 0; i < _preguntas.length; i++)
-            ExpansionTile(
-              initiallyExpanded: i == 0,
-              shape: borde,
-              collapsedShape: borde,
-              tilePadding: const EdgeInsets.symmetric(vertical: 8),
-              childrenPadding: const EdgeInsets.only(bottom: 20, right: 40),
-              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-              iconColor: AppColors.primario,
-              collapsedIconColor: AppColors.texto,
-              title: Text(_preguntas[i].$1, style: estiloPregunta),
-              children: [
-                Text(
-                  _preguntas[i].$2,
-                  style: textos.bodyMedium?.copyWith(color: AppColors.textoSecundario),
-                ),
-              ],
+          for (final (i, (pregunta, respuesta)) in _preguntas.indexed)
+            _Pregunta(
+              pregunta: pregunta,
+              respuesta: respuesta,
+              abiertaAlInicio: i == 0,
             ),
+          const Divider(height: 1),
         ],
       ),
+    );
+  }
+}
+
+class _Pregunta extends StatefulWidget {
+  const _Pregunta({
+    required this.pregunta,
+    required this.respuesta,
+    required this.abiertaAlInicio,
+  });
+
+  final String pregunta;
+  final String respuesta;
+  final bool abiertaAlInicio;
+
+  @override
+  State<_Pregunta> createState() => _PreguntaState();
+}
+
+class _PreguntaState extends State<_Pregunta> {
+  late var _abierta = widget.abiertaAlInicio;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final movil = Responsive.esMovil(context);
+    final duracion = Movimiento.animar(context) ? Movimiento.normal : Duration.zero;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Divider(height: 1),
+        Semantics(
+          button: true,
+          expanded: _abierta,
+          child: InkWell(
+            onTap: () => setState(() => _abierta = !_abierta),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 72),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.pregunta,
+                        style: AppFonts.titulos(
+                          TextStyle(
+                            fontSize: movil ? 20 : 23,
+                            fontWeight: FontWeight.w500,
+                            height: 1.25,
+                            color: AppColors.texto,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    // El "+" gira y queda como "×" cuando está abierta.
+                    AnimatedRotation(
+                      turns: _abierta ? 0.125 : 0,
+                      duration: duracion,
+                      curve: Movimiento.salida,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: AppColors.arena,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_rounded, size: 20, color: AppColors.primario),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        ClipRect(
+          child: AnimatedSize(
+            duration: duracion,
+            curve: Movimiento.salida,
+            alignment: Alignment.topCenter,
+            child: _abierta
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 24, right: 56),
+                    child: Text(
+                      widget.respuesta,
+                      style: textos.bodyMedium?.copyWith(
+                        fontSize: 16.5,
+                        color: AppColors.textoSecundario,
+                      ),
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+        ),
+      ],
     );
   }
 }

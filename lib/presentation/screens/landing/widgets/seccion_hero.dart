@@ -5,19 +5,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/rutas.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_fonts.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/movimiento.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../widgets/avatar_usuario.dart';
+import '../../../widgets/aparecer.dart';
 import '../../../widgets/contenido_centrado.dart';
-import '../../../widgets/insignia_estado.dart';
-import '../../../widgets/logo_limpiaya.dart';
+import '../../../widgets/resenas_rotativas.dart';
 import 'comunes.dart';
+import 'tarjeta_demo.dart';
 
 enum _Publico { cliente, trabajadora }
 
-/// Primera parte de la landing: qué es LimpiaYa, con un selector
-/// "Necesito limpieza / Quiero trabajar" y un teléfono de ejemplo.
+/// Primera parte de la landing: reseñas reales que se turnan, el selector
+/// "Necesito limpieza / Quiero trabajar" con su mensaje, y a la derecha una
+/// foto con la tarjeta de ejemplo que se anima sola.
 class SeccionHero extends StatefulWidget {
   const SeccionHero({super.key});
 
@@ -37,32 +37,45 @@ class _SeccionHeroState extends State<SeccionHero> {
       publico: _publico,
       onCambiar: (p) => setState(() => _publico = p),
     );
-    const telefono = _TelefonoConFondo();
+    const derecha = Aparecer(
+      retraso: Duration(milliseconds: 160),
+      desde: 24,
+      child: _FotoConDemo(),
+    );
 
     return ContenidoCentrado(
-      vertical: 0,
       child: Padding(
-        padding: EdgeInsets.only(top: movil ? 40 : 80, bottom: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (dosColumnas)
-              Row(
+        padding: EdgeInsets.only(top: movil ? 36 : 64, bottom: movil ? 56 : 96),
+        child: dosColumnas
+            ? Row(
                 children: [
-                  Expanded(flex: 105, child: texto),
-                  const SizedBox(width: 80),
-                  const Expanded(flex: 95, child: telefono),
+                  Expanded(flex: 56, child: texto),
+                  const SizedBox(width: 64),
+                  Expanded(
+                    flex: 44,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: derecha,
+                      ),
+                    ),
+                  ),
                 ],
               )
-            else ...[
-              texto,
-              const SizedBox(height: 48),
-              telefono,
-            ],
-            SizedBox(height: dosColumnas ? 80 : 48),
-            const _FranjaConfianza(),
-          ],
-        ),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  texto,
+                  const SizedBox(height: 48),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: derecha,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -76,54 +89,31 @@ class _TextoHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
     final movil = Responsive.esMovil(context);
-    final esCliente = publico == _Publico.cliente;
+    final dosColumnas = MedidasLanding.dosColumnas(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _Selector(publico: publico, onCambiar: onCambiar, anchoCompleto: movil),
-        const SizedBox(height: 32),
-        const Antetitulo('Limpieza de confianza en Caracas'),
-        const SizedBox(height: 12),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: Text(
-            esCliente
-                ? 'Elige con calma a quien entra a tu casa.'
-                : 'Tu trabajo habla por ti.',
-            style: textos.displayLarge?.copyWith(fontSize: movil ? 40 : 64),
-          ),
+        Aparecer(
+          child: ResenasRotativas(tamanoCita: movil ? 30 : (dosColumnas ? 46 : 40)),
         ),
-        const SizedBox(height: 24),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 630),
-          child: Text(
-            esCliente
-                ? 'Publica la fecha y el pago. Trabajadoras verificadas de tu '
-                    'zona se postulan, y comparas su historia y sus reseñas '
-                    'antes de decidir.'
-                : 'Más clientes sin depender del boca a boca. Tu reputación '
-                    'crece con cada servicio y tú decides tus zonas y tu tarifa.',
-            style: textos.bodyLarge?.copyWith(fontSize: movil ? 17 : 20),
-          ),
-        ),
-        const SizedBox(height: 32),
-        FilledButton(
-          style: AppTheme.botonAmbar,
-          onPressed: () => context.go(
-            esCliente ? Rutas.registroCliente : Rutas.registroTrabajadora,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(esCliente ? 'Crear mi cuenta' : 'Quiero trabajar'),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_rounded, size: 18),
-            ],
+        const SizedBox(height: 40),
+        Aparecer(
+          retraso: const Duration(milliseconds: 80),
+          child: Container(
+            padding: const EdgeInsets.only(top: 30),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppColors.borde)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Selector(publico: publico, onCambiar: onCambiar, anchoCompleto: movil),
+                const SizedBox(height: 22),
+                _Mensaje(publico: publico),
+              ],
+            ),
           ),
         ),
       ],
@@ -131,7 +121,107 @@ class _TextoHero extends StatelessWidget {
   }
 }
 
-/// Selector de dos opciones con fondo arena (como en el prototipo).
+/// Título, texto y botón según a quién le hablamos. Al cambiar de opción
+/// el texto viejo se desvanece y el nuevo sube un poco.
+class _Mensaje extends StatelessWidget {
+  const _Mensaje({required this.publico});
+
+  final _Publico publico;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final movil = Responsive.esMovil(context);
+    final esCliente = publico == _Publico.cliente;
+
+    final contenido = Column(
+      key: ValueKey(publico),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Text(
+            esCliente
+                ? 'Elige con calma a quien entra a tu casa.'
+                : 'Tu trabajo habla por ti.',
+            style: textos.displayLarge?.copyWith(
+              fontSize: movil ? 32 : 42,
+              height: 1.1,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Text(
+            esCliente
+                ? 'Publica la fecha y el pago. Trabajadoras verificadas de tu '
+                    'zona se postulan, y comparas su historia y sus reseñas '
+                    'antes de decidir.'
+                : 'Más clientes sin depender del boca a boca. Tu reputación '
+                    'crece con cada servicio y tú decides tus zonas y tu tarifa.',
+            style: textos.bodyLarge?.copyWith(fontSize: movil ? 16.5 : 18),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Wrap(
+          spacing: 22,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            FilledButton(
+              onPressed: () => context.go(
+                esCliente ? Rutas.registroCliente : Rutas.registroTrabajadora,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      esCliente ? 'Publicar mi primera solicitud' : 'Crear mi perfil gratis',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 18),
+                ],
+              ),
+            ),
+            LineaConIcono(
+              icono: Icons.verified_user_outlined,
+              texto: 'Identidad verificada',
+              estilo: textos.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.texto,
+              ),
+              espacio: 8,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return AnimatedSwitcher(
+      duration: Movimiento.animar(context) ? Movimiento.normal : Duration.zero,
+      switchInCurve: Movimiento.salida,
+      switchOutCurve: Curves.ease,
+      layoutBuilder: (actual, anteriores) => Stack(
+        alignment: Alignment.topLeft,
+        children: [...anteriores, ?actual],
+      ),
+      transitionBuilder: (child, animacion) => FadeTransition(
+        opacity: animacion,
+        child: SlideTransition(
+          position: Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(animacion),
+          child: child,
+        ),
+      ),
+      child: contenido,
+    );
+  }
+}
+
+/// Selector de dos opciones. La pastilla blanca se desliza a la opción
+/// elegida.
 class _Selector extends StatelessWidget {
   const _Selector({
     required this.publico,
@@ -145,29 +235,32 @@ class _Selector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final animar = Movimiento.animar(context);
+
     Widget opcion(_Publico valor, String texto) {
       final activa = publico == valor;
-      final boton = Semantics(
-        selected: activa,
-        button: true,
-        child: Material(
-          color: activa ? AppColors.superficie : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () => onCambiar(valor),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 40),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Center(
-                  widthFactor: 1,
-                  child: Text(
-                    texto,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: activa ? AppColors.primario : AppColors.texto,
-                        ),
+      return Expanded(
+        child: Semantics(
+          selected: activa,
+          button: true,
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(9),
+              onTap: () => onCambiar(valor),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Center(
+                    child: AnimatedDefaultTextStyle(
+                      duration: animar ? Movimiento.rapido : Duration.zero,
+                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                            fontSize: 15,
+                            color: activa ? AppColors.texto : AppColors.textoSecundario,
+                          ),
+                      child: Text(texto, textAlign: TextAlign.center),
+                    ),
                   ),
                 ),
               ),
@@ -175,24 +268,54 @@ class _Selector extends StatelessWidget {
           ),
         ),
       );
-      return anchoCompleto ? Expanded(child: boton) : Flexible(child: boton);
     }
 
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: AppColors.arena,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      // IntrinsicHeight: si un texto ocupa dos líneas, ambas opciones
-      // quedan del mismo alto.
-      child: IntrinsicHeight(
-        child: Row(
-          mainAxisSize: anchoCompleto ? MainAxisSize.max : MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SizedBox(
+      width: anchoCompleto ? double.infinity : 380,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.arena,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Stack(
           children: [
-            opcion(_Publico.cliente, 'Necesito limpieza'),
-            opcion(_Publico.trabajadora, 'Quiero trabajar'),
+            Positioned.fill(
+              child: AnimatedAlign(
+                alignment: publico == _Publico.cliente
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                duration: animar ? Movimiento.normal : Duration.zero,
+                curve: Movimiento.desplazamiento,
+                child: FractionallySizedBox(
+                  widthFactor: 0.5,
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.superficie,
+                      borderRadius: BorderRadius.circular(9),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.texto.withValues(alpha: 0.18),
+                          blurRadius: 8,
+                          spreadRadius: -2,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  opcion(_Publico.cliente, 'Necesito limpieza'),
+                  opcion(_Publico.trabajadora, 'Quiero trabajar'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -200,254 +323,57 @@ class _Selector extends StatelessWidget {
   }
 }
 
-/// Mancha verde clara con el teléfono de ejemplo encima.
-class _TelefonoConFondo extends StatelessWidget {
-  const _TelefonoConFondo();
+/// Foto de Carmen con la tarjeta de ejemplo montada encima de su parte
+/// baja. La foto entra con un acercamiento suave.
+class _FotoConDemo extends StatelessWidget {
+  const _FotoConDemo();
 
   @override
   Widget build(BuildContext context) {
-    final movil = Responsive.esMovil(context);
-    final conNota = MedidasLanding.dosColumnas(context);
+    final animar = Movimiento.animar(context);
 
     return LayoutBuilder(
       builder: (context, restricciones) {
-        final anchoTelefono =
-            math.min(movil ? 290.0 : 330.0, restricciones.maxWidth - 32);
+        final ancho = restricciones.maxWidth;
+        final angosto = ancho < 420;
+        final margenFoto = angosto ? 24.0 : 48.0;
+        final altoFoto = (ancho - margenFoto) * (angosto ? 1.0 : 1.25);
+        // Cuánto de la foto queda visible encima de la tarjeta.
+        final arriba = math.max(altoFoto * (angosto ? 0.55 : 0.52), 160.0);
 
-        return ConstrainedBox(
-          constraints: BoxConstraints(minHeight: movil ? 460 : 520),
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              const Positioned.fill(child: _Mancha()),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: _Telefono(ancho: anchoTelefono),
-              ),
-              if (conNota)
-                Positioned(
-                  right: 0,
-                  top: 20,
-                  child: Transform.rotate(
-                    angle: 4 * math.pi / 180,
-                    child: Text(
-                      'Personas reales.\nDecisiones informadas.',
-                      style: AppFonts.titulos(
-                        const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primario,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Forma orgánica (no un círculo perfecto) detrás del teléfono.
-class _Mancha extends StatelessWidget {
-  const _Mancha();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, c) {
-        final w = c.maxWidth;
-        final h = c.maxHeight;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.primarioClaro,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.elliptical(w * 0.48, h * 0.50),
-              topRight: Radius.elliptical(w * 0.52, h * 0.40),
-              bottomRight: Radius.elliptical(w * 0.43, h * 0.60),
-              bottomLeft: Radius.elliptical(w * 0.57, h * 0.50),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Maqueta de la pantalla "postulantes" dentro de un teléfono.
-class _Telefono extends StatelessWidget {
-  const _Telefono({required this.ancho});
-
-  final double ancho;
-
-  static const _postulantes = [
-    ('Carmen Pérez', '4,9', '23 servicios'),
-    ('Yelitza Rojas', '4,6', '8 servicios'),
-    ('Marisol Gómez', 'Nueva', 'Sin reseñas'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-    final movil = Responsive.esMovil(context);
-
-    return Transform.rotate(
-      angle: 1.5 * math.pi / 180,
-      child: Container(
-        width: ancho,
-        padding: EdgeInsets.all(movil ? 17 : 22),
-        decoration: BoxDecoration(
-          color: AppColors.superficie,
-          borderRadius: BorderRadius.circular(36),
-          border: Border.all(color: AppColors.primarioOscuro, width: 8),
-          boxShadow: const [
-            BoxShadow(color: AppColors.arena, offset: Offset(12, 16)),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        return Stack(
           children: [
-            const Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: LogoLimpiaYa(tamano: 28),
-                    ),
+            Positioned(
+              top: 0,
+              left: margenFoto,
+              right: 0,
+              height: altoFoto,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: animar ? 1.08 : 1.0, end: 1.0),
+                  duration: animar ? const Duration(milliseconds: 1100) : Duration.zero,
+                  curve: Movimiento.salida,
+                  builder: (context, escala, child) =>
+                      Transform.scale(scale: escala, child: child),
+                  child: Image.asset(
+                    'assets/images/trabajadora.jpg',
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0.16, 0),
+                    semanticLabel: 'Carmen limpiando una casa',
+                    errorBuilder: (context, error, stackTrace) =>
+                        const ColoredBox(color: AppColors.arenaOscura),
                   ),
                 ),
-                SizedBox(width: 8),
-                InsigniaEstado('3 postulantes', tono: TonoInsignia.azul),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text('Sábado 17 oct.', style: textos.titleLarge),
-            const SizedBox(height: 4),
-            Text('Limpieza general · Chacao', style: textos.bodySmall?.copyWith(fontSize: 13)),
-            const SizedBox(height: 7),
-            for (var i = 0; i < _postulantes.length; i++)
-              _FilaPostulante(
-                nombre: _postulantes[i].$1,
-                calificacion: _postulantes[i].$2,
-                servicios: _postulantes[i].$3,
-                elegida: i == 0,
               ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: () => context.go(Rutas.registroCliente),
-              child: const Text('Elegir a Carmen'),
+            ),
+            Padding(
+              padding: EdgeInsets.only(top: arriba, right: angosto ? 0 : 24),
+              child: const TarjetaDemo(),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FilaPostulante extends StatelessWidget {
-  const _FilaPostulante({
-    required this.nombre,
-    required this.calificacion,
-    required this.servicios,
-    required this.elegida,
-  });
-
-  final String nombre;
-  final String calificacion;
-  final String servicios;
-  final bool elegida;
-
-  @override
-  Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: elegida ? AppColors.seleccionSuave : AppColors.superficie,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: elegida ? AppColors.primario : AppColors.borde),
-      ),
-      child: Row(
-        children: [
-          AvatarUsuario(nombre: nombre, tamano: 42),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(nombre, style: textos.titleSmall?.copyWith(fontSize: 13)),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      const WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Icon(Icons.star_rounded, size: 13, color: AppColors.ambar),
-                      ),
-                      TextSpan(text: ' $calificacion · $servicios'),
-                    ],
-                  ),
-                  style: textos.bodySmall?.copyWith(fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          if (elegida) ...[
-            const SizedBox(width: 6),
-            const Icon(Icons.check_rounded, size: 18, color: AppColors.primario),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Las tres promesas debajo del hero.
-class _FranjaConfianza extends StatelessWidget {
-  const _FranjaConfianza();
-
-  static const _puntos = [
-    (Icons.verified_user_outlined, 'Identidad verificada'),
-    (Icons.star_outline_rounded, 'Reseñas de ambos lados'),
-    (Icons.payments_outlined, 'Precio acordado antes del servicio'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final estilo = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
-    final movil = Responsive.esMovil(context);
-
-    final puntos = [
-      for (final (icono, texto) in _puntos)
-        LineaConIcono(icono: icono, texto: texto, estilo: estilo, espacio: 9),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.only(top: 30),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.borde)),
-      ),
-      child: movil
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final p in puntos) ...[p, const SizedBox(height: 16)],
-              ],
-            )
-          : Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              spacing: 24,
-              runSpacing: 16,
-              children: puntos,
-            ),
+        );
+      },
     );
   }
 }

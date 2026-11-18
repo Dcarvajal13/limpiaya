@@ -42,9 +42,10 @@ class _SeccionPrecioState extends State<SeccionPrecio> {
               '\$${_pago.round()}',
               style: AppFonts.titulos(
                 const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 40,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.primario,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
             ),
@@ -99,8 +100,8 @@ class _Recibo extends StatelessWidget {
 
     Widget fila(String concepto, double monto, {bool total = false}) {
       final estilo = total
-          ? textos.titleMedium?.copyWith(fontSize: 20)
-          : textos.bodyMedium;
+          ? textos.titleLarge?.copyWith(fontSize: 24)
+          : textos.bodyMedium?.copyWith(color: AppColors.texto);
       return Padding(
         padding: const EdgeInsets.only(top: 20),
         child: Row(
@@ -115,18 +116,11 @@ class _Recibo extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'RESUMEN DEL PAGO',
-              style: textos.labelSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-                color: AppColors.textoSecundario,
-              ),
-            ),
+            Text('Resumen del pago', style: textos.headlineSmall),
             fila('Pago a la trabajadora', pago),
             fila('Tarifa LimpiaYa ($porcentaje %)', tarifa),
             const Padding(
@@ -138,14 +132,15 @@ class _Recibo extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primarioClaro,
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.insigniaVerdeFondo,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: LineaConIcono(
                 icono: Icons.check_rounded,
                 texto: 'El pago se hace directo a la trabajadora.',
+                colorIcono: AppColors.exito,
                 estilo: textos.bodySmall?.copyWith(
-                  color: AppColors.primario,
+                  color: AppColors.exito,
                   fontWeight: FontWeight.w600,
                 ),
                 espacio: 7,

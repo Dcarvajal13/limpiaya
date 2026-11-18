@@ -16,7 +16,8 @@ abstract final class MedidasLanding {
       MediaQuery.sizeOf(context).width >= anchoDosColumnas;
 }
 
-/// Texto pequeño en mayúsculas que va arriba de un título ("ASÍ DE SENCILLO").
+/// Texto corto que va arriba de un título ("Así de sencillo"), con una
+/// rayita a la izquierda. Se escribe tal cual, sin pasarlo a mayúsculas.
 class Antetitulo extends StatelessWidget {
   const Antetitulo(this.texto, {super.key, this.sobreOscuro = false});
 
@@ -25,16 +26,25 @@ class Antetitulo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      texto.toUpperCase(),
-      style: AppFonts.texto(
-        TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.3,
-          color: sobreOscuro ? AppColors.verdeSobreOscuro : AppColors.primario,
+    final color = sobreOscuro ? AppColors.verdeSobreOscuro : AppColors.primario;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 18,
+          height: 2,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
         ),
-      ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            texto,
+            style: AppFonts.texto(
+              TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -82,7 +92,8 @@ class TituloSeccion extends StatelessWidget {
                 titulo,
                 textAlign: alineacion,
                 style: textos.headlineLarge?.copyWith(
-                  fontSize: movil ? 28 : 36,
+                  fontSize: movil ? 32 : 44,
+                  height: 1.1,
                   color: sobreOscuro ? Colors.white : null,
                 ),
               ),
@@ -196,9 +207,11 @@ class LineaConIcono extends StatelessWidget {
     this.colorIcono = AppColors.primario,
     this.estilo,
     this.espacio = 10,
+    this.tamanoIcono = 22,
   });
 
   final IconData icono;
+  final double tamanoIcono;
   final String texto;
   final Color colorIcono;
   final TextStyle? estilo;
@@ -209,7 +222,7 @@ class LineaConIcono extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icono, size: 22, color: colorIcono),
+        Icon(icono, size: tamanoIcono, color: colorIcono),
         SizedBox(width: espacio),
         Flexible(child: Text(texto, style: estilo)),
       ],

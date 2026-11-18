@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/movimiento.dart';
 import '../../../core/utils/responsive.dart';
+import '../../widgets/aparecer.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/logo_limpiaya.dart';
@@ -20,7 +22,7 @@ class TerminosScreen extends StatefulWidget {
   /// Id de la sección a la que se baja al abrir (por ejemplo 'privacidad').
   final String? seccion;
 
-  static const actualizacion = '12 de noviembre de 2026';
+  static const actualizacion = '17 de noviembre de 2026';
 
   @override
   State<TerminosScreen> createState() => _TerminosScreenState();
@@ -45,8 +47,10 @@ class _TerminosScreenState extends State<TerminosScreen> {
     if (contexto == null) return;
     Scrollable.ensureVisible(
       contexto,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
+      duration: Movimiento.animar(context)
+          ? const Duration(milliseconds: 420)
+          : Duration.zero,
+      curve: Movimiento.desplazamiento,
     );
   }
 
@@ -68,8 +72,7 @@ class _TerminosScreenState extends State<TerminosScreen> {
       children: [
         Text(
           'Términos y condiciones',
-          style: (movil ? textos.headlineLarge : textos.displaySmall)
-              ?.copyWith(fontWeight: FontWeight.w800, color: AppColors.texto),
+          style: textos.displaySmall?.copyWith(fontSize: movil ? 34 : 46),
         ),
         const SizedBox(height: 8),
         Text(
@@ -118,19 +121,15 @@ class _TerminosScreenState extends State<TerminosScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.superficie,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'CONTENIDO',
-            style: textos.labelSmall?.copyWith(
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textoSecundario,
-            ),
+            'Contenido',
+            style: textos.labelLarge?.copyWith(color: AppColors.textoSecundario),
           ),
           const SizedBox(height: 8),
           for (final (i, s) in _secciones.indexed)
@@ -165,7 +164,11 @@ class _TerminosScreenState extends State<TerminosScreen> {
           child: movil
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [encabezado, const SizedBox(height: 24), texto],
+                  children: [
+                    Aparecer(child: encabezado),
+                    const SizedBox(height: 24),
+                    texto,
+                  ],
                 )
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +179,7 @@ class _TerminosScreenState extends State<TerminosScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          encabezado,
+                          Aparecer(child: encabezado),
                           const SizedBox(height: 32),
                           texto,
                         ],
@@ -215,10 +218,7 @@ class _BloqueSeccion extends StatelessWidget {
         children: [
           Text(
             '$numero. ${seccion.titulo}',
-            style: textos.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.primarioOscuro,
-            ),
+            style: textos.headlineSmall?.copyWith(color: AppColors.texto),
           ),
           const SizedBox(height: 10),
           for (final parrafo in seccion.parrafos)
@@ -333,8 +333,8 @@ final _secciones = <_Seccion>[
     '• Las fotos de la cédula y la selfie (de clientes y trabajadoras) solo '
         'las ve el equipo que revisa la verificación.',
     '• No vendemos ni compartimos tus datos con terceros para publicidad.',
-    'Puedes pedir que corrijamos o borremos tus datos escribiéndole al '
-        'equipo de LimpiaYa.',
+    'Puedes pedir una copia de tus datos, o que los corrijamos o borremos, '
+        'escribiendo a ${AppConstants.correoSoporte}.',
   ]),
   const _Seccion('cambios', 'Cambios a estos términos', [
     'Podemos actualizar estos términos. Cuando haya cambios importantes lo '
@@ -342,5 +342,10 @@ final _secciones = <_Seccion>[
         'actualización.',
     'LimpiaYa es un proyecto académico de Ingeniería de Software de la '
         'Universidad Metropolitana (UNIMET), Caracas.',
+  ]),
+  const _Seccion('contacto', 'Contacto', [
+    'Si tienes dudas sobre estos términos, quieres reportar un problema o '
+        'ejercer tus derechos sobre tus datos, escríbenos a '
+        '${AppConstants.correoSoporte}.',
   ]),
 ];

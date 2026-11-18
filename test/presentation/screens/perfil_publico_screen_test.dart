@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:limpiaya/core/constants/app_constants.dart';
 import 'package:limpiaya/core/di/providers.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
@@ -114,7 +115,9 @@ void main() {
     await tester.pumpWidget(_app(_PerfilFalso(_perfil())));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('@'), findsNothing);
+    // El único correo a la vista es el de soporte, en el pie de página.
+    expect(find.textContaining('@'), findsOneWidget);
+    expect(find.text(AppConstants.correoSoporte), findsOneWidget);
     expect(find.textContaining('+58'), findsNothing);
     expect(find.textContaining('0414'), findsNothing);
   });

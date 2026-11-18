@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:limpiaya/core/constants/app_constants.dart';
 import 'package:limpiaya/core/di/providers.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
@@ -123,7 +124,9 @@ void main() {
 
     expect(find.text('Cliente nuevo'), findsOneWidget);
     expect(find.text('Todavía no hay reseñas para mostrar.'), findsOneWidget);
-    expect(find.textContaining('@'), findsNothing);
+    // El único correo a la vista es el de soporte, en el pie de página.
+    expect(find.textContaining('@'), findsOneWidget);
+    expect(find.text(AppConstants.correoSoporte), findsOneWidget);
     expect(find.textContaining('0414'), findsNothing);
   });
 

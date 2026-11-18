@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
-import '../../../core/utils/mascara_telefono.dart';
 import '../../../core/utils/validadores.dart';
 import '../../../domain/entities/rol_usuario.dart';
 import '../../providers/registro_provider.dart';
@@ -21,8 +22,14 @@ class RegistroScreen extends ConsumerStatefulWidget {
 class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nombre = TextEditingController();
+  final _apellido = TextEditingController();
   final _email = TextEditingController();
-  final _telefono = TextEditingController();
+
+  /// Código de operadora elegido en la lista (0414, 0412…).
+  String? _codigo;
+
+  /// Los 7 números que van después del código.
+  final _numero = TextEditingController();
   final _password = TextEditingController();
 
   RolUsuario? _rol;
@@ -33,8 +40,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   @override
   void dispose() {
     _nombre.dispose();
+    _apellido.dispose();
     _email.dispose();
-    _telefono.dispose();
+    _numero.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -45,9 +53,10 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
     if (!formularioOk || _rol == null || !_aceptoTerminos) return;
 
     final ok = await ref.read(registroControllerProvider.notifier).registrar(
-          nombre: _nombre.text,
+          // En la base se guarda un solo nombre: "Nombre Apellido".
+          nombre: '${_nombre.text.trim()} ${_apellido.text.trim()}',
           email: _email.text,
-          telefono: _telefono.text,
+          telefono: '${_codigo ?? ''}-${_numero.text.trim()}',
           password: _password.text,
           rol: _rol,
           aceptoTerminos: _aceptoTerminos,
@@ -135,13 +144,33 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                           child: Text('Elige una opción', style: textoError),
                         ),
                       const SizedBox(height: 20),
-                      TextFormField(
-                        controller: _nombre,
-                        decoration:
-                            const InputDecoration(labelText: 'Nombre completo'),
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.name],
-                        validator: Validadores.requerido,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _nombre,
+                              decoration:
+                                  const InputDecoration(labelText: 'Nombre'),
+                              textInputAction: TextInputAction.next,
+                              textCapitalization: TextCapitalization.words,
+                              autofillHints: const [AutofillHints.givenName],
+                              validator: Validadores.requerido,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _apellido,
+                              decoration:
+                                  const InputDecoration(labelText: 'Apellido'),
+                              textInputAction: TextInputAction.next,
+                              textCapitalization: TextCapitalization.words,
+                              autofillHints: const [AutofillHints.familyName],
+                              validator: Validadores.requerido,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -153,20 +182,53 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                         validator: Validadores.email,
                       ),
                       const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _telefono,
-                        decoration: const InputDecoration(
-                          labelText: 'Teléfono',
-                          hintText: '04XX-XXXXXXX',
-                          helperText: 'Escribe solo los números; el guion '
-                              'se pone solo',
-                        ),
-                        keyboardType: TextInputType.phone,
-                        // Taller UX, H5 (severidad 3): máscara automática.
-                        inputFormatters: const [MascaraTelefono()],
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.telephoneNumber],
-                        validator: Validadores.telefono,
+                      // Teléfono: el código se elige en una lista y aparte se
+                      // escriben los 7 números (se guarda como 0414-1234567).
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 128,
+                            child: DropdownButtonFormField<String>(
+                              key: const Key('registro-codigo'),
+                              initialValue: _codigo,
+                              decoration:
+                                  const InputDecoration(labelText: 'Código'),
+                              items: [
+                                for (final codigo
+                                    in AppConstants.codigosTelefono)
+                                  DropdownMenuItem(
+                                    value: codigo,
+                                    child: Text(codigo),
+                                  ),
+                              ],
+                              onChanged: (v) => setState(() => _codigo = v),
+                              validator: Validadores.codigoTelefono,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              key: const Key('registro-numero'),
+                              controller: _numero,
+                              decoration: const InputDecoration(
+                                labelText: 'Teléfono',
+                                hintText: '1234567',
+                                helperText: '7 números, sin el código',
+                              ),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(7),
+                              ],
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [
+                                AutofillHints.telephoneNumberLocal,
+                              ],
+                              validator: Validadores.numeroTelefono,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 14),
                       TextFormField(

@@ -8,6 +8,7 @@ import 'package:limpiaya/core/router/rutas.dart';
 import 'package:limpiaya/core/router/verificacion_correo.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/core/theme/movimiento.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/usuario.dart';
@@ -145,7 +146,12 @@ Widget _correoVerificado(EstadoEnlaceCorreo estado, {bool conSesion = false}) {
 }
 
 void main() {
-  setUpAll(() => AppFonts.usarGoogleFonts = false);
+  setUpAll(() {
+    AppFonts.usarGoogleFonts = false;
+    // Sin animaciones que se repiten solas (reseñas, demo, pasos):
+    // pumpAndSettle esperaría para siempre a que terminen.
+    Movimiento.ciclos = false;
+  });
 
   group('HU-40 c2 · iniciar sesión sin haber verificado el correo', () {
     testWidgets('muestra el aviso con "Reenviar correo"', (tester) async {

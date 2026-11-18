@@ -5,6 +5,7 @@ import 'package:limpiaya/core/di/providers.dart';
 import 'package:limpiaya/core/errors/app_exception.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/core/theme/movimiento.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/usuario.dart';
@@ -76,7 +77,12 @@ Finder get _correo => find.byType(TextFormField).at(0);
 Finder get _contrasena => find.byType(TextFormField).at(1);
 
 void main() {
-  setUpAll(() => AppFonts.usarGoogleFonts = false);
+  setUpAll(() {
+    AppFonts.usarGoogleFonts = false;
+    // Sin animaciones que se repiten solas (reseñas, demo, pasos):
+    // pumpAndSettle esperaría para siempre a que terminen.
+    Movimiento.ciclos = false;
+  });
 
   testWidgets('con los campos vacíos pide llenarlos y no intenta entrar', (tester) async {
     final repositorio = await _abrirLogin(tester);
