@@ -281,11 +281,12 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Banner verde superior
+                    // Banner superior. El saludo cambia con la hora, igual
+                    // que en la pantalla de la trabajadora.
                     BannerCliente(
                       saludo: nombre.isNotEmpty
-                          ? 'Buenos días, $nombre'
-                          : 'Buenos días',
+                          ? '${Formato.saludo(DateTime.now())}, $nombre'
+                          : Formato.saludo(DateTime.now()),
                       resumen: solicitudesAsync.maybeWhen(
                         data: (solicitudes) => _construirResumen(solicitudes),
                         orElse: () =>
