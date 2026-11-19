@@ -97,6 +97,36 @@ abstract final class BusquedaService {
     ];
   }
 
+  /// Trabajadoras que ya invité a alguna de mis solicitudes [publicadas]
+  /// (las invitaciones a solicitudes viejas o canceladas no cuentan).
+  static Set<String> invitadas(
+    List<({String solicitudId, String trabajadoraId})> invitaciones,
+    List<Solicitud> publicadas,
+  ) {
+    final vigentes = {for (final s in publicadas) s.id};
+    return {
+      for (final i in invitaciones)
+        if (vigentes.contains(i.solicitudId)) i.trabajadoraId,
+    };
+  }
+
+  /// De [disponibles], las solicitudes a las que todavía no invité a
+  /// [trabajadoraId].
+  static List<Solicitud> sinInvitar(
+    List<Solicitud> disponibles,
+    List<({String solicitudId, String trabajadoraId})> invitaciones,
+    String trabajadoraId,
+  ) {
+    final yaInvitada = {
+      for (final i in invitaciones)
+        if (i.trabajadoraId == trabajadoraId) i.solicitudId,
+    };
+    return [
+      for (final s in disponibles)
+        if (!yaInvitada.contains(s.id)) s,
+    ];
+  }
+
   /// Solicitudes Publicadas y futuras del cliente.
   static List<Solicitud> publicadas(
     List<Solicitud> misSolicitudes, {

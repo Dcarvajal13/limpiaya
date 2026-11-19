@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/responsive.dart';
 import 'comunes.dart';
 
 /// Franja oscura: cómo LimpiaYa cuida la seguridad de ambos lados.
@@ -11,7 +12,8 @@ class SeccionConfianza extends StatelessWidget {
     (
       Icons.verified_user_outlined,
       'Identidad verificada',
-      'Revisamos cédula y selfie antes de permitir postulaciones.',
+      'Revisamos cédula y selfie de clientes y trabajadoras antes de '
+          'publicar o postularse.',
     ),
     (
       Icons.star_outline_rounded,
@@ -33,38 +35,51 @@ class SeccionConfianza extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.sizeOf(context).width;
+    final movil = Responsive.esMovil(context);
     final columnas = ancho >= MedidasLanding.anchoDosColumnas
         ? 4
         : ancho >= 560
             ? 2
             : 1;
 
+    // Banda redondeada dentro del ancho de la página, no de borde a borde.
     return FranjaLanding(
-      color: AppColors.primarioOscuro,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const TituloSeccion(
-            antetitulo: 'Confianza primero',
-            titulo: 'La seguridad está en cómo funciona, no en la letra pequeña.',
-            sobreOscuro: true,
-            anchoMaximo: 820,
-          ),
-          Rejilla(
-            columnas: columnas,
-            children: [
-              for (final (icono, titulo, texto) in _puntos)
-                _TarjetaOscura(icono: icono, titulo: titulo, texto: texto),
-            ],
-          ),
-        ],
+      vertical: movil ? 16 : 24,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: movil ? 24 : 56,
+          vertical: movil ? 48 : 72,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.primarioOscuro,
+          borderRadius: BorderRadius.circular(movil ? 24 : 32),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const TituloSeccion(
+              antetitulo: 'Confianza primero',
+              titulo: 'La seguridad está en cómo funciona, no en la letra pequeña.',
+              sobreOscuro: true,
+              anchoMaximo: 820,
+            ),
+            Rejilla(
+              columnas: columnas,
+              espacio: 28,
+              children: [
+                for (final (icono, titulo, texto) in _puntos)
+                  _Punto(icono: icono, titulo: titulo, texto: texto),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _TarjetaOscura extends StatelessWidget {
-  const _TarjetaOscura({
+class _Punto extends StatelessWidget {
+  const _Punto({
     required this.icono,
     required this.titulo,
     required this.texto,
@@ -79,22 +94,23 @@ class _TarjetaOscura extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.only(top: 22),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.25))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icono, size: 28, color: AppColors.verdeSobreOscuro),
-          const SizedBox(height: 28),
-          Text(titulo, style: textos.titleLarge?.copyWith(color: Colors.white)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),
+          Text(
+            titulo,
+            style: textos.headlineSmall?.copyWith(fontSize: 23, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
           Text(
             texto,
-            style: textos.bodySmall?.copyWith(color: AppColors.textoSuaveSobreOscuro),
+            style: textos.bodyMedium?.copyWith(color: AppColors.textoSuaveSobreOscuro),
           ),
         ],
       ),

@@ -18,7 +18,11 @@ final zonasProvider = FutureProvider<List<Zona>>((ref) async {
 /// Estado del perfil: cargar, guardar y subir la foto.
 class PerfilController extends AsyncNotifier<PerfilTrabajadora?> {
   @override
-  Future<PerfilTrabajadora?> build() => ref.read(perfilRepositoryProvider).miPerfil();
+  Future<PerfilTrabajadora?> build() {
+    // Si entra otra persona en la misma pestaña, se vuelve a cargar.
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.id));
+    return ref.read(perfilRepositoryProvider).miPerfil();
+  }
 
   /// Guarda el perfil y lo vuelve a leer. Devuelve true si salió bien.
   Future<bool> guardar({

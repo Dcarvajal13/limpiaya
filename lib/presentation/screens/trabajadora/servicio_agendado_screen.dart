@@ -18,6 +18,7 @@ import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/calificar_contraparte.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
 
@@ -110,7 +111,7 @@ class ServicioAgendadoScreen extends ConsumerWidget {
           },
         ),
       ),
-      body: SingleChildScrollView(
+      body: DesplazableConPie(
         child: ContenidoCentrado(
           vertical: movil ? 20 : 40,
           anchoMaximo: 980,

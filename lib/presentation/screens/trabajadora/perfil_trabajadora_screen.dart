@@ -13,6 +13,7 @@ import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/campo_texto.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/seccion_cuenta.dart';
 import '../../widgets/selector_zonas_multiple.dart';
 import 'barra_trabajadora.dart';
@@ -171,7 +172,7 @@ class _PerfilTrabajadoraScreenState
         children: [
           BarraTrabajadora(nombre: nombre, fotoUrl: fotoUrl),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: 32,
                 child: Form(

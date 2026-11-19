@@ -15,10 +15,10 @@ import '../models/verificacion_model.dart';
 /// - RLS: solo el admin lee todas las verificaciones y puede aprobarlas o
 ///   rechazarlas ("verificaciones: el admin aprueba o rechaza").
 /// - Storage: el bucket "verificaciones" es privado; el admin puede ver las
-///   fotos, por eso se piden links temporales. Cada trabajadora solo sube a
-///   su carpeta con su id.
-/// - RLS: la trabajadora solo crea su propia verificación "en_revision" y
-///   solo lee las suyas (HU-21).
+///   fotos, por eso se piden links temporales. Cada usuario solo sube a su
+///   carpeta con su id.
+/// - RLS: cada cliente o trabajadora solo crea su propia verificación
+///   "en_revision" y solo lee las suyas (HU-21).
 class SupabaseVerificacionRepository implements VerificacionRepository {
   SupabaseVerificacionRepository(this._client);
 
@@ -38,8 +38,10 @@ class SupabaseVerificacionRepository implements VerificacionRepository {
       final respuesta = await _client
           .from('verificaciones')
           .select(
-            'id, trabajadora_id, cedula_path, selfie_path, created_at, '
-            'trabajadoras(perfiles(nombre, telefono, foto_path, created_at))',
+            'id, usuario_id, cedula_path, selfie_path, created_at, '
+            // revisada_por también apunta a perfiles: se nombra la relación.
+            'usuario:perfiles!verificaciones_usuario_id_fkey'
+            '(nombre, telefono, foto_path, created_at, rol)',
           )
           .eq('estado', 'en_revision')
           .order('created_at', ascending: true);
@@ -135,7 +137,7 @@ class SupabaseVerificacionRepository implements VerificacionRepository {
       final fila = await _client
           .from('verificaciones')
           .select('estado, motivo_rechazo, created_at')
-          .eq('trabajadora_id', usuario.id)
+          .eq('usuario_id', usuario.id)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -167,10 +169,10 @@ class SupabaseVerificacionRepository implements VerificacionRepository {
     final rutaSelfie = await _subir(usuario.id, 'selfie-$marca', selfie);
 
     try {
-      // El trigger sincronizar_verificacion deja a la trabajadora
-      // "en_revision" (HU-21 c1).
+      // El trigger sincronizar_verificacion deja a la trabajadora o al
+      // cliente "en_revision" (HU-21 c1).
       await _client.from('verificaciones').insert({
-        'trabajadora_id': usuario.id,
+        'usuario_id': usuario.id,
         'cedula_path': rutaCedula,
         'selfie_path': rutaSelfie,
       });

@@ -36,9 +36,14 @@ class TarjetaSolicitud extends StatelessWidget {
     this.identidadVerificada = true,
     this.onPostular,
     this.onTap,
+    this.llenarAlto = false,
   });
 
   final SolicitudDisponible solicitud;
+
+  /// En la cuadrícula todas las tarjetas miden lo mismo: con esto la
+  /// tarjeta ocupa todo el alto que le dan y deja los botones abajo.
+  final bool llenarAlto;
 
   /// HU-12 c2 · Ya tiene una postulación viva para esta solicitud.
   final bool yaPostulada;
@@ -113,7 +118,7 @@ class TarjetaSolicitud extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: llenarAlto ? MainAxisSize.max : MainAxisSize.min,
           children: [
             Row(
               children: [
@@ -196,6 +201,8 @@ class TarjetaSolicitud extends StatelessWidget {
                 ),
               ],
             ),
+            // Empuja el pago y los botones al fondo de la tarjeta.
+            if (llenarAlto) const Spacer(),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 14),
               child: Divider(height: 1),

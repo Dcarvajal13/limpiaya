@@ -31,6 +31,25 @@ abstract final class Validadores {
     return null;
   }
 
+  /// Los 7 dígitos del teléfono que van después del código (0414, 0412…),
+  /// cuando el código se elige aparte en una lista.
+  static String? numeroTelefono(String? valor) {
+    final vacio = requerido(valor);
+    if (vacio != null) return vacio;
+    if (!RegExp(r'^\d{7}$').hasMatch(valor!.trim())) {
+      return 'Deben ser 7 números';
+    }
+    return null;
+  }
+
+  /// Código de operadora elegido en la lista (0414, 0412…).
+  static String? codigoTelefono(String? valor) {
+    if (valor == null || !AppConstants.codigosTelefono.contains(valor)) {
+      return 'Elige el código';
+    }
+    return null;
+  }
+
   /// Mínimo 8 caracteres (HU-01, criterio 4).
   static String? password(String? valor) {
     if (valor == null || valor.length < AppConstants.largoMinimoPassword) {

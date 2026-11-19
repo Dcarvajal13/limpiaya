@@ -21,6 +21,8 @@ import '../../providers/mis_solicitudes_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../providers/solicitudes_disponibles_provider.dart';
 import '../../widgets/contenido_centrado.dart';
+import '../../widgets/cuadricula_igual.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/dialogo_calificar.dart';
 import '../../widgets/dialogo_cancelar_servicio.dart';
 import '../../widgets/estado_vacio.dart';
@@ -29,6 +31,7 @@ import 'barra_cliente.dart';
 import 'dialogo_cancelar_solicitud.dart';
 import 'dialogos_servicio.dart';
 import 'tarjeta_solicitud_cliente.dart';
+import '../trabajadora/tarjeta_verificacion_perfil.dart';
 
 /// HU-08 · Ver mis solicitudes y su estado.
 ///
@@ -272,17 +275,18 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
             noLeidos: ref.watch(noLeidosProvider),
           ),
           Expanded(
-            child: SingleChildScrollView(
+            child: DesplazableConPie(
               child: ContenidoCentrado(
                 vertical: movil ? 16 : 28,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Banner verde superior
+                    // Banner superior. El saludo cambia con la hora, igual
+                    // que en la pantalla de la trabajadora.
                     BannerCliente(
                       saludo: nombre.isNotEmpty
-                          ? 'Buenos días, $nombre'
-                          : 'Buenos días',
+                          ? '${Formato.saludo(DateTime.now())}, $nombre'
+                          : Formato.saludo(DateTime.now()),
                       resumen: solicitudesAsync.maybeWhen(
                         data: (solicitudes) => _construirResumen(solicitudes),
                         orElse: () =>
@@ -291,6 +295,14 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                       onPublicar: () => context.go(Rutas.publicarSolicitud),
                     ),
                     const SizedBox(height: 20),
+
+                    // Sin la identidad aprobada no puede publicar: se le
+                    // avisa aquí, con el botón para verificarla.
+                    if (sesion?.verificacion != null &&
+                        sesion?.verificacion != 'aprobada') ...[
+                      const TarjetaVerificacionPerfil(),
+                      const SizedBox(height: 20),
+                    ],
 
                     // Tarjetas de métricas superiores
                     solicitudesAsync.maybeWhen(
@@ -377,8 +389,8 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                         // Criterios 1 y 2: solicitudes con estado y postulantes.
                         // Feedback del Product Review: cuadrícula de cajas
                         // (3 por fila en pantallas grandes, 2 en medianas y 1
-                        // en el teléfono). Cada fila toma la altura de su caja
-                        // más alta, para que todas midan lo mismo.
+                        // en el teléfono). Todas las cajas miden lo mismo:
+                        // el alto de la más alta de la lista.
                         return LayoutBuilder(
                           builder: (context, constraints) {
                             final ancho = constraints.maxWidth;
@@ -387,41 +399,19 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                 : ancho >= 700
                                     ? 2
                                     : 1;
-                            const espacio = 16.0;
 
-                            final filas = <List<Solicitud>>[
-                              for (var i = 0;
-                                  i < filtradas.length;
-                                  i += columnas)
-                                filtradas.sublist(
-                                  i,
-                                  (i + columnas).clamp(0, filtradas.length),
-                                ),
-                            ];
-
-                            return Column(
-                              children: [
-                                for (final fila in filas) ...[
-                                  IntrinsicHeight(
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        for (var j = 0; j < columnas; j++) ...[
-                                          if (j > 0)
-                                            const SizedBox(width: espacio),
-                                          Expanded(
-                                            child: j < fila.length
-                                                ? _tarjeta(fila[j])
-                                                : const SizedBox.shrink(),
-                                          ),
-                                        ],
-                                      ],
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: CuadriculaIgual(
+                                columnas: columnas,
+                                children: [
+                                  for (final s in filtradas)
+                                    KeyedSubtree(
+                                      key: ValueKey('caja-${s.id}'),
+                                      child: _tarjeta(s),
                                     ),
-                                  ),
-                                  const SizedBox(height: espacio),
                                 ],
-                              ],
+                              ),
                             );
                           },
                         );

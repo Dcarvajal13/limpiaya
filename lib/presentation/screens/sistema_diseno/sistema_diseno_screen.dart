@@ -82,11 +82,11 @@ class _SistemaDisenoScreenState extends State<SistemaDisenoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('displayLarge · Bricolage', style: textos.displayLarge),
+                      Text('displayLarge · Newsreader', style: textos.displayLarge),
                       Text('headlineLarge · títulos de página', style: textos.headlineLarge),
                       Text('titleLarge · títulos de tarjeta', style: textos.titleLarge),
                       Text('bodyLarge · subtítulos y párrafos destacados', style: textos.bodyLarge),
-                      Text('bodyMedium · texto normal en Figtree', style: textos.bodyMedium),
+                      Text('bodyMedium · texto normal en Hanken Grotesk', style: textos.bodyMedium),
                       Text('bodySmall · texto secundario', style: textos.bodySmall),
                       Text('labelLarge · botones', style: textos.labelLarge),
                     ],

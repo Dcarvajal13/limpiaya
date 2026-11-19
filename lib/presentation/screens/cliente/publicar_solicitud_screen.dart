@@ -8,17 +8,26 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../core/router/rutas.dart';
+import '../../../domain/entities/direccion_guardada.dart';
 import '../../../domain/entities/metodo_pago.dart';
+import '../../../domain/entities/mi_verificacion.dart';
+import '../../../domain/entities/rol_usuario.dart';
+import '../../../domain/entities/direccion_cliente.dart';
 import '../../../domain/entities/nueva_solicitud.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/quien_pone_productos.dart';
 import '../../../domain/entities/solicitud.dart';
 import '../../../domain/entities/tipo_limpieza.dart';
 import '../../../domain/entities/zona.dart';
+import '../../../domain/services/direcciones_service.dart';
 import '../../../domain/services/solicitud_service.dart';
+import '../../providers/direcciones_provider.dart';
 import '../../providers/publicar_solicitud_provider.dart';
+import '../../providers/sesion_provider.dart';
+import '../../widgets/desplazable_con_pie.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/selector_zona.dart';
+import 'seccion_mis_direcciones.dart';
 
 /// HU-07 · Publicar una solicitud de limpieza (incluye HU-43 y HU-52).
 ///
@@ -56,6 +65,10 @@ class _PublicarSolicitudScreenState
   final _scrollController = ScrollController();
   final _direccion = TextEditingController();
   final _pago = TextEditingController(text: '30');
+
+  /// "Guardar esta dirección para la próxima vez" y el nombre que le pone.
+  final _nombreDireccion = TextEditingController();
+  bool _guardarDireccion = false;
 
   // Claves para desplazamiento interactivo al faltar datos.
   final _fechaKey = GlobalKey();
@@ -127,15 +140,85 @@ class _PublicarSolicitudScreenState
     }
 
     // HU-05 c2: zona y dirección precargadas, y se pueden cambiar.
-    ref.read(direccionGuardadaProvider.future).then((guardada) {
-      if (!mounted || guardada == null) return;
-      setState(() {
-        _zonaId ??= guardada.zonaId;
-        if (_direccion.text.isEmpty && guardada.direccion != null) {
-          _direccion.text = guardada.direccion!;
-        }
-      });
+    _precargarDireccion();
+  }
+
+  /// Precarga la primera dirección guardada ("Casa"). Si no tiene ninguna,
+  /// la del perfil (HU-05 c2).
+  Future<void> _precargarDireccion() async {
+    var guardadas = const <DireccionGuardada>[];
+    try {
+      guardadas = await ref.read(misDireccionesProvider.future);
+    } on Object {
+      // Sin direcciones guardadas se usa la del perfil.
+    }
+    if (!mounted) return;
+    if (guardadas.isNotEmpty) {
+      if (_zonaId == null && _direccion.text.isEmpty) {
+        _usarDireccion(guardadas.first);
+      }
+      return;
+    }
+
+    DireccionCliente? perfil;
+    try {
+      perfil = await ref.read(direccionGuardadaProvider.future);
+    } on Object {
+      perfil = null;
+    }
+    final guardada = perfil;
+    if (!mounted || guardada == null) return;
+    setState(() {
+      _zonaId ??= guardada.zonaId;
+      if (_direccion.text.isEmpty && guardada.direccion != null) {
+        _direccion.text = guardada.direccion!;
+      }
     });
+  }
+
+  /// Llena zona y dirección con una dirección guardada.
+  void _usarDireccion(DireccionGuardada direccion) {
+    setState(() {
+      _zonaId = direccion.zonaId;
+      _direccion.text = direccion.direccion;
+      _guardarDireccion = false;
+    });
+  }
+
+  /// "Otra dirección": vacía zona y dirección para escribir una nueva.
+  void _otraDireccion() {
+    setState(() {
+      _zonaId = null;
+      _direccion.clear();
+    });
+  }
+
+  /// La dirección guardada que coincide con lo que está en el formulario.
+  DireccionGuardada? _direccionElegida(List<DireccionGuardada> guardadas) =>
+      DireccionesService.coincidencia(
+        guardadas,
+        zonaId: _zonaId,
+        direccion: _direccion.text,
+      );
+
+  /// Si marcó "Guardar esta dirección", la guarda. Devuelve el nombre si
+  /// se guardó, o null.
+  Future<String?> _guardarDireccionNueva() async {
+    final guardadas =
+        ref.read(misDireccionesProvider).value ?? const <DireccionGuardada>[];
+    final zonaId = _zonaId;
+    if (!_guardarDireccion ||
+        zonaId == null ||
+        _direccionElegida(guardadas) != null) {
+      return null;
+    }
+    final nombre = _nombreDireccion.text.trim();
+    final error = await ref.read(direccionesProvider.notifier).guardar(
+          nombre: nombre,
+          zonaId: zonaId,
+          direccion: _direccion.text,
+        );
+    return error == null ? nombre : null;
   }
 
   @override
@@ -143,6 +226,7 @@ class _PublicarSolicitudScreenState
     _scrollController.dispose();
     _direccion.dispose();
     _pago.dispose();
+    _nombreDireccion.dispose();
     super.dispose();
   }
 
@@ -326,6 +410,12 @@ class _PublicarSolicitudScreenState
       return;
     }
 
+    // Si eligió una dirección guardada, se lleva también su punto de
+    // referencia.
+    final elegida = _direccionElegida(
+      ref.read(misDireccionesProvider).value ?? const <DireccionGuardada>[],
+    );
+
     final solicitud = NuevaSolicitud(
       tipo: _tipo,
       zonaId: _zonaId!,
@@ -340,7 +430,8 @@ class _PublicarSolicitudScreenState
       productosPor: _productos,
       // Al editar (o repetir, HU-44) se conservan los datos que este
       // formulario no muestra.
-      puntoReferencia: (_original ?? _base)?.puntoReferencia,
+      puntoReferencia:
+          elegida?.puntoReferencia ?? (_original ?? _base)?.puntoReferencia,
       notas: (_original ?? _base)?.notas,
     );
 
@@ -355,10 +446,13 @@ class _PublicarSolicitudScreenState
           .read(publicarSolicitudProvider.notifier)
           .editar(original, solicitud);
       if (!mounted || !guardado) return;
+      final nombreGuardado = await _guardarDireccionNueva();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Cambios guardados. Las trabajadoras ya ven la versión actualizada.',
+            'Cambios guardados. Las trabajadoras ya ven la versión actualizada.'
+            '${nombreGuardado == null ? '' : ' Guardamos «$nombreGuardado» en tus direcciones.'}',
           ),
         ),
       );
@@ -369,12 +463,15 @@ class _PublicarSolicitudScreenState
     final ok =
         await ref.read(publicarSolicitudProvider.notifier).publicar(solicitud);
     if (!mounted || !ok) return;
+    final nombreGuardado = await _guardarDireccionNueva();
+    if (!mounted) return;
 
     // H1: confirmar que la acción terminó bien.
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          '¡Solicitud publicada! Las trabajadoras de tu zona ya la pueden ver.',
+          '¡Solicitud publicada! Las trabajadoras de tu zona ya la pueden ver.'
+          '${nombreGuardado == null ? '' : ' Guardamos «$nombreGuardado» en tus direcciones.'}',
         ),
       ),
     );
@@ -447,9 +544,32 @@ class _PublicarSolicitudScreenState
       }
     }
 
+    // Sin la identidad aprobada no se publica (ni se repite) una solicitud.
+    // Editar una que ya existe sí se puede. La base también lo exige.
+    final sesion = ref.watch(sesionProvider).value;
+    if (!_editando &&
+        sesion != null &&
+        sesion.rol == RolUsuario.cliente &&
+        sesion.verificacion != null &&
+        sesion.verificacion != 'aprobada') {
+      return _AvisoVerificar(
+        estado: EstadoVerificacion.desdeTexto(sesion.verificacion),
+      );
+    }
+
     final estado = ref.watch(publicarSolicitudProvider);
     final zonas = ref.watch(zonasCatalogoProvider);
     final tema = Theme.of(context);
+
+    // Direcciones guardadas: se eligen con un toque.
+    final guardadas =
+        ref.watch(misDireccionesProvider).value ?? const <DireccionGuardada>[];
+    final elegida = _direccionElegida(guardadas);
+    // Puede guardar lo que escribió si es una dirección nueva y completa.
+    final ofrecerGuardar = elegida == null &&
+        _zonaId != null &&
+        _direccion.text.trim().length >= 5 &&
+        DireccionesService.puedeAgregar(guardadas);
 
     // Izquierda: fecha, tipo, lugar y detalles para la trabajadora.
     final formulario = _Tarjeta(
@@ -508,6 +628,41 @@ class _PublicarSolicitudScreenState
           const Divider(height: 40),
           Text('Lugar', style: tema.textTheme.titleLarge),
           const SizedBox(height: 16),
+          if (guardadas.isNotEmpty) ...[
+            Text('Tus direcciones', style: tema.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final d in guardadas)
+                  ChoiceChip(
+                    key: Key('usar-direccion-${d.id}'),
+                    showCheckmark: false,
+                    avatar: Icon(
+                      elegida?.id == d.id
+                          ? Icons.check_rounded
+                          : iconoDireccion(d.nombre),
+                      size: 18,
+                    ),
+                    label: Text(d.nombre),
+                    tooltip: [
+                      if (d.zona != null) d.zona!,
+                      d.direccion,
+                    ].join(' · '),
+                    selected: elegida?.id == d.id,
+                    onSelected: (_) => _usarDireccion(d),
+                  ),
+                ActionChip(
+                  key: const Key('otra-direccion'),
+                  avatar: const Icon(Icons.add_location_alt_outlined, size: 18),
+                  label: const Text('Otra dirección'),
+                  onPressed: _otraDireccion,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
           // Corrección de la revisión: la zona se elige en orden
           // Municipio → Parroquia → Urbanización.
           KeyedSubtree(
@@ -555,6 +710,38 @@ class _PublicarSolicitudScreenState
                   : null,
             ),
           ),
+          // Una dirección nueva se puede guardar para la próxima vez.
+          if (ofrecerGuardar) ...[
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              key: const Key('guardar-direccion-nueva'),
+              value: _guardarDireccion,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              dense: true,
+              title: const Text('Guardar esta dirección para la próxima vez'),
+              onChanged: (v) => setState(() {
+                _guardarDireccion = v ?? false;
+                if (_guardarDireccion && _nombreDireccion.text.isEmpty) {
+                  _nombreDireccion.text =
+                      DireccionesService.nombreSugerido(guardadas);
+                }
+              }),
+            ),
+            if (_guardarDireccion)
+              TextFormField(
+                key: const Key('nombre-direccion-nueva'),
+                controller: _nombreDireccion,
+                maxLength: DireccionesService.largoNombre,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la dirección',
+                  hintText: 'Casa, Trabajo, Casa de mi mamá…',
+                  counterText: '',
+                ),
+                validator: (v) =>
+                    DireccionesService.validarNombre(v, guardadas),
+              ),
+          ],
           const SizedBox(height: 16),
           _DosColumnas(
             izquierda: _Contador(
@@ -671,7 +858,7 @@ class _PublicarSolicitudScreenState
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: DesplazableConPie(
           controller: _scrollController,
           padding: const EdgeInsets.all(24),
           child: Center(
@@ -758,6 +945,89 @@ class _PublicarSolicitudScreenState
   String _mensajeDeError(Object error) {
     if (error is AppException) return error.mensaje;
     return 'No pudimos publicar la solicitud. Intenta de nuevo.';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sin identidad verificada
+// ---------------------------------------------------------------------------
+
+/// Lo que ve el cliente que todavía no tiene la identidad aprobada: por qué
+/// no puede publicar y qué hacer.
+class _AvisoVerificar extends StatelessWidget {
+  const _AvisoVerificar({required this.estado});
+
+  final EstadoVerificacion estado;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icono, titulo, mensaje, textoBoton, ruta) = switch (estado) {
+      EstadoVerificacion.enRevision => (
+          Icons.hourglass_top_rounded,
+          'Estamos revisando tu identidad',
+          'Podrás publicar solicitudes apenas la aprobemos. Te avisaremos '
+              'cuando termine la revisión.',
+          'Volver a Mis solicitudes',
+          Rutas.inicioCliente,
+        ),
+      EstadoVerificacion.rechazada => (
+          Icons.gpp_bad_outlined,
+          'Tu verificación fue rechazada',
+          'Sube fotos nuevas de tu cédula y tu selfie para poder publicar '
+              'solicitudes.',
+          'Subir otra foto',
+          Rutas.verificacionCliente,
+        ),
+      _ => (
+          Icons.verified_user_outlined,
+          'Verifica tu identidad para publicar',
+          'Para cuidar a las trabajadoras, cada cliente verifica su identidad '
+              'con su cédula y una selfie antes de publicar. Solo toma unos '
+              'minutos.',
+          'Verificar mi identidad',
+          Rutas.verificacionCliente,
+        ),
+    };
+
+    return Scaffold(
+      body: SafeArea(
+        child: DesplazableConPie(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => context.go(Rutas.inicioCliente),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Mis solicitudes'),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    key: const Key('aviso-verificar-para-publicar'),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.superficie,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.borde),
+                    ),
+                    child: EstadoVacio(
+                      icono: icono,
+                      titulo: titulo,
+                      mensaje: mensaje,
+                      textoBoton: textoBoton,
+                      onPressed: () => context.go(ruta),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

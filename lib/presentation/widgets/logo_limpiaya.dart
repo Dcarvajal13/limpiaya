@@ -5,7 +5,7 @@ import '../../core/theme/app_fonts.dart';
 
 /// Logo: casita en un cuadrado redondeado + "LimpiaYa".
 ///
-/// [sobreOscuro] invierte los colores para fondos verdes oscuros.
+/// [sobreOscuro] invierte los colores para fondos oscuros.
 /// [soloMarca] muestra solo la casita (para pantallas muy angostas).
 class LogoLimpiaYa extends StatelessWidget {
   const LogoLimpiaYa({
@@ -35,7 +35,7 @@ class LogoLimpiaYa extends StatelessWidget {
       height: tamano,
       decoration: BoxDecoration(
         color: sobreOscuro ? Colors.white : AppColors.primario,
-        borderRadius: BorderRadius.circular(tamano * 0.3),
+        borderRadius: BorderRadius.circular(tamano * 0.27),
       ),
       child: Icon(
         Icons.home_rounded,
@@ -61,8 +61,9 @@ class LogoLimpiaYa extends StatelessWidget {
                 'LimpiaYa',
                 style: AppFonts.titulos(
                   TextStyle(
-                    fontSize: tamano * 0.6,
-                    fontWeight: FontWeight.w800,
+                    fontSize: tamano * 0.7,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
                     color: colorTexto,
                     height: 1,
                   ),
@@ -70,12 +71,13 @@ class LogoLimpiaYa extends StatelessWidget {
               ),
               if (subtitulo != null)
                 Text(
-                  subtitulo!.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
-                    color: colorTexto,
+                  subtitulo!,
+                  style: AppFonts.texto(
+                    TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: colorTexto,
+                    ),
                   ),
                 ),
             ],

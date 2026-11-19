@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:limpiaya/core/constants/app_constants.dart';
 import 'package:limpiaya/core/router/rutas.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/core/theme/movimiento.dart';
 import 'package:limpiaya/presentation/screens/landing/landing_screen.dart';
 
 /// Pruebas de la landing (HU-62).
@@ -42,7 +44,12 @@ void _usarPantalla(WidgetTester tester, Size tamano) {
 
 void main() {
   // Sin internet en las pruebas: no descargar fuentes de Google.
-  setUpAll(() => AppFonts.usarGoogleFonts = false);
+  setUpAll(() {
+    AppFonts.usarGoogleFonts = false;
+    // Sin animaciones que se repiten solas (reseñas, demo, pasos):
+    // pumpAndSettle esperaría para siempre a que terminen.
+    Movimiento.ciclos = false;
+  });
 
   testWidgets('criterio 1: muestra qué es LimpiaYa y los cinco pasos', (tester) async {
     _usarPantalla(tester, const Size(1280, 900));
@@ -87,6 +94,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tu trabajo habla por ti.'), findsOneWidget);
+  });
+
+  testWidgets('el pie muestra el correo de contacto y los enlaces legales', (tester) async {
+    _usarPantalla(tester, const Size(1280, 900));
+    await tester.pumpWidget(_appDePrueba());
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppConstants.correoSoporte), findsOneWidget);
+    // Uno junto al llamado final y otro en el pie.
+    expect(find.text('Términos y condiciones'), findsNWidgets(2));
+    expect(find.text('Política de privacidad'), findsOneWidget);
   });
 
   // Criterio 5: si algo no cabe a lo ancho, Flutter marca un error de

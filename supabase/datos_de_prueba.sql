@@ -178,12 +178,14 @@ begin
       (t_josefina, 'general'), (t_josefina, 'planchado')
     ) as x(t, s);
 
-  -- Verificación aprobada: el trigger sincronizar_verificacion las deja
-  -- "Identidad verificada" y así se pueden postular (HU-12 c4).
+  -- Verificación aprobada: el trigger sincronizar_verificacion deja a las
+  -- trabajadoras y a los clientes con "Identidad verificada". Así ellas se
+  -- pueden postular (HU-12 c4) y ellos publicar solicitudes.
   insert into public.verificaciones
-    (trabajadora_id, cedula_path, selfie_path, estado, revisada_en)
-  select t, t || '/cedula-demo.jpg', t || '/selfie-demo.jpg', 'aprobada', now()
-    from unnest(array[t_carmen, t_yelitza, t_marisol, t_andreina, t_josefina]) as t;
+    (usuario_id, cedula_path, selfie_path, estado, revisada_en)
+  select u, u || '/cedula-demo.jpg', u || '/selfie-demo.jpg', 'aprobada', now()
+    from unnest(array[t_carmen, t_yelitza, t_marisol, t_andreina, t_josefina,
+                      c_maria, c_luis, c_gaby]) as u;
 
   -- ---------------------------------------------------------------------------
   -- Solicitudes (10) en varias zonas, siempre a futuro

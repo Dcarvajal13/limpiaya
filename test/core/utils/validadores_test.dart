@@ -26,6 +26,23 @@ void main() {
     });
   });
 
+  group('Validadores.numeroTelefono y codigoTelefono (registro)', () {
+    test('el número son exactamente 7 dígitos', () {
+      expect(Validadores.numeroTelefono('1234567'), isNull);
+      expect(Validadores.numeroTelefono(''), isNotNull);
+      expect(Validadores.numeroTelefono('123456'), isNotNull);
+      expect(Validadores.numeroTelefono('12345678'), isNotNull);
+      expect(Validadores.numeroTelefono('123-456'), isNotNull);
+    });
+
+    test('el código debe ser uno de la lista', () {
+      expect(Validadores.codigoTelefono('0414'), isNull);
+      expect(Validadores.codigoTelefono('0426'), isNull);
+      expect(Validadores.codigoTelefono(null), isNotNull);
+      expect(Validadores.codigoTelefono('0212'), isNotNull);
+    });
+  });
+
   group('Validadores.password (HU-01, criterio 4)', () {
     test('exige mínimo 8 caracteres', () {
       expect(Validadores.password('1234567'), 'Mínimo 8 caracteres');
