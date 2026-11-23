@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors/app_exception.dart';
+import '../../domain/entities/pago.dart';
 import '../../domain/entities/servicio_agendado.dart';
 import '../../domain/repositories/servicio_repository.dart';
 import '../../domain/services/servicio_service.dart';
+import '../models/pago_model.dart';
 import '../models/servicio_agendado_model.dart';
 
 /// Implementación de ServicioRepository usando Supabase.
@@ -131,6 +133,7 @@ class SupabaseServicioRepository implements ServicioRepository {
           ? null
           : await _reputacion(contraparteId);
       final calificadas = await _calificadas(usuario.id, [id]);
+      final pago = await _pago(id);
 
       return ServicioAgendadoModel.desdeJson(
         {...fila, 'zona': zonas[fila['zona_id']] ?? ''},
@@ -143,6 +146,7 @@ class SupabaseServicioRepository implements ServicioRepository {
         ),
         contrapartePromedio: (reputacion?['promedio'] as num?)?.toDouble(),
         yaCalifique: calificadas.contains(id),
+        pago: pago,
       );
     } on Exception {
       throw const AppException('No pudimos cargar el servicio.');
@@ -190,6 +194,23 @@ class SupabaseServicioRepository implements ServicioRepository {
           .select('promedio')
           .eq('usuario_id', usuarioId)
           .maybeSingle();
+    } on Exception {
+      return null;
+    }
+  }
+
+  /// E9 · El pago del servicio, si ya se cobró. RLS solo deja leerlo al
+  /// cliente dueño y a la trabajadora asignada.
+  Future<Pago?> _pago(String solicitudId) async {
+    try {
+      final fila = await _client
+          .from('pagos')
+          .select()
+          .eq('solicitud_id', solicitudId)
+          .maybeSingle();
+      return fila == null
+          ? null
+          : PagoModel.desdeJson(Map<String, dynamic>.from(fila));
     } on Exception {
       return null;
     }

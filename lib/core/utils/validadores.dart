@@ -7,7 +7,8 @@ import '../constants/app_constants.dart';
 ///   TextFormField(validator: Validadores.email)
 abstract final class Validadores {
   static final _email = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-  static final _telefono = RegExp(r'^04\d{2}-\d{7}$');
+  /// Móvil venezolano: 04 + operadora válida + guion + 7 números.
+  static final _telefono = RegExp(r'^04(12|14|16|22|24|26)-\d{7}$');
 
   static String? requerido(String? valor) {
     if (valor == null || valor.trim().isEmpty) {
@@ -24,10 +25,15 @@ abstract final class Validadores {
   }
 
   /// Formato venezolano 04XX-XXXXXXX (HU-01, criterio 3).
+  ///
+  /// Solo acepta los prefijos móviles del país (0412, 0414, 0416, 0422,
+  /// 0424 y 0426) y exactamente 7 números de abonado.
   static String? telefono(String? valor) {
     final vacio = requerido(valor);
     if (vacio != null) return vacio;
-    if (!_telefono.hasMatch(valor!.trim())) return 'Formato: 04XX-XXXXXXX';
+    if (!_telefono.hasMatch(valor!.trim())) {
+      return 'Formato: 0414-1234567';
+    }
     return null;
   }
 
@@ -37,15 +43,15 @@ abstract final class Validadores {
     final vacio = requerido(valor);
     if (vacio != null) return vacio;
     if (!RegExp(r'^\d{7}$').hasMatch(valor!.trim())) {
-      return 'Deben ser 7 números';
+      return 'Escribe los 7 números';
     }
     return null;
   }
 
-  /// Código de operadora elegido en la lista (0414, 0412…).
+  /// Prefijo de operadora elegido en la lista (0414, 0412…).
   static String? codigoTelefono(String? valor) {
     if (valor == null || !AppConstants.codigosTelefono.contains(valor)) {
-      return 'Elige el código';
+      return 'Elige el prefijo';
     }
     return null;
   }

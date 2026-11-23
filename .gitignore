@@ -50,3 +50,5 @@ env.json
 
 # Generado por Flutter/Android (no se sube)
 local.properties
+
+env.local.json

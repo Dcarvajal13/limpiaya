@@ -136,6 +136,7 @@ Una **solicitud asignada es lo que las historias llaman "servicio"**: es la mism
 | `perfiles`, `clientes`, `trabajadoras` | HU-01, HU-02A/B, HU-04, HU-05 |
 | `zonas`, `trabajadora_zonas`, `trabajadora_servicios` | HU-04, HU-05, HU-11 |
 | `solicitudes` | HU-07, HU-08, HU-09, HU-10, HU-15, HU-16, HU-17, HU-28, HU-43, HU-52 |
+| `pagos` | E9 · Comisión y pagos: un cobro guardado por servicio (función `pagar_servicio`; la pasarela es de mentira) |
 | `postulaciones` | HU-12, HU-13, HU-14, HU-26 |
 | `calificaciones` | HU-29, HU-30, HU-46 |
 | `respuestas_resenas` | HU-31 |
