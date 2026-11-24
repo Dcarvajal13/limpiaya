@@ -108,6 +108,10 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
     });
     _sembrar(perfil.value);
 
+    final completo = perfil.value?.completo ?? false;
+    // Mientras carga no sabemos si falta algo: no lo pedimos por adelantado.
+    final cargandoPerfil = perfil.isLoading && !perfil.hasValue;
+
     final textos = Theme.of(context).textTheme;
     final textoError =
         textos.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error);
@@ -132,11 +136,22 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Completa tu perfil', style: textos.headlineSmall),
+                      Text(
+                        completo || cargandoPerfil
+                            ? 'Tu perfil'
+                            : 'Completa tu perfil',
+                        style: textos.headlineSmall,
+                      ),
                       const SizedBox(height: 4),
                       Text(
-                        'Hola, $nombre. Necesitamos tu zona y dirección para '
-                        'que puedas publicar solicitudes.',
+                        cargandoPerfil
+                            ? 'Hola, $nombre.'
+                            : completo
+                                ? 'Hola, $nombre. Tu zona y dirección están '
+                                    'listas: las usamos al publicar.'
+                                : 'Hola, $nombre. Necesitamos tu zona y '
+                                    'dirección para que puedas publicar '
+                                    'solicitudes.',
                         style: textos.bodySmall,
                       ),
                       const SizedBox(height: 24),
@@ -151,7 +166,10 @@ class _PerfilClienteScreenState extends ConsumerState<PerfilClienteScreen> {
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else ...[
-                        Text('¿En qué zona estás?', style: textos.titleSmall),
+                        Text(
+                          completo ? 'Tu zona' : '¿En qué zona estás?',
+                          style: textos.titleSmall,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           'Elige el municipio, luego la parroquia y por último '

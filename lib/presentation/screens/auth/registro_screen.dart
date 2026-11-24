@@ -138,11 +138,16 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                           ),
                         ],
                       ),
-                      if (_intentoEnviar && _rol == null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text('Elige una opción', style: textoError),
-                        ),
+                      // El aviso ocupa su espacio siempre: si el widget aparece
+                      // y desaparece, los hijos del Column cambian de posición
+                      // y Flutter recrea los campos de abajo, borrando los
+                      // errores que acaba de calcular validate().
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: _intentoEnviar && _rol == null
+                            ? Text('Elige una opción', style: textoError)
+                            : const SizedBox.shrink(),
+                      ),
                       const SizedBox(height: 20),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,18 +187,21 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                         validator: Validadores.email,
                       ),
                       const SizedBox(height: 14),
-                      // Teléfono: el código se elige en una lista y aparte se
-                      // escriben los 7 números (se guarda como 0414-1234567).
+                      // Teléfono: el prefijo se elige en una lista y aparte
+                      // se escriben los 7 números (se guarda 0414-1234567).
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
-                            width: 128,
+                            width: 150,
                             child: DropdownButtonFormField<String>(
                               key: const Key('registro-codigo'),
                               initialValue: _codigo,
-                              decoration:
-                                  const InputDecoration(labelText: 'Código'),
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Prefijo',
+                                errorMaxLines: 2,
+                              ),
                               items: [
                                 for (final codigo
                                     in AppConstants.codigosTelefono)
@@ -214,7 +222,8 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Teléfono',
                                 hintText: '1234567',
-                                helperText: '7 números, sin el código',
+                                helperText: '7 números, sin el prefijo',
+                                errorMaxLines: 2,
                               ),
                               keyboardType: TextInputType.number,
                               inputFormatters: [
@@ -264,11 +273,15 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                           'incluida la tarifa de servicio.',
                         ),
                       ),
-                      if (_intentoEnviar && !_aceptoTerminos)
-                        Text(
-                          'Debes aceptar los Términos y condiciones',
-                          style: textoError,
-                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: _intentoEnviar && !_aceptoTerminos
+                            ? Text(
+                                'Debes aceptar los Términos y condiciones',
+                                style: textoError,
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                       if (error != null) ...[
                         const SizedBox(height: 12),
                         Container(

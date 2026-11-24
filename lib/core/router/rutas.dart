@@ -70,6 +70,13 @@ abstract final class Rutas {
   /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
   static const buscarTrabajadoras = '/cliente/buscar';
 
+  /// HU-39 · Cambiar la contraseña desde la cuenta. La puede abrir cualquier
+  /// rol con sesión.
+  static const cambiarContrasena = '/cuenta/contrasena';
+
+  /// HU-42 · Desactivar la propia cuenta.
+  static const desactivarCuenta = '/cuenta/desactivar';
+
   /// HU-06 · Perfil público de una trabajadora, visto por el cliente.
   static const perfilPublicoTrabajadoraPatron = '/cliente/trabajadoras/:id';
   static String perfilPublicoTrabajadora(String trabajadoraId) =>

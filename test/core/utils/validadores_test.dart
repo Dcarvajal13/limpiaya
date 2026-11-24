@@ -15,14 +15,22 @@ void main() {
   });
 
   group('Validadores.telefono (HU-01, criterio 3)', () {
-    test('acepta 04XX-XXXXXXX', () {
+    test('acepta los prefijos móviles venezolanos', () {
+      expect(Validadores.telefono('0412-1234567'), isNull);
       expect(Validadores.telefono('0414-1234567'), isNull);
+      expect(Validadores.telefono('0416-1234567'), isNull);
+      expect(Validadores.telefono('0422-1234567'), isNull);
+      expect(Validadores.telefono('0424-1234567'), isNull);
+      expect(Validadores.telefono('0426-1234567'), isNull);
     });
 
-    test('rechaza otros formatos', () {
+    test('rechaza otros formatos y prefijos que no son móviles', () {
       expect(Validadores.telefono('04141234567'), isNotNull);
       expect(Validadores.telefono('0212-1234567'), isNotNull);
       expect(Validadores.telefono('0414-123'), isNotNull);
+      expect(Validadores.telefono('0414-12345678'), isNotNull);
+      expect(Validadores.telefono('0499-1234567'), isNotNull);
+      expect(Validadores.telefono('+58 414 1234567'), isNotNull);
     });
   });
 

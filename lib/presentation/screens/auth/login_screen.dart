@@ -8,6 +8,7 @@ import '../../../core/router/recuperacion.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validadores.dart';
+import '../../providers/cuenta_provider.dart';
 import '../../widgets/campo_texto.dart';
 import 'widgets/aviso_verificar_correo.dart';
 import 'widgets/plantilla_auth.dart';
@@ -53,6 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
       _sinVerificar = null;
     });
+    ref.read(avisoCuentaDesactivadaProvider.notifier).limpiar();
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
@@ -69,6 +71,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _sinVerificar = e.email;
         _cargando = false;
       });
+    } on CuentaDesactivadaException catch (e) {
+      // HU-42: al cerrar la sesión la pantalla se remonta, por eso el aviso
+      // se guarda en un provider y no en el estado del widget.
+      ref.read(avisoCuentaDesactivadaProvider.notifier).mostrar(e.mensaje);
+      if (mounted) setState(() => _cargando = false);
+      await ref.read(authRepositoryProvider).cerrarSesion();
     } on AppException catch (e) {
       _mostrarError(e.mensaje);
     } catch (_) {
@@ -87,6 +95,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
+    final avisoCuentaDesactivada =
+        ref.watch(avisoCuentaDesactivadaProvider);
 
     return PlantillaAuth(
       titulo: 'Qué bueno verte por aquí.',
@@ -143,9 +153,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: const Text('¿Olvidaste tu contraseña?'),
                 ),
               ),
-              if (_error != null) ...[
+              if ((_error ?? avisoCuentaDesactivada) != null) ...[
                 const SizedBox(height: 18),
-                AvisoErrorAuth(_error!),
+                AvisoErrorAuth((_error ?? avisoCuentaDesactivada)!),
               ],
               if (_sinVerificar != null) ...[
                 const SizedBox(height: 18),

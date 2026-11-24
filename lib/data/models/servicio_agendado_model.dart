@@ -1,5 +1,6 @@
 import '../../domain/entities/estado_solicitud.dart';
 import '../../domain/entities/metodo_pago.dart';
+import '../../domain/entities/pago.dart';
 import '../../domain/entities/quien_pone_productos.dart';
 import '../../domain/entities/servicio_agendado.dart';
 import '../../domain/entities/tipo_limpieza.dart';
@@ -16,6 +17,7 @@ abstract final class ServicioAgendadoModel {
     String? contraparteFotoUrl,
     double? contrapartePromedio,
     bool yaCalifique = false,
+    Pago? pago,
   }) {
     return ServicioAgendado(
       id: json['id'] as String,
@@ -48,6 +50,7 @@ abstract final class ServicioAgendadoModel {
       contrapartePromedio: contrapartePromedio,
       soyCliente: soyCliente,
       yaCalifique: yaCalifique,
+      pago: pago,
     );
   }
 }

@@ -90,6 +90,22 @@ class SupabaseAuthRepository implements AuthRepository {
     } on Exception {
       throw const AppException('Revisa tu conexión e intenta de nuevo.');
     }
+
+    // HU-42: una cuenta desactivada no vuelve a entrar. Se pregunta por la
+    // RPC y no por obtenerSesion(): en la web, currentUser puede tardar un
+    // instante en quedar disponible justo después del login.
+    try {
+      final datos = await _client.rpc('mi_sesion');
+      if (datos is Map && datos['activo'] == false) {
+        // El login cierra la sesión y muestra el aviso: si lo hiciéramos
+        // aquí, la pantalla se remontaría y el mensaje se perdería.
+        throw const CuentaDesactivadaException();
+      }
+    } on CuentaDesactivadaException {
+      rethrow;
+    } on Exception {
+      // Si no se pudo comprobar, el guardia de SesionNotifier lo cubre.
+    }
   }
 
   @override
@@ -126,6 +142,7 @@ class SupabaseAuthRepository implements AuthRepository {
           ? null
           : _client.storage.from('avatars').getPublicUrl(fotoPath),
       verificacion: datos['verificacion'] as String?,
+      activo: datos['activo'] as bool? ?? true,
     );
   }
 
