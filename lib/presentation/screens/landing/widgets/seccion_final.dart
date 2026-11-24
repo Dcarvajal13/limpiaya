@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/rutas.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../widgets/contenido_centrado.dart';
 import '../../../widgets/enlace_subrayado.dart';
@@ -58,18 +60,13 @@ class SeccionFinal extends StatelessWidget {
               runSpacing: 12,
               children: [
                 FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primarioOscuro,
-                  ),
+                  // Mismos colores de antes, con anillo de foco dorado.
+                  style: AppTheme.botonAmbar,
                   onPressed: () => context.go(Rutas.registroCliente),
                   child: const Text('Necesito limpieza'),
                 ),
                 OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white, width: 1.5),
-                  ),
+                  style: AppTheme.botonContornoSobreOscuro,
                   onPressed: () => context.go(Rutas.registroTrabajadora),
                   child: const Text('Quiero trabajar'),
                 ),
@@ -174,10 +171,13 @@ class PieLanding extends StatelessWidget {
             children: [
               const Icon(Icons.mail_outline_rounded, size: 18, color: _tenue),
               const SizedBox(width: 8),
+              // SelectionArea + Text: ver la nota en PiePagina.
               Flexible(
-                child: SelectableText(
-                  AppConstants.correoSoporte,
-                  style: AppFonts.texto(const TextStyle(fontSize: 15, color: Colors.white)),
+                child: SelectionArea(
+                  child: Text(
+                    AppConstants.correoSoporte,
+                    style: AppFonts.texto(const TextStyle(fontSize: 15, color: Colors.white)),
+                  ),
                 ),
               ),
             ],
@@ -186,77 +186,84 @@ class PieLanding extends StatelessWidget {
       ),
     );
 
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.only(top: movil ? 24 : 40),
-      color: AppColors.primarioOscuro,
-      child: ContenidoCentrado(
-        child: Padding(
-          padding: EdgeInsets.only(top: movil ? 48 : 72, bottom: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Wrap(
-                spacing: 56,
-                runSpacing: 40,
-                children: [
-                  marca,
-                  columna('LimpiaYa', [
-                    for (final destino in DestinoLanding.values)
-                      (destino.etiqueta, () => onIrA(destino)),
-                  ]),
-                  columna('Para clientes', [
-                    ('Publicar una solicitud', () => context.go(Rutas.registroCliente)),
-                    ('Entrar a mi cuenta', () => context.go(Rutas.login)),
-                  ]),
-                  columna('Para trabajadoras', [
-                    ('Crear mi perfil', () => context.go(Rutas.registroTrabajadora)),
-                    ('Verificar mi identidad', () => context.go(Rutas.verificacionTrabajadora)),
-                  ]),
-                ],
-              ),
-              SizedBox(height: movil ? 40 : 56),
-              Divider(height: 1, color: Colors.white.withValues(alpha: 0.18)),
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 32,
-                runSpacing: 4,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Proyecto de Ingeniería de Software, UNIMET, 2026',
-                      style: estiloPequeno.copyWith(color: _tenue),
+    // Landmark de pie de página (<footer>, rol contentinfo; WCAG 1.3.1).
+    return Semantics(
+      container: true,
+      role: SemanticsRole.contentInfo,
+      label: 'Pie de página',
+      explicitChildNodes: true,
+      child: Container(
+        width: double.infinity,
+        margin: EdgeInsets.only(top: movil ? 24 : 40),
+        color: AppColors.primarioOscuro,
+        child: ContenidoCentrado(
+          child: Padding(
+            padding: EdgeInsets.only(top: movil ? 48 : 72, bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: 56,
+                  runSpacing: 40,
+                  children: [
+                    marca,
+                    columna('LimpiaYa', [
+                      for (final destino in DestinoLanding.values)
+                        (destino.etiqueta, () => onIrA(destino)),
+                    ]),
+                    columna('Para clientes', [
+                      ('Publicar una solicitud', () => context.go(Rutas.registroCliente)),
+                      ('Entrar a mi cuenta', () => context.go(Rutas.login)),
+                    ]),
+                    columna('Para trabajadoras', [
+                      ('Crear mi perfil', () => context.go(Rutas.registroTrabajadora)),
+                      ('Verificar mi identidad', () => context.go(Rutas.verificacionTrabajadora)),
+                    ]),
+                  ],
+                ),
+                SizedBox(height: movil ? 40 : 56),
+                Divider(height: 1, color: Colors.white.withValues(alpha: 0.18)),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 32,
+                  runSpacing: 4,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        'Proyecto de Ingeniería de Software, UNIMET, 2026',
+                        style: estiloPequeno.copyWith(color: _tenue),
+                      ),
                     ),
-                  ),
-                  Wrap(
-                    spacing: 24,
-                    children: [
-                      EnlaceSubrayado(
-                        texto: 'Términos y condiciones',
-                        estilo: estiloPequeno,
-                        colorHover: Colors.white,
-                        onTap: () => context.push(Rutas.terminos),
-                      ),
-                      EnlaceSubrayado(
-                        texto: 'Política de privacidad',
-                        estilo: estiloPequeno,
-                        colorHover: Colors.white,
-                        onTap: () => context.push(Rutas.privacidad),
-                      ),
-                      EnlaceSubrayado(
-                        texto: 'Sistema de diseño',
-                        estilo: estiloPequeno,
-                        colorHover: Colors.white,
-                        onTap: () => context.push(Rutas.sistemaDiseno),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                    Wrap(
+                      spacing: 24,
+                      children: [
+                        EnlaceSubrayado(
+                          texto: 'Términos y condiciones',
+                          estilo: estiloPequeno,
+                          colorHover: Colors.white,
+                          onTap: () => context.push(Rutas.terminos),
+                        ),
+                        EnlaceSubrayado(
+                          texto: 'Política de privacidad',
+                          estilo: estiloPequeno,
+                          colorHover: Colors.white,
+                          onTap: () => context.push(Rutas.privacidad),
+                        ),
+                        EnlaceSubrayado(
+                          texto: 'Sistema de diseño',
+                          estilo: estiloPequeno,
+                          colorHover: Colors.white,
+                          onTap: () => context.push(Rutas.sistemaDiseno),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

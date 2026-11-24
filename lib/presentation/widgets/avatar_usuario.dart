@@ -18,16 +18,22 @@ class AvatarUsuario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: tamano / 2,
-      backgroundColor: AppColors.primarioClaro,
-      foregroundImage: fotoUrl != null ? NetworkImage(fotoUrl!) : null,
-      child: Text(
-        Texto.iniciales(nombre),
-        style: TextStyle(
-          fontSize: tamano * 0.3,
-          fontWeight: FontWeight.w800,
-          color: AppColors.primario,
+    // Accesibilidad (WCAG 1.1.1): el avatar siempre va al lado del nombre de
+    // la persona (o dentro de un botón con su propio nombre, como "Mi
+    // perfil"), así que es decorativo. Antes NVDA leía las iniciales sueltas
+    // ("C P") antes del nombre; ahora el lector lo salta.
+    return ExcludeSemantics(
+      child: CircleAvatar(
+        radius: tamano / 2,
+        backgroundColor: AppColors.primarioClaro,
+        foregroundImage: fotoUrl != null ? NetworkImage(fotoUrl!) : null,
+        child: Text(
+          Texto.iniciales(nombre),
+          style: TextStyle(
+            fontSize: tamano * 0.3,
+            fontWeight: FontWeight.w800,
+            color: AppColors.primario,
+          ),
         ),
       ),
     );

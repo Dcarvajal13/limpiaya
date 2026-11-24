@@ -140,13 +140,18 @@ class _Mensaje extends StatelessWidget {
       children: [
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
-          child: Text(
-            esCliente
-                ? 'Elige con calma a quien entra a tu casa.'
-                : 'Tu trabajo habla por ti.',
-            style: textos.displayLarge?.copyWith(
-              fontSize: movil ? 32 : 42,
-              height: 1.1,
+          // El título principal de la página es el <h1> (WCAG 1.3.1).
+          child: Semantics(
+            container: true,
+            headingLevel: 1,
+            child: Text(
+              esCliente
+                  ? 'Elige con calma a quien entra a tu casa.'
+                  : 'Tu trabajo habla por ti.',
+              style: textos.displayLarge?.copyWith(
+                fontSize: movil ? 32 : 42,
+                height: 1.1,
+              ),
             ),
           ),
         ),

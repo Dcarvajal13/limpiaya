@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/rutas.dart';
@@ -115,7 +116,7 @@ class _Pestanas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    final menu = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -144,6 +145,16 @@ class _Pestanas extends StatelessWidget {
         ],
       ),
     );
+
+    // Landmark de navegación (<nav>, WCAG 1.3.1 y 2.4.1): NVDA lo lista en
+    // sus "Puntos de referencia" y se puede saltar directo al menú.
+    return Semantics(
+      container: true,
+      role: SemanticsRole.navigation,
+      label: 'Menú principal',
+      explicitChildNodes: true,
+      child: menu,
+    );
   }
 }
 
@@ -164,49 +175,62 @@ class _Pestana extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Material(
-        color: activa ? AppColors.primarioClaro : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          onTap: onTap,
+    final textos = Theme.of(context).textTheme;
+
+    // selected → aria-current: el lector de pantalla dice cuál es la página
+    // actual, no solo el color de fondo (WCAG 1.3.1 y 1.4.1).
+    return Semantics(
+      container: true,
+      selected: activa,
+      button: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Material(
+          color: activa ? AppColors.primarioClaro : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  etiqueta,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontSize: 13,
-                        color:
-                            activa ? AppColors.primarioOscuro : AppColors.texto,
-                      ),
-                ),
-                if (contador > 0) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    key: const Key('aviso-mensajes'),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    etiqueta,
+                    style: textos.labelMedium?.copyWith(
+                      fontSize: 13,
+                      color: activa ? AppColors.primarioOscuro : AppColors.texto,
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primario,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      '$contador',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  ),
+                  if (contador > 0) ...[
+                    const SizedBox(width: 6),
+                    // Sin esto NVDA lee "Mensajes 3" sin decir qué es el 3.
+                    Semantics(
+                      label: '$contador sin leer',
+                      excludeSemantics: true,
+                      child: Container(
+                        key: const Key('aviso-mensajes'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primario,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          '$contador',
+                          style: textos.labelSmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
                           ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

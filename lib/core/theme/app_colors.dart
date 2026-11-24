@@ -34,8 +34,15 @@ abstract final class AppColors {
 
   /// Borde de los campos de texto (3.6:1 sobre blanco, criterio 1.4.11).
   static const bordeCampo = Color(0xFF7D8796);
-  /// Borde de botones secundarios y chips sin elegir.
-  static const bordeBoton = Color(0xFFA9B4C4);
+  /// Borde de botones secundarios y chips sin elegir. Antes era #A9B4C4
+  /// (2.1:1 sobre blanco y 1.8:1 sobre el fondo). Ahora da 4.1:1 sobre
+  /// blanco, 3.5:1 sobre el fondo y 3.2:1 sobre las franjas (arena), así
+  /// que pasa el criterio 1.4.11 (contraste de componentes, mínimo 3:1).
+  static const bordeBoton = Color(0xFF737E8F);
+
+  /// Anillo de foco del teclado sobre fondos claros (13:1 sobre el fondo,
+  /// criterio 2.4.7). Sobre fondos oscuros se usa [verdeSobreOscuro].
+  static const foco = Color(0xFF1E2430);
   static const arenaOscura = Color(0xFFC9D6E8); // bloques de foto
   static const seleccionSuave = Color(0xFFEEF2F7); // fila elegida
   static const fondoChat = Color(0xFFF3F6FA); // dentro de la ventana del chat

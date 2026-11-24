@@ -184,7 +184,12 @@ class _PanelAmplio extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(titulo, style: _estiloTitulo(context, 30)),
+                        // <h1> de las pantallas de inicio de sesión y registro.
+                        Semantics(
+                          container: true,
+                          headingLevel: 1,
+                          child: Text(titulo, style: _estiloTitulo(context, 30)),
+                        ),
                         const SizedBox(height: 10),
                         Text(texto, style: _estiloTexto(context, 17)),
                       ],
@@ -221,7 +226,11 @@ class _PanelCompacto extends StatelessWidget {
             onTap: () => context.go(Rutas.landing),
           ),
           const SizedBox(height: 40),
-          Text(titulo, style: _estiloTitulo(context, 32)),
+          Semantics(
+            container: true,
+            headingLevel: 1,
+            child: Text(titulo, style: _estiloTitulo(context, 32)),
+          ),
           const SizedBox(height: 14),
           Text(texto, style: _estiloTexto(context, 16)),
         ],

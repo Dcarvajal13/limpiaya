@@ -88,13 +88,19 @@ class TituloSeccion extends StatelessWidget {
                 Antetitulo(antetitulo!, sobreOscuro: sobreOscuro),
                 const SizedBox(height: 12),
               ],
-              Text(
-                titulo,
-                textAlign: alineacion,
-                style: textos.headlineLarge?.copyWith(
-                  fontSize: movil ? 32 : 44,
-                  height: 1.1,
-                  color: sobreOscuro ? Colors.white : null,
+              // Encabezado real (<h2>) para que el lector de pantalla pueda
+              // saltar de sección en sección (WCAG 1.3.1 y 2.4.6).
+              Semantics(
+                container: true,
+                headingLevel: 2,
+                child: Text(
+                  titulo,
+                  textAlign: alineacion,
+                  style: textos.headlineLarge?.copyWith(
+                    fontSize: movil ? 32 : 44,
+                    height: 1.1,
+                    color: sobreOscuro ? Colors.white : null,
+                  ),
                 ),
               ),
               if (texto != null) ...[
