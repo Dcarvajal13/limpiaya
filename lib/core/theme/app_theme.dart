@@ -33,7 +33,8 @@ abstract final class AppTheme {
       onSecondary: AppColors.primarioOscuro,
       secondaryContainer: AppColors.arena,
       onSecondaryContainer: AppColors.texto,
-      tertiary: AppColors.acento,
+      // acento da 4.4:1 sobre el fondo (no llega a 4.5:1); acentoTexto sí.
+      tertiary: AppColors.acentoTexto,
       onTertiary: Colors.white,
       error: AppColors.error,
       onError: Colors.white,
@@ -52,6 +53,9 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colores,
       scaffoldBackgroundColor: AppColors.fondo,
+      // Resaltado de foco de InkWell (pestañas, logo, tarjetas): más fuerte
+      // que el 10 % que trae Material para que se note con el teclado.
+      focusColor: AppColors.primario.withValues(alpha: 0.2),
       textTheme: textos,
       dividerTheme: const DividerThemeData(color: AppColors.borde, thickness: 1),
       appBarTheme: AppBarTheme(
@@ -75,16 +79,20 @@ abstract final class AppTheme {
           shape: formaBoton,
           textStyle: textos.labelLarge,
           elevation: 0,
-        ),
+        ).copyWith(side: anilloFoco(AppColors.foco)),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primario,
           minimumSize: const Size(64, altoBoton),
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          side: const BorderSide(color: AppColors.bordeBoton, width: 1.5),
           shape: formaBoton,
           textStyle: textos.labelLarge,
+        ).copyWith(
+          side: anilloFoco(
+            AppColors.foco,
+            normal: const BorderSide(color: AppColors.bordeBoton, width: 1.5),
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -93,7 +101,10 @@ abstract final class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           shape: formaBoton,
           textStyle: textos.labelLarge,
-        ),
+        ).copyWith(side: anilloFoco(AppColors.foco)),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(side: anilloFoco(AppColors.foco)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -130,12 +141,14 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radioBoton)),
         showCheckmark: false,
         side: WidgetStateBorderSide.resolveWith(
-          (estados) => BorderSide(
-            color: estados.contains(WidgetState.selected)
-                ? AppColors.primario
-                : AppColors.bordeBoton,
-            width: 1.5,
-          ),
+          (estados) => estados.contains(WidgetState.focused)
+              ? const BorderSide(color: AppColors.foco, width: 3)
+              : BorderSide(
+                  color: estados.contains(WidgetState.selected)
+                      ? AppColors.primario
+                      : AppColors.bordeBoton,
+                  width: 1.5,
+                ),
         ),
       ),
       checkboxTheme: CheckboxThemeData(
@@ -173,18 +186,47 @@ abstract final class AppTheme {
     );
   }
 
+  /// Anillo de foco para el teclado (WCAG 2.4.7 "Foco visible"): cuando un
+  /// botón recibe el foco con Tab se le dibuja un borde de 3 px por fuera,
+  /// del color [color]. Si el botón ya tiene un borde, va en [normal].
+  static WidgetStateProperty<BorderSide?> anilloFoco(
+    Color color, {
+    BorderSide? normal,
+  }) {
+    return WidgetStateProperty.resolveWith((estados) {
+      if (estados.contains(WidgetState.focused)) {
+        return BorderSide(
+          color: color,
+          width: 3,
+          strokeAlign: BorderSide.strokeAlignOutside,
+        );
+      }
+      return normal;
+    });
+  }
+
   /// Botón claro para fondos oscuros (por ejemplo "Necesito limpieza" en
   /// la franja final). Conserva el nombre de la paleta anterior.
   static final ButtonStyle botonAmbar = FilledButton.styleFrom(
     backgroundColor: Colors.white,
     foregroundColor: AppColors.primarioOscuro,
+  ).copyWith(side: anilloFoco(AppColors.verdeSobreOscuro));
+
+  /// Botón de contorno blanco para fondos oscuros ("Quiero trabajar").
+  static final ButtonStyle botonContornoSobreOscuro = OutlinedButton.styleFrom(
+    foregroundColor: Colors.white,
+  ).copyWith(
+    side: anilloFoco(
+      AppColors.verdeSobreOscuro,
+      normal: const BorderSide(color: Colors.white, width: 1.5),
+    ),
   );
 
   /// Botón de peligro (cancelar un servicio, rechazar).
   static final ButtonStyle botonPeligro = FilledButton.styleFrom(
     backgroundColor: AppColors.error,
     foregroundColor: Colors.white,
-  );
+  ).copyWith(side: anilloFoco(AppColors.foco));
 
   static OutlineInputBorder _bordeCampo(Color color, {double ancho = 1}) {
     return OutlineInputBorder(
