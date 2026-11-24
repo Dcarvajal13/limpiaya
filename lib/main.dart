@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,7 +12,14 @@ import 'core/config/env.dart';
 ///   flutter run -d chrome --dart-define-from-file=env.json
 /// (o F5 en VS Code, que ya usa esa configuración).
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+
+  // Accesibilidad web: Flutter dibuja la app en un <canvas> y, para ahorrar
+  // trabajo, no arma el árbol semántico hasta que alguien pulsa un botón
+  // oculto ("Enable accessibility"). Sin ese árbol, NVDA y Lighthouse solo
+  // ven una página vacía. Con ensureSemantics() el árbol (roles, nombres,
+  // estados ARIA) está siempre en el DOM.
+  if (kIsWeb) binding.ensureSemantics();
 
   Env.validar();
 

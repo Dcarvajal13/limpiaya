@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html>
+<!-- Accesibilidad (WCAG 3.1.1): el idioma de la página es español, así los
+     lectores de pantalla usan la voz y la pronunciación correctas. -->
+<html lang="es">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -19,6 +21,8 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="LimpiaYa: conecta hogares de Caracas con trabajadoras de limpieza verificadas.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2F4A6D">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,8 +35,141 @@
 
   <title>LimpiaYa</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Mensaje de carga mientras Flutter arranca. Usa rem para que crezca
+       con el zoom del navegador (WCAG 1.4.4) y colores con contraste AA:
+       #1E2430 sobre #E6EDF6 da 13.2:1. */
+    html, body { margin: 0; background: #E6EDF6; }
+
+    #carga {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 1rem;
+      color: #1E2430;
+      text-align: center;
+    }
+
+    #carga .marca {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #24395A;
+    }
+
+    #carga .giro {
+      width: 2.5rem;
+      height: 2.5rem;
+      border: 0.25rem solid #D3DDEA;
+      border-top-color: #2F4A6D;
+      border-radius: 50%;
+      animation: girar 0.9s linear infinite;
+    }
+
+    @keyframes girar { to { transform: rotate(360deg); } }
+
+    /* Quien pidió menos movimiento en su sistema no ve el giro (WCAG 2.3.3). */
+    @media (prefers-reduced-motion: reduce) {
+      #carga .giro { animation: none; }
+    }
+
+    noscript p {
+      max-width: 32rem;
+      margin: 4rem auto;
+      padding: 0 1.5rem;
+      font-family: system-ui, sans-serif;
+      font-size: 1.125rem;
+      line-height: 1.5;
+      color: #1E2430;
+    }
+  </style>
 </head>
 <body>
+  <!-- role="status" + aria-live: el lector de pantalla anuncia que la
+       página está cargando en vez de quedarse en silencio. -->
+  <div id="carga" role="status" aria-live="polite">
+    <span class="marca">LimpiaYa</span>
+    <span class="giro" aria-hidden="true"></span>
+    <span>Cargando LimpiaYa…</span>
+  </div>
+
+  <noscript>
+    <p>LimpiaYa necesita JavaScript para funcionar. Actívalo en tu navegador
+       y vuelve a cargar la página.</p>
+  </noscript>
+
+  <script>
+    (function () {
+      // 1. Zoom (WCAG 1.4.4 "Cambio de tamaño del texto").
+      // Flutter reemplaza nuestra etiqueta viewport por una con
+      // "maximum-scale=1.0, user-scalable=no", que bloquea el zoom con dos
+      // dedos en el teléfono. Cada vez que aparece, le quitamos el bloqueo.
+      var VIEWPORT = 'width=device-width, initial-scale=1.0';
+
+      function permitirZoom() {
+        var metas = document.querySelectorAll('meta[name="viewport"]');
+        for (var i = 0; i < metas.length; i++) {
+          // Solo se escribe si cambió: así el observador no se llama a sí mismo sin fin.
+          if (metas[i].getAttribute('content') !== VIEWPORT) {
+            metas[i].setAttribute('content', VIEWPORT);
+          }
+        }
+      }
+
+      new MutationObserver(permitirZoom).observe(document.head, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['content'],
+      });
+      permitirZoom();
+
+      // 2. Cuando Flutter pinta su primera pantalla, se quita el mensaje de carga.
+      window.addEventListener('flutter-first-frame', function () {
+        var carga = document.getElementById('carga');
+        if (carga) carga.remove();
+      });
+
+      // 3. Nombre de los deslizadores (WCAG 4.1.2 y 1.3.1).
+      // Flutter pone el aria-label en el contenedor <flt-semantics> y deja
+      // sin nombre al <input type="range"> que recibe el foco, así que NVDA
+      // y Lighthouse no saben qué se ajusta. Copiamos el nombre al input.
+      var pendiente = false;
+
+      function nombrarDeslizadores() {
+        pendiente = false;
+        var inputs = document.querySelectorAll('flt-semantics[aria-label] > input[type="range"]');
+        for (var i = 0; i < inputs.length; i++) {
+          var nombre = inputs[i].parentElement.getAttribute('aria-label');
+          if (inputs[i].getAttribute('aria-label') !== nombre) {
+            inputs[i].setAttribute('aria-label', nombre);
+          }
+        }
+      }
+
+      // Flutter cambia el árbol muy seguido (animaciones), así que los
+      // cambios se agrupan y se revisa como mucho cada 100 ms.
+      new MutationObserver(function () {
+        if (!pendiente) {
+          pendiente = true;
+          setTimeout(nombrarDeslizadores, 100);
+        }
+      }).observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['aria-label'],
+      });
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
