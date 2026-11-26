@@ -1,13 +1,72 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/errors/app_exception.dart';
+import '../../domain/entities/datos_personales.dart';
 import '../../domain/repositories/cuenta_repository.dart';
 
-/// Implementación de CuentaRepository con Supabase (HU-39 y HU-42).
+/// Implementación de CuentaRepository con Supabase (HU-39, HU-41 y HU-42).
 class SupabaseCuentaRepository implements CuentaRepository {
   SupabaseCuentaRepository(this._client);
 
   final SupabaseClient _client;
+
+  @override
+  Future<DatosPersonales> datosPersonales() async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) {
+      throw const AppException('Inicia sesión para ver tus datos');
+    }
+
+    try {
+      final fila = await _client
+          .from('perfiles')
+          .select('nombre, telefono')
+          .eq('id', uid)
+          .maybeSingle();
+      if (fila == null) {
+        throw const AppException('No encontramos tu perfil.');
+      }
+      return DatosPersonales(
+        nombre: (fila['nombre'] as String?) ?? '',
+        telefono: (fila['telefono'] as String?) ?? '',
+      );
+    } on AppException {
+      rethrow;
+    } on Exception {
+      throw const AppException(
+        'No pudimos cargar tus datos. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
+
+  @override
+  Future<void> actualizarDatos({
+    required String nombre,
+    required String telefono,
+  }) async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) {
+      throw const AppException('Inicia sesión para editar tus datos');
+    }
+
+    try {
+      final fila = await _client
+          .from('perfiles')
+          .update({'nombre': nombre.trim(), 'telefono': telefono.trim()})
+          .eq('id', uid)
+          .select('id')
+          .maybeSingle();
+      if (fila == null) {
+        throw const AppException('No encontramos tu perfil.');
+      }
+    } on AppException {
+      rethrow;
+    } on Exception {
+      throw const AppException(
+        'No pudimos guardar tus datos. Revisa tu conexión e intenta de nuevo.',
+      );
+    }
+  }
 
   @override
   Future<void> cambiarContrasena({

@@ -11,6 +11,7 @@ import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/usuario.dart';
 import 'package:limpiaya/domain/repositories/auth_repository.dart';
+import 'package:limpiaya/domain/entities/datos_personales.dart';
 import 'package:limpiaya/domain/repositories/cuenta_repository.dart';
 import 'package:limpiaya/presentation/screens/cuenta/desactivar_cuenta_screen.dart';
 
@@ -19,6 +20,16 @@ class _CuentaFalsa implements CuentaRepository {
 
   final String? error;
   int desactivadas = 0;
+
+  @override
+  Future<DatosPersonales> datosPersonales() async =>
+      const DatosPersonales(nombre: 'Ana Pérez', telefono: '0414-1234567');
+
+  @override
+  Future<void> actualizarDatos({
+    required String nombre,
+    required String telefono,
+  }) async {}
 
   @override
   Future<void> cambiarContrasena({

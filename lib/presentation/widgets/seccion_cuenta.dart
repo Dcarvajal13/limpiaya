@@ -7,6 +7,7 @@ import 'boton_cerrar_sesion.dart';
 
 /// Final del perfil: las acciones sobre la propia cuenta.
 ///
+/// - HU-41 · Editar nombre y teléfono.
 /// - HU-39 · Cambiar la contraseña.
 /// - HU-42 · Desactivar la cuenta.
 /// - Cerrar sesión (corrección del review: ya no está en la barra de arriba).
@@ -24,6 +25,13 @@ class SeccionCuenta extends StatelessWidget {
         const SizedBox(height: 16),
         Text('Cuenta', style: textos.titleMedium),
         const SizedBox(height: 8),
+        TextButton.icon(
+          key: const Key('ir-mis-datos'),
+          onPressed: () => context.push(Rutas.misDatos),
+          icon: const Icon(Icons.person_outline_rounded, size: 20),
+          label: const Text('Mis datos personales'),
+          style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+        ),
         TextButton.icon(
           key: const Key('ir-cambiar-contrasena'),
           onPressed: () => context.push(Rutas.cambiarContrasena),
