@@ -70,6 +70,10 @@ abstract final class Rutas {
   /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
   static const buscarTrabajadoras = '/cliente/buscar';
 
+  /// HU-41 · Editar nombre y teléfono. La puede abrir cualquier rol con
+  /// sesión.
+  static const misDatos = '/cuenta/datos';
+
   /// HU-39 · Cambiar la contraseña desde la cuenta. La puede abrir cualquier
   /// rol con sesión.
   static const cambiarContrasena = '/cuenta/contrasena';

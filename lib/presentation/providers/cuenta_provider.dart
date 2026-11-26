@@ -34,6 +34,30 @@ class CuentaNotifier extends Notifier<AsyncValue<void>> {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
+  /// HU-41 · Devuelve el error a mostrar, o null si los datos se guardaron.
+  Future<String?> actualizarDatos({
+    required String nombre,
+    required String telefono,
+  }) async {
+    state = const AsyncLoading();
+
+    final resultado = await AsyncValue.guard(
+      () => ref.read(cuentaRepositoryProvider).actualizarDatos(
+            nombre: nombre,
+            telefono: telefono,
+          ),
+    );
+    state = resultado;
+
+    if (resultado.hasError) {
+      return _mensaje(
+        resultado.error,
+        'No pudimos guardar tus datos. Intenta de nuevo.',
+      );
+    }
+    return null;
+  }
+
   /// HU-39 · Devuelve el error a mostrar, o null si la contraseña cambió.
   Future<String?> cambiarContrasena({
     required String actual,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Campo de texto con la etiqueta arriba, como en el Figma.
 ///
@@ -20,6 +21,8 @@ class CampoTexto extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.autofillHints,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
     this.obscureText = false,
     this.sufijo,
     this.onFieldSubmitted,
@@ -39,6 +42,8 @@ class CampoTexto extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final Iterable<String>? autofillHints;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
   final bool obscureText;
 
   /// Ícono a la derecha dentro del campo (por ejemplo, el ojo de la contraseña).
@@ -64,6 +69,8 @@ class CampoTexto extends StatelessWidget {
             keyboardType: keyboardType,
             textInputAction: textInputAction,
             autofillHints: autofillHints,
+            inputFormatters: inputFormatters,
+            textCapitalization: textCapitalization,
             obscureText: obscureText,
             onFieldSubmitted: onFieldSubmitted,
             enabled: enabled,

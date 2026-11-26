@@ -7,6 +7,7 @@ import 'package:limpiaya/core/errors/app_exception.dart';
 import 'package:limpiaya/core/router/rutas.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
+import 'package:limpiaya/domain/entities/datos_personales.dart';
 import 'package:limpiaya/domain/repositories/cuenta_repository.dart';
 import 'package:limpiaya/presentation/screens/cuenta/cambiar_contrasena_screen.dart';
 
@@ -15,7 +16,18 @@ class _CuentaFalsa implements CuentaRepository {
 
   final String? error;
   final cambios = <(String, String)>[];
+  final datos = <(String, String)>[];
   int desactivadas = 0;
+
+  @override
+  Future<DatosPersonales> datosPersonales() async =>
+      const DatosPersonales(nombre: 'Ana Pérez', telefono: '0414-1234567');
+
+  @override
+  Future<void> actualizarDatos({
+    required String nombre,
+    required String telefono,
+  }) async => datos.add((nombre, telefono));
 
   @override
   Future<void> cambiarContrasena({
