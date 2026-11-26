@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,7 +53,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
     final formularioOk = _formKey.currentState!.validate();
     if (!formularioOk || _rol == null || !_aceptoTerminos) return;
 
-    final ok = await ref.read(registroControllerProvider.notifier).registrar(
+    final ok = await ref
+        .read(registroControllerProvider.notifier)
+        .registrar(
           // En la base se guarda un solo nombre: "Nombre Apellido".
           nombre: '${_nombre.text.trim()} ${_apellido.text.trim()}',
           email: _email.text,
@@ -87,255 +90,270 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: Form(
-                key: _formKey,
-                autovalidateMode: _intentoEnviar
-                    ? AutovalidateMode.onUserInteraction
-                    : AutovalidateMode.disabled,
-                child: AutofillGroup(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Crea tu cuenta',
-                        style: tema.textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      Row(
-                        children: [
-                          const Text('¿Ya tienes cuenta?'),
-                          TextButton(
-                            onPressed: () => context.go(Rutas.login),
-                            child: const Text('Inicia sesión'),
+              child: Semantics(
+                container: true,
+                role: SemanticsRole.form,
+                label: 'Crear cuenta',
+                explicitChildNodes: true,
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: _intentoEnviar
+                      ? AutovalidateMode.onUserInteraction
+                      : AutovalidateMode.disabled,
+                  child: AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Crea tu cuenta',
+                          style: tema.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text('¿Qué buscas?', style: tema.textTheme.titleSmall),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _TarjetaRol(
-                              icono: Icons.home_outlined,
-                              titulo: 'Necesito limpieza',
-                              descripcion: 'Publico y elijo',
-                              seleccionada: _rol == RolUsuario.cliente,
-                              onTap: () =>
-                                  setState(() => _rol = RolUsuario.cliente),
+                        ),
+                        Row(
+                          children: [
+                            const Text('¿Ya tienes cuenta?'),
+                            TextButton(
+                              onPressed: () => context.go(Rutas.login),
+                              child: const Text('Inicia sesión'),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _TarjetaRol(
-                              icono: Icons.person_outline,
-                              titulo: 'Quiero trabajar',
-                              descripcion: 'Me postulo cerca',
-                              seleccionada: _rol == RolUsuario.trabajadora,
-                              onTap: () =>
-                                  setState(() => _rol = RolUsuario.trabajadora),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // El aviso ocupa su espacio siempre: si el widget aparece
-                      // y desaparece, los hijos del Column cambian de posición
-                      // y Flutter recrea los campos de abajo, borrando los
-                      // errores que acaba de calcular validate().
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: _intentoEnviar && _rol == null
-                            ? Text('Elige una opción', style: textoError)
-                            : const SizedBox.shrink(),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _nombre,
-                              decoration:
-                                  const InputDecoration(labelText: 'Nombre'),
-                              textInputAction: TextInputAction.next,
-                              textCapitalization: TextCapitalization.words,
-                              autofillHints: const [AutofillHints.givenName],
-                              validator: Validadores.requerido,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _apellido,
-                              decoration:
-                                  const InputDecoration(labelText: 'Apellido'),
-                              textInputAction: TextInputAction.next,
-                              textCapitalization: TextCapitalization.words,
-                              autofillHints: const [AutofillHints.familyName],
-                              validator: Validadores.requerido,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _email,
-                        decoration: const InputDecoration(labelText: 'Correo'),
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.email],
-                        validator: Validadores.email,
-                      ),
-                      const SizedBox(height: 14),
-                      // Teléfono: el prefijo se elige en una lista y aparte
-                      // se escriben los 7 números (se guarda 0414-1234567).
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 150,
-                            child: DropdownButtonFormField<String>(
-                              key: const Key('registro-codigo'),
-                              initialValue: _codigo,
-                              isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Prefijo',
-                                errorMaxLines: 2,
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text('¿Qué buscas?', style: tema.textTheme.titleSmall),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _TarjetaRol(
+                                icono: Icons.home_outlined,
+                                titulo: 'Necesito limpieza',
+                                descripcion: 'Publico y elijo',
+                                seleccionada: _rol == RolUsuario.cliente,
+                                onTap: () =>
+                                    setState(() => _rol = RolUsuario.cliente),
                               ),
-                              items: [
-                                for (final codigo
-                                    in AppConstants.codigosTelefono)
-                                  DropdownMenuItem(
-                                    value: codigo,
-                                    child: Text(codigo),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _TarjetaRol(
+                                icono: Icons.person_outline,
+                                titulo: 'Quiero trabajar',
+                                descripcion: 'Me postulo cerca',
+                                seleccionada: _rol == RolUsuario.trabajadora,
+                                onTap: () => setState(
+                                  () => _rol = RolUsuario.trabajadora,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // El aviso ocupa su espacio siempre: si el widget aparece
+                        // y desaparece, los hijos del Column cambian de posición
+                        // y Flutter recrea los campos de abajo, borrando los
+                        // errores que acaba de calcular validate().
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: _intentoEnviar && _rol == null
+                              ? Text('Elige una opción', style: textoError)
+                              : const SizedBox.shrink(),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _nombre,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre',
+                                ),
+                                textInputAction: TextInputAction.next,
+                                textCapitalization: TextCapitalization.words,
+                                autofillHints: const [AutofillHints.givenName],
+                                validator: Validadores.requerido,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _apellido,
+                                decoration: const InputDecoration(
+                                  labelText: 'Apellido',
+                                ),
+                                textInputAction: TextInputAction.next,
+                                textCapitalization: TextCapitalization.words,
+                                autofillHints: const [AutofillHints.familyName],
+                                validator: Validadores.requerido,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _email,
+                          decoration: const InputDecoration(
+                            labelText: 'Correo',
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                          validator: Validadores.email,
+                        ),
+                        const SizedBox(height: 14),
+                        // Teléfono: el prefijo se elige en una lista y aparte
+                        // se escriben los 7 números (se guarda 0414-1234567).
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 150,
+                              child: DropdownButtonFormField<String>(
+                                key: const Key('registro-codigo'),
+                                initialValue: _codigo,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Prefijo',
+                                  errorMaxLines: 2,
+                                ),
+                                items: [
+                                  for (final codigo
+                                      in AppConstants.codigosTelefono)
+                                    DropdownMenuItem(
+                                      value: codigo,
+                                      child: Text(codigo),
+                                    ),
+                                ],
+                                onChanged: (v) => setState(() => _codigo = v),
+                                validator: Validadores.codigoTelefono,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                key: const Key('registro-numero'),
+                                controller: _numero,
+                                decoration: const InputDecoration(
+                                  labelText: 'Teléfono',
+                                  hintText: '1234567',
+                                  helperText: '7 números, sin el prefijo',
+                                  errorMaxLines: 2,
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(7),
+                                ],
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [
+                                  AutofillHints.telephoneNumberLocal,
+                                ],
+                                validator: Validadores.numeroTelefono,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: !_verPassword,
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            helperText: 'Mínimo 8 caracteres',
+                            suffixIcon: IconButton(
+                              tooltip: _verPassword
+                                  ? 'Ocultar contraseña'
+                                  : 'Mostrar contraseña',
+                              icon: Icon(
+                                _verPassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _verPassword = !_verPassword),
+                            ),
+                          ),
+                          autofillHints: const [AutofillHints.newPassword],
+                          validator: Validadores.password,
+                          onFieldSubmitted: (_) => _enviar(),
+                        ),
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          value: _aceptoTerminos,
+                          onChanged: (v) =>
+                              setState(() => _aceptoTerminos = v ?? false),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            'Acepto los Términos y condiciones, '
+                            'incluida la tarifa de servicio.',
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: _intentoEnviar && !_aceptoTerminos
+                              ? Text(
+                                  'Debes aceptar los Términos y condiciones',
+                                  style: textoError,
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        if (error != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colores.errorContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              error,
+                              style: TextStyle(color: colores.onErrorContainer),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: cargando ? null : _enviar,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(54),
+                          ),
+                          child: cargando
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
                                   ),
-                              ],
-                              onChanged: (v) => setState(() => _codigo = v),
-                              validator: Validadores.codigoTelefono,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              key: const Key('registro-numero'),
-                              controller: _numero,
-                              decoration: const InputDecoration(
-                                labelText: 'Teléfono',
-                                hintText: '1234567',
-                                helperText: '7 números, sin el prefijo',
-                                errorMaxLines: 2,
-                              ),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(7),
-                              ],
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [
-                                AutofillHints.telephoneNumberLocal,
-                              ],
-                              validator: Validadores.numeroTelefono,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _password,
-                        obscureText: !_verPassword,
-                        decoration: InputDecoration(
-                          labelText: 'Contraseña',
-                          helperText: 'Mínimo 8 caracteres',
-                          suffixIcon: IconButton(
-                            tooltip: _verPassword
-                                ? 'Ocultar contraseña'
-                                : 'Mostrar contraseña',
-                            icon: Icon(_verPassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined),
-                            onPressed: () =>
-                                setState(() => _verPassword = !_verPassword),
-                          ),
+                                )
+                              : const Text('Crear cuenta'),
                         ),
-                        autofillHints: const [AutofillHints.newPassword],
-                        validator: Validadores.password,
-                        onFieldSubmitted: (_) => _enviar(),
-                      ),
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        value: _aceptoTerminos,
-                        onChanged: (v) =>
-                            setState(() => _aceptoTerminos = v ?? false),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Acepto los Términos y condiciones, '
-                          'incluida la tarifa de servicio.',
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: _intentoEnviar && !_aceptoTerminos
-                            ? Text(
-                                'Debes aceptar los Términos y condiciones',
-                                style: textoError,
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                      if (error != null) ...[
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colores.errorContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            error,
-                            style: TextStyle(color: colores.onErrorContainer),
-                          ),
+                        // Los términos, a la vista antes de crear la cuenta.
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              'Al crear tu cuenta aceptas los ',
+                              style: tema.textTheme.bodySmall,
+                            ),
+                            InkWell(
+                              key: const Key('registro-terminos'),
+                              onTap: () => context.push(Rutas.terminos),
+                              child: Text(
+                                'Términos y condiciones',
+                                style: tema.textTheme.bodySmall?.copyWith(
+                                  color: colores.primary,
+                                  fontWeight: FontWeight.w700,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: cargando ? null : _enviar,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(54),
-                        ),
-                        child: cargando
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2.5),
-                              )
-                            : const Text('Crear cuenta'),
-                      ),
-                      const SizedBox(height: 12),
-                      // Los términos, a la vista antes de crear la cuenta.
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            'Al crear tu cuenta aceptas los ',
-                            style: tema.textTheme.bodySmall,
-                          ),
-                          InkWell(
-                            key: const Key('registro-terminos'),
-                            onTap: () => context.push(Rutas.terminos),
-                            child: Text(
-                              'Términos y condiciones',
-                              style: tema.textTheme.bodySmall?.copyWith(
-                                color: colores.primary,
-                                fontWeight: FontWeight.w700,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -399,8 +417,9 @@ class _TarjetaRol extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   titulo,
-                  style: tema.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: tema.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 Text(descripcion, style: tema.textTheme.bodySmall),
               ],

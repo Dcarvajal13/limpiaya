@@ -59,8 +59,10 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
   /// HU-10 · Pide confirmación y cancela. Con "No" no cambia nada (c2).
   Future<void> _cancelar(Solicitud solicitud) async {
     final mensajes = ScaffoldMessenger.of(context);
-    final confirmacion =
-        await mostrarDialogoCancelarSolicitud(context, solicitud);
+    final confirmacion = await mostrarDialogoCancelarSolicitud(
+      context,
+      solicitud,
+    );
     if (confirmacion == null || !mounted) return;
     try {
       await ref
@@ -167,7 +169,9 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
     final nueva = await mostrarDialogoCalificar(context, nombre: nombre);
     if (nueva == null || !mounted) return;
 
-    final error = await ref.read(calificarProvider.notifier).calificar(
+    final error = await ref
+        .read(calificarProvider.notifier)
+        .calificar(
           solicitudId: solicitud.id,
           destinatarioId: trabajadoraId,
           estrellas: nueva.estrellas,
@@ -215,18 +219,25 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 
   String _construirResumen(List<Solicitud> solicitudes) {
     final ahora = DateTime.now();
-    final asignada = solicitudes
-        .where((s) =>
-            s.estado == EstadoSolicitud.asignada && s.inicio.isAfter(ahora))
-        .toList()
-      ..sort((a, b) => a.inicio.compareTo(b.inicio));
+    final asignada =
+        solicitudes
+            .where(
+              (s) =>
+                  s.estado == EstadoSolicitud.asignada &&
+                  s.inicio.isAfter(ahora),
+            )
+            .toList()
+          ..sort((a, b) => a.inicio.compareTo(b.inicio));
     final proxima = asignada.firstOrNull;
 
-    final conPostulantes = solicitudes
-        .where((s) =>
-            s.estado == EstadoSolicitud.publicada && s.numPostulantes > 0)
-        .toList()
-      ..sort((a, b) => b.numPostulantes.compareTo(a.numPostulantes));
+    final conPostulantes =
+        solicitudes
+            .where(
+              (s) =>
+                  s.estado == EstadoSolicitud.publicada && s.numPostulantes > 0,
+            )
+            .toList()
+          ..sort((a, b) => b.numPostulantes.compareTo(a.numPostulantes));
     final esperando = conPostulantes.firstOrNull;
 
     final partes = <String>[];
@@ -367,8 +378,8 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                         final filtradas = _filtroEstado == null
                             ? solicitudes
                             : solicitudes
-                                .where((s) => s.estado == _filtroEstado)
-                                .toList();
+                                  .where((s) => s.estado == _filtroEstado)
+                                  .toList();
 
                         if (filtradas.isEmpty) {
                           return _Caja(
@@ -397,8 +408,8 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                             final columnas = ancho >= 1100
                                 ? 3
                                 : ancho >= 700
-                                    ? 2
-                                    : 1;
+                                ? 2
+                                : 1;
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16),
@@ -478,11 +489,7 @@ class _BarraFiltros extends StatelessWidget {
     if (movil) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          titulo,
-          const SizedBox(height: 12),
-          listaFiltros,
-        ],
+        children: [titulo, const SizedBox(height: 12), listaFiltros],
       );
     }
 
@@ -512,44 +519,51 @@ class _PildoraFiltro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: seleccionada
-              ? AppColors.primarioClaro.withValues(alpha: 0.5)
-              : AppColors.superficie,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: seleccionada ? AppColors.primario : AppColors.borde,
-            width: seleccionada ? 1.4 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (seleccionada) ...[
-              const Icon(
-                Icons.check_rounded,
-                size: 15,
-                color: AppColors.primarioOscuro,
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              etiqueta,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: seleccionada ? FontWeight.w700 : FontWeight.w500,
-                color: seleccionada
-                    ? AppColors.primarioOscuro
-                    : AppColors.texto,
-              ),
+    // selected → aria-current: el filtro activo se anuncia como actual y no
+    // solo se distingue por el color ni por el check visual.
+    return Semantics(
+      container: true,
+      button: true,
+      selected: seleccionada,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: seleccionada
+                ? AppColors.primarioClaro.withValues(alpha: 0.5)
+                : AppColors.superficie,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: seleccionada ? AppColors.primario : AppColors.borde,
+              width: seleccionada ? 1.4 : 1,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (seleccionada) ...[
+                const Icon(
+                  Icons.check_rounded,
+                  size: 15,
+                  color: AppColors.primarioOscuro,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                etiqueta,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: seleccionada ? FontWeight.w700 : FontWeight.w500,
+                  color: seleccionada
+                      ? AppColors.primarioOscuro
+                      : AppColors.texto,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
