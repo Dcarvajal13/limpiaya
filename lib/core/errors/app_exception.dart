@@ -20,6 +20,16 @@ class CuentaDesactivadaException extends AppException {
         );
 }
 
+/// HU-34 · La cuenta fue suspendida por administración.
+class CuentaSuspendidaException extends AppException {
+  CuentaSuspendidaException([String? motivo])
+      : super(
+          motivo != null && motivo.trim().isNotEmpty
+              ? 'Tu cuenta fue suspendida. Motivo: ${motivo.trim()}'
+              : 'Tu cuenta fue suspendida por administración. Contáctanos para más información.',
+        );
+}
+
 /// HU-40 c2 · Quiso entrar sin haber confirmado su correo. Lleva el correo
 /// para poder reenviarle el enlace.
 class CorreoSinVerificarException extends AppException {

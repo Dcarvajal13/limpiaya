@@ -101,7 +101,12 @@ class SupabaseAuthRepository implements AuthRepository {
         // aquí, la pantalla se remontaría y el mensaje se perdería.
         throw const CuentaDesactivadaException();
       }
+      if (datos is Map && datos['suspendido'] == true) {
+        throw CuentaSuspendidaException(datos['motivo_suspension'] as String?);
+      }
     } on CuentaDesactivadaException {
+      rethrow;
+    } on CuentaSuspendidaException {
       rethrow;
     } on Exception {
       // Si no se pudo comprobar, el guardia de SesionNotifier lo cubre.
@@ -143,6 +148,9 @@ class SupabaseAuthRepository implements AuthRepository {
           : _client.storage.from('avatars').getPublicUrl(fotoPath),
       verificacion: datos['verificacion'] as String?,
       activo: datos['activo'] as bool? ?? true,
+      suspendido: datos['suspendido'] as bool? ?? false,
+      motivoSuspension: datos['motivo_suspension'] as String?,
+      avisosCorreo: datos['avisos_correo'] as bool? ?? true,
     );
   }
 

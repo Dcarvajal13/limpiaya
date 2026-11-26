@@ -13,6 +13,7 @@ import '../../providers/mi_reputacion_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/desplazable_con_pie.dart';
+import '../../widgets/dialogo_reportar_resena.dart';
 import '../../widgets/dialogo_responder.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/estrellas.dart';
@@ -114,6 +115,15 @@ class MiReputacionScreen extends ConsumerWidget {
                         datos: datos,
                         onResponder: (resena) =>
                             _responder(context, ref, resena),
+                        onReportar: (resena) {
+                          if (resena.id != null) {
+                            mostrarDialogoReportarResena(
+                              context,
+                              ref,
+                              resena.id!,
+                            );
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -128,10 +138,15 @@ class MiReputacionScreen extends ConsumerWidget {
 }
 
 class _Contenido extends StatelessWidget {
-  const _Contenido({required this.datos, required this.onResponder});
+  const _Contenido({
+    required this.datos,
+    required this.onResponder,
+    required this.onReportar,
+  });
 
   final MiReputacion datos;
   final ValueChanged<ResenaPublica> onResponder;
+  final ValueChanged<ResenaPublica> onReportar;
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +185,8 @@ class _Contenido extends StatelessWidget {
                   ResenaItem(
                     resena: resena,
                     etiquetaRespuesta: 'Tu respuesta',
+                    onReportar:
+                        resena.id == null ? null : () => onReportar(resena),
                     pie: resena.id == null
                         ? null
                         : Align(

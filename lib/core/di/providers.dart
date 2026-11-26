@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../data/repositories/supabase_admin_repository.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_aviso_repository.dart';
 import '../../data/repositories/supabase_busqueda_trabajadoras_repository.dart';
 import '../../data/repositories/supabase_calificacion_repository.dart';
 import '../../data/repositories/supabase_chat_repository.dart';
@@ -19,7 +21,9 @@ import '../../data/repositories/supabase_servicio_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../data/repositories/supabase_verificacion_correo_repository.dart';
 import '../../data/repositories/supabase_verificacion_repository.dart';
+import '../../domain/repositories/admin_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/aviso_repository.dart';
 import '../../domain/repositories/busqueda_trabajadoras_repository.dart';
 import '../../domain/repositories/calificacion_repository.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -37,6 +41,7 @@ import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/repositories/trabajadora_publica_repository.dart';
 import '../../domain/repositories/verificacion_correo_repository.dart';
 import '../../domain/repositories/verificacion_repository.dart';
+import '../../domain/services/admin_service.dart';
 import '../../domain/services/registro_service.dart';
 import '../../domain/services/solicitud_service.dart';
 import '../../domain/services/verificacion_service.dart';
@@ -157,4 +162,18 @@ final verificacionCorreoRepositoryProvider =
   (ref) => SupabaseVerificacionCorreoRepository(
     ref.watch(supabaseClientProvider),
   ),
+);
+
+/// HU-50 y HU-49 · Campana de avisos en la app y avisos por correo.
+final avisoRepositoryProvider = Provider<AvisoRepository>(
+  (ref) => SupabaseAvisoRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// HU-34, HU-35 y HU-36 · Administración de cuentas, moderación y métricas.
+final adminRepositoryProvider = Provider<AdminRepository>(
+  (ref) => SupabaseAdminRepository(ref.watch(supabaseClientProvider)),
+);
+
+final adminServiceProvider = Provider<AdminService>(
+  (ref) => AdminService(ref.watch(adminRepositoryProvider)),
 );

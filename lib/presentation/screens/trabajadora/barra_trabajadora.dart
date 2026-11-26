@@ -6,6 +6,7 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../widgets/acceso_perfil.dart';
+import '../../widgets/campana_avisos.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
@@ -101,6 +102,8 @@ class BarraTrabajadora extends StatelessWidget {
                           const SizedBox(width: 16),
                         ] else
                           const Spacer(),
+                        const CampanaAvisos(),
+                        const SizedBox(width: 4),
                         usuario,
                       ],
                     ),

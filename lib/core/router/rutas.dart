@@ -130,6 +130,9 @@ abstract final class Rutas {
   static const mensajesCliente = '/cliente/mensajes';
   static const mensajesTrabajadora = '/trabajadora/mensajes';
 
+  /// HU-50 / HU-49 · Campana de avisos en la app y avisos por correo.
+  static const avisos = '/avisos';
+
   static const sistemaDiseno = '/diseno';
 
   /// Términos y condiciones (y política de privacidad, en la misma página).
