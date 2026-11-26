@@ -49,43 +49,51 @@ class BarraCliente extends StatelessWidget {
       rutaPerfil: Rutas.perfilCliente,
     );
 
-    return Material(
-      color: AppColors.superficie,
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.borde)),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: _altoPrincipal,
-                child: ContenidoCentrado(
-                  child: Row(
-                    children: [
-                      LogoLimpiaYa(tamano: 36, soloMarca: movil),
-                      // Las pestañas usan el espacio que queda entre el
-                      // logo y el nombre; si no caben, se desplazan en vez
-                      // de desbordar la barra (ventanas de ~800 px).
-                      if (!movil) ...[
-                        const SizedBox(width: 16),
-                        Expanded(child: Center(child: pestanas)),
-                        const SizedBox(width: 16),
-                      ] else
-                        const Spacer(),
-                      usuario,
-                    ],
+    // El encabezado completo (logo, menú y perfil) es un landmark de región:
+    // así nada de la barra queda suelto fuera de un punto de referencia.
+    return Semantics(
+      container: true,
+      role: SemanticsRole.region,
+      label: 'Encabezado',
+      explicitChildNodes: true,
+      child: Material(
+        color: AppColors.superficie,
+        child: Container(
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.borde)),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: _altoPrincipal,
+                  child: ContenidoCentrado(
+                    child: Row(
+                      children: [
+                        LogoLimpiaYa(tamano: 36, soloMarca: movil),
+                        // Las pestañas usan el espacio que queda entre el
+                        // logo y el nombre; si no caben, se desplazan en vez
+                        // de desbordar la barra (ventanas de ~800 px).
+                        if (!movil) ...[
+                          const SizedBox(width: 16),
+                          Expanded(child: Center(child: pestanas)),
+                          const SizedBox(width: 16),
+                        ] else
+                          const Spacer(),
+                        usuario,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (movil)
-                SizedBox(
-                  height: _altoPestanas,
-                  child: ContenidoCentrado(child: pestanas),
-                ),
-            ],
+                if (movil)
+                  SizedBox(
+                    height: _altoPestanas,
+                    child: ContenidoCentrado(child: pestanas),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -200,7 +208,9 @@ class _Pestana extends StatelessWidget {
                     etiqueta,
                     style: textos.labelMedium?.copyWith(
                       fontSize: 13,
-                      color: activa ? AppColors.primarioOscuro : AppColors.texto,
+                      color: activa
+                          ? AppColors.primarioOscuro
+                          : AppColors.texto,
                     ),
                   ),
                   if (contador > 0) ...[

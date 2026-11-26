@@ -287,8 +287,9 @@ class _Cuadricula extends StatelessWidget {
                 llenarAlto: true,
                 yaPostulada: yaPostuladas.contains(solicitud.id),
                 identidadVerificada: identidadVerificada,
-                onPostular:
-                    onPostular == null ? null : () => onPostular!(solicitud),
+                onPostular: onPostular == null
+                    ? null
+                    : () => onPostular!(solicitud),
                 onTap: onVer == null ? null : () => onVer!(solicitud),
               ),
           ],
