@@ -73,4 +73,43 @@ void main() {
       );
     });
   });
+
+  group('HU-48 · ocultar contactos en el chat', () {
+    test('detecta y oculta teléfonos venezolanos e internacionales', () {
+      expect(ChatService.contieneContacto('Llámame al 0414-5550101'), isTrue);
+      expect(
+        ChatService.ocultarContactos('Llámame al 0414-5550101 porfa'),
+        'Llámame al [contacto oculto] porfa',
+      );
+      expect(
+        ChatService.ocultarContactos('Mi número es +58 412 123 4567'),
+        'Mi número es [contacto oculto]',
+      );
+    });
+
+    test('detecta y oculta correos electrónicos', () {
+      expect(ChatService.contieneContacto('Escríbeme a ana@gmail.com'), isTrue);
+      expect(
+        ChatService.ocultarContactos('Escríbeme a ana.perez@correo.com hoy'),
+        'Escríbeme a [contacto oculto] hoy',
+      );
+    });
+
+    test('detecta y oculta enlaces de WhatsApp (wa.me)', () {
+      expect(
+        ChatService.contieneContacto('Pasa por https://wa.me/584141234567'),
+        isTrue,
+      );
+      expect(
+        ChatService.ocultarContactos('Escríbeme en wa.me/584141234567'),
+        'Escríbeme en [contacto oculto]',
+      );
+    });
+
+    test('no oculta precios, horas ni pisos normales', () {
+      const normal = 'Llego a las 9:00 am, son \$35, edificio Ávila piso 6';
+      expect(ChatService.contieneContacto(normal), isFalse);
+      expect(ChatService.ocultarContactos(normal), normal);
+    });
+  });
 }

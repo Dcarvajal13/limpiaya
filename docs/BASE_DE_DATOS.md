@@ -19,6 +19,8 @@ La base vive en Supabase (Postgres). Todo cambio se hace con **migraciones** en 
 | `..._chat_leidos.sql` | HU-38: columna `leido_en` en `mensajes`, índice de no leídos y política para marcar como leídos los mensajes de la otra parte |
 | `..._verificacion_clientes.sql` | El cliente también verifica su identidad: `verificaciones.trabajadora_id` pasa a `usuario_id` (apunta a `perfiles`), `clientes.verificacion` (los que ya existían quedan aprobados), `mi_sesion()` la devuelve, solo el cliente aprobado publica y `perfiles_publicos` suma `verificada` |
 | `..._direcciones_guardadas.sql` | Tabla `direcciones_cliente` ("Casa", "Trabajo"…): máximo 10 por cliente, sin nombres repetidos; la dirección del perfil se copia como "Casa" |
+| `..._avisos_y_correos.sql` | HU-50 y HU-49: tablas `avisos` (con Realtime) y `cola_correos` (outbox), preferencia `perfiles.avisos_correo` y triggers para postulación, elección, recordatorio 24 h y cancelación |
+| `..._admin_cuentas_moderacion_metricas.sql` | HU-34, HU-35 y HU-36: suspensión de cuentas (`suspender_cuenta()`, `reactivar_cuenta()`), tabla `reportes_resenas` + `moderar_resena()` (`calificaciones.oculta`) y `metricas_plataforma()` |
 
 ## Diagrama entidad-relación
 
@@ -144,7 +146,10 @@ Una **solicitud asignada es lo que las historias llaman "servicio"**: es la mism
 | `invitaciones` | HU-25 |
 | `direcciones_cliente` | Direcciones guardadas del cliente, para elegirlas al publicar (HU-05, HU-07) |
 | `verificaciones` | HU-21, HU-33 |
-| `mensajes` | HU-38 |
+| `mensajes` | HU-38, HU-48 |
+| `avisos` | HU-50: campana de avisos en la app con contador de no leídos y Realtime |
+| `cola_correos` | HU-49: cola outbox de avisos por correo (postulación, elección, recordatorio 24 h y cancelación) |
+| `reportes_resenas` | HU-35: cola de moderación de reseñas reportadas (admin) |
 | Vista `solicitudes_publicas` | HU-11, HU-13, HU-45: solicitudes **sin dirección** |
 | Vista `trabajadoras_publicas` | HU-06, HU-14, HU-25, HU-61: perfil con zonas, servicios, promedio e insignia, **sin teléfono** |
 | Vista `resenas_publicas`, `reputacion` | HU-06, HU-29 c4, HU-31, HU-46: reseñas visibles (con su respuesta) y promedios |

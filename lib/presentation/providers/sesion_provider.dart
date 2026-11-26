@@ -44,6 +44,13 @@ class SesionNotifier extends AsyncNotifier<Sesion?> {
       await auth.cerrarSesion();
       return null;
     }
+    if (sesion != null && sesion.suspendido) {
+      ref
+          .read(avisoCuentaDesactivadaProvider.notifier)
+          .mostrar(CuentaSuspendidaException(sesion.motivoSuspension).mensaje);
+      await auth.cerrarSesion();
+      return null;
+    }
     return sesion;
   }
 }

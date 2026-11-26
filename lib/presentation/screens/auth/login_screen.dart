@@ -80,6 +80,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ref.read(avisoCuentaDesactivadaProvider.notifier).mostrar(e.mensaje);
       if (mounted) setState(() => _cargando = false);
       await ref.read(authRepositoryProvider).cerrarSesion();
+    } on CuentaSuspendidaException catch (e) {
+      // HU-34: mismo flujo seguro para cuentas suspendidas por administración.
+      ref.read(avisoCuentaDesactivadaProvider.notifier).mostrar(e.mensaje);
+      if (mounted) setState(() => _cargando = false);
+      await ref.read(authRepositoryProvider).cerrarSesion();
     } on AppException catch (e) {
       _mostrarError(e.mensaje);
     } catch (_) {

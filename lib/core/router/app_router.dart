@@ -14,6 +14,7 @@ import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/auth/revisa_tu_correo_screen.dart';
 import '../../presentation/screens/chat/chat_screen.dart';
 import '../../presentation/screens/chat/mensajes_screen.dart';
+import '../../presentation/screens/comun/avisos_screen.dart';
 import '../../presentation/screens/cuenta/cambiar_contrasena_screen.dart';
 import '../../presentation/screens/cuenta/desactivar_cuenta_screen.dart';
 import '../../presentation/screens/cuenta/mis_datos_screen.dart';
@@ -245,6 +246,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => PerfilPublicoScreen(
           trabajadoraId: state.pathParameters['id']!,
         ),
+      ),
+      // HU-50 / HU-49 · Campana de avisos en la app y avisos por correo.
+      GoRoute(
+        path: Rutas.avisos,
+        builder: (context, state) => const AvisosScreen(),
       ),
     ],
   );
