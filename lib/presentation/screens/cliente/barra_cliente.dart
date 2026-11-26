@@ -6,13 +6,11 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../widgets/acceso_perfil.dart';
-import '../../widgets/boton_cerrar_sesion.dart';
 import '../../widgets/campana_avisos.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
-/// Barra superior del cliente: logo, pestañas, nombre de usuario y el
-/// botón para cerrar sesión.
+/// Barra superior del cliente: logo, pestañas y nombre de usuario.
 class BarraCliente extends StatelessWidget {
   const BarraCliente({
     super.key,
@@ -44,9 +42,8 @@ class BarraCliente extends StatelessWidget {
       noLeidos: noLeidos,
     );
 
-    // Corrección del review: el avatar con el nombre abre el perfil.
-    // "Cerrar sesión" sigue dentro del perfil y además está aquí arriba,
-    // para no tener que entrar al perfil cada vez que se quiere salir.
+    // Corrección del review: el avatar con el nombre abre el perfil, y
+    // "Cerrar sesión" está dentro del perfil.
     final usuario = AccesoPerfil(
       nombre: nombre,
       fotoUrl: fotoUrl,
@@ -89,9 +86,6 @@ class BarraCliente extends StatelessWidget {
                         const CampanaAvisos(),
                         const SizedBox(width: 4),
                         usuario,
-                        const SizedBox(width: 8),
-                        // HU-03 · Cerrar sesión desde cualquier pantalla.
-                        const BotonCerrarSesion(),
                       ],
                     ),
                   ),

@@ -8,7 +8,9 @@ import 'package:limpiaya/presentation/screens/cliente/barra_cliente.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/barra_trabajadora.dart';
 
 /// Corrección del review: "Mi perfil" y el nombre eran dos botones para lo
-/// mismo, y "Cerrar sesión" debía estar dentro del perfil.
+/// mismo. Ahora el nombre es la única entrada a la cuenta y abre un menú
+/// con "Mi perfil" y "Cerrar sesión", para poder salir desde cualquier
+/// pantalla sin agregar otro botón a la barra.
 Widget _app(Widget barra, String inicio) {
   Widget pantalla(String texto) =>
       Scaffold(body: Column(children: [barra, Text(texto)]));
@@ -45,8 +47,8 @@ void _pantallaGrande(WidgetTester tester) {
 void main() {
   setUpAll(() => AppFonts.usarGoogleFonts = false);
 
-  testWidgets('la barra de la trabajadora ya no tiene "Mi perfil" ni '
-      '"Cerrar sesión"', (tester) async {
+  testWidgets('la barra de la trabajadora no repite "Mi perfil" ni '
+      '"Cerrar sesión" como botones sueltos', (tester) async {
     _pantallaGrande(tester);
     await tester.pumpWidget(_app(
       const BarraTrabajadora(nombre: 'Derek Carvajal'),
@@ -56,11 +58,13 @@ void main() {
 
     expect(find.text('Trabajos'), findsWidgets);
     expect(find.text('Mis servicios'), findsOneWidget);
+    // Con el menú cerrado no se ven: solo aparecen al tocar el nombre.
     expect(find.text('Mi perfil'), findsNothing);
     expect(find.text('Cerrar sesión'), findsNothing);
   });
 
-  testWidgets('el nombre de la trabajadora abre su perfil', (tester) async {
+  testWidgets('el nombre de la trabajadora abre el menú y "Mi perfil" '
+      'lleva a su perfil', (tester) async {
     _pantallaGrande(tester);
     await tester.pumpWidget(_app(
       const BarraTrabajadora(nombre: 'Derek Carvajal'),
@@ -71,11 +75,17 @@ void main() {
     await tester.tap(find.text('Derek'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Mi perfil'), findsOneWidget);
+    expect(find.text('Cerrar sesión'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-mi-perfil')));
+    await tester.pumpAndSettle();
+
     expect(find.text('Pantalla perfil trabajadora'), findsOneWidget);
   });
 
-  testWidgets('el nombre del cliente abre su perfil y no hay "Cerrar sesión"',
-      (tester) async {
+  testWidgets('el nombre del cliente abre el menú con "Cerrar sesión" y '
+      '"Mi perfil" lleva a su perfil', (tester) async {
     _pantallaGrande(tester);
     await tester.pumpWidget(_app(
       const BarraCliente(nombre: 'Juana Pérez'),
@@ -85,6 +95,12 @@ void main() {
 
     expect(find.text('Cerrar sesión'), findsNothing);
     await tester.tap(find.byKey(const Key('acceso-perfil')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('menu-cerrar-sesion')), findsOneWidget);
+    expect(find.text('Cerrar sesión'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-mi-perfil')));
     await tester.pumpAndSettle();
 
     expect(find.text('Pantalla perfil cliente'), findsOneWidget);

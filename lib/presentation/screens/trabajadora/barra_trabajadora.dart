@@ -6,13 +6,11 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../widgets/acceso_perfil.dart';
-import '../../widgets/boton_cerrar_sesion.dart';
 import '../../widgets/campana_avisos.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
-/// Barra superior de la trabajadora (Figma W06): logo, pestañas, su nombre
-/// y el botón para cerrar sesión.
+/// Barra superior de la trabajadora (Figma W06): logo, pestañas y su nombre.
 ///
 /// Se coloca como primer elemento del cuerpo de la pantalla (no como
 /// `appBar`) porque en móvil es más alta: las pestañas pasan a una segunda
@@ -57,9 +55,7 @@ class BarraTrabajadora extends StatelessWidget {
     );
 
     // Corrección del review: "Mi perfil" y el nombre eran lo mismo. Ahora
-    // el avatar con el nombre abre el perfil. "Cerrar sesión" sigue dentro
-    // del perfil y además está aquí arriba, para salir desde cualquier
-    // pantalla.
+    // el avatar con el nombre abre el perfil, y "Cerrar sesión" está dentro.
     final usuario = AccesoPerfil(
       nombre: nombre,
       fotoUrl: fotoUrl,
@@ -109,9 +105,6 @@ class BarraTrabajadora extends StatelessWidget {
                         const CampanaAvisos(),
                         const SizedBox(width: 4),
                         usuario,
-                        const SizedBox(width: 8),
-                        // HU-03 · Cerrar sesión desde cualquier pantalla.
-                        const BotonCerrarSesion(),
                       ],
                     ),
                   ),
