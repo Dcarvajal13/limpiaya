@@ -116,6 +116,12 @@ class _Encabezado extends ConsumerWidget {
 
     final total = (solicitudes.value ?? const <SolicitudDisponible>[]).length;
     if (total == 0) {
+      // Con muchas zonas la lista completa ocupaba varias líneas en el
+      // banner (feedback del review: simplificar). Solo se nombran si son
+      // 3 o menos; si son más, se dice cuántas son.
+      if (misZonas.length > 3) {
+        return 'Por ahora no hay trabajos en tus ${misZonas.length} zonas.';
+      }
       return 'Por ahora no hay trabajos en '
           '${Formato.lista([for (final zona in misZonas) zona.nombre])}.';
     }
