@@ -15,9 +15,10 @@ import 'tarjeta_demo.dart';
 
 enum _Publico { cliente, trabajadora }
 
-/// Primera parte de la landing: reseñas reales que se turnan, el selector
-/// "Necesito limpieza / Quiero trabajar" con su mensaje, y a la derecha una
-/// foto con la tarjeta de ejemplo que se anima sola.
+/// Primera parte de la landing: el selector "Necesito limpieza / Quiero
+/// trabajar" con la insignia de identidad verificada y su mensaje, debajo
+/// las reseñas reales que se turnan, y a la derecha una foto con la tarjeta
+/// de ejemplo que se anima sola.
 class SeccionHero extends StatefulWidget {
   const SeccionHero({super.key});
 
@@ -92,11 +93,19 @@ class _TextoHero extends StatelessWidget {
     final movil = Responsive.esMovil(context);
     final dosColumnas = MedidasLanding.dosColumnas(context);
 
+    // Primero la necesidad (selector y mensaje) y debajo las reseñas.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Aparecer(
-          child: ResenasRotativas(tamanoCita: movil ? 30 : (dosColumnas ? 46 : 40)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Selector(publico: publico, onCambiar: onCambiar, anchoCompleto: movil),
+              const SizedBox(height: 22),
+              _Mensaje(publico: publico),
+            ],
+          ),
         ),
         const SizedBox(height: 40),
         Aparecer(
@@ -106,13 +115,8 @@ class _TextoHero extends StatelessWidget {
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: AppColors.borde)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Selector(publico: publico, onCambiar: onCambiar, anchoCompleto: movil),
-                const SizedBox(height: 22),
-                _Mensaje(publico: publico),
-              ],
+            child: ResenasRotativas(
+              tamanoCita: movil ? 24 : (dosColumnas ? 30 : 28),
             ),
           ),
         ),
@@ -138,6 +142,28 @@ class _Mensaje extends StatelessWidget {
       key: ValueKey(publico),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // La seguridad va primero, antes del título, para que se vea
+        // apenas se abre la página.
+        IntrinsicWidth(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.superficie,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppColors.borde),
+            ),
+            child: LineaConIcono(
+              icono: Icons.verified_user_outlined,
+              texto: 'Identidad verificada',
+              estilo: textos.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.texto,
+              ),
+              espacio: 8,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           // El título principal de la página es el <h1> (WCAG 1.3.1).
@@ -169,38 +195,22 @@ class _Mensaje extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Wrap(
-          spacing: 22,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            FilledButton(
-              onPressed: () => context.go(
-                esCliente ? Rutas.registroCliente : Rutas.registroTrabajadora,
+        FilledButton(
+          onPressed: () => context.go(
+            esCliente ? Rutas.registroCliente : Rutas.registroTrabajadora,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  esCliente ? 'Publicar mi primera solicitud' : 'Crear mi perfil gratis',
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      esCliente ? 'Publicar mi primera solicitud' : 'Crear mi perfil gratis',
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 18),
-                ],
-              ),
-            ),
-            LineaConIcono(
-              icono: Icons.verified_user_outlined,
-              texto: 'Identidad verificada',
-              estilo: textos.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.texto,
-              ),
-              espacio: 8,
-            ),
-          ],
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_rounded, size: 18),
+            ],
+          ),
         ),
       ],
     );
