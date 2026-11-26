@@ -17,6 +17,7 @@ class ResenaItem extends StatelessWidget {
     required this.resena,
     this.etiquetaRespuesta = 'Respuesta',
     this.pie,
+    this.onReportar,
   });
 
   final ResenaPublica resena;
@@ -27,6 +28,9 @@ class ResenaItem extends StatelessWidget {
 
   /// Acción debajo de la reseña (por ejemplo, el botón "Responder").
   final Widget? pie;
+
+  /// HU-35 · Acción opcional para reportar la reseña a moderación.
+  final VoidCallback? onReportar;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +58,17 @@ class ResenaItem extends StatelessWidget {
                   fontSize: 12,
                   color: AppColors.textoSecundario,
                 ),
+              ),
+            if (onReportar != null)
+              IconButton(
+                tooltip: 'Reportar reseña',
+                icon: const Icon(
+                  Icons.flag_outlined,
+                  size: 16,
+                  color: AppColors.textoSecundario,
+                ),
+                visualDensity: VisualDensity.compact,
+                onPressed: onReportar,
               ),
           ],
         ),

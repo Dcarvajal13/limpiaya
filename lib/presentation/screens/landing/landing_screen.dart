@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 
 import '../../../core/theme/movimiento.dart';
 import '../../../core/utils/responsive.dart';
@@ -59,7 +60,11 @@ class _LandingScreenState extends State<LandingScreen> {
       _desplazamiento.jumpTo(0);
       return;
     }
-    _desplazamiento.animateTo(0, duration: _duracion, curve: Movimiento.desplazamiento);
+    _desplazamiento.animateTo(
+      0,
+      duration: _duracion,
+      curve: Movimiento.desplazamiento,
+    );
   }
 
   @override
@@ -75,14 +80,26 @@ class _LandingScreenState extends State<LandingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SeccionHero(),
-            SeccionPasos(key: _secciones[DestinoLanding.comoFunciona]),
-            const SeccionTrabajadoras(),
-            SeccionConfianza(key: _secciones[DestinoLanding.confianza]),
-            SeccionPrecio(key: _secciones[DestinoLanding.precio]),
-            const SeccionZonas(),
-            SeccionPreguntas(key: _secciones[DestinoLanding.preguntas]),
-            const SeccionFinal(),
+            // Landmark principal (<main>, WCAG 1.3.1 y 2.4.1). El pie queda
+            // fuera para conservar su contentinfo en el nivel superior.
+            Semantics(
+              container: true,
+              role: SemanticsRole.main,
+              explicitChildNodes: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SeccionHero(),
+                  SeccionPasos(key: _secciones[DestinoLanding.comoFunciona]),
+                  const SeccionTrabajadoras(),
+                  SeccionConfianza(key: _secciones[DestinoLanding.confianza]),
+                  SeccionPrecio(key: _secciones[DestinoLanding.precio]),
+                  const SeccionZonas(),
+                  SeccionPreguntas(key: _secciones[DestinoLanding.preguntas]),
+                  const SeccionFinal(),
+                ],
+              ),
+            ),
             PieLanding(onIrA: _irA, onLogo: _irArriba),
           ],
         ),

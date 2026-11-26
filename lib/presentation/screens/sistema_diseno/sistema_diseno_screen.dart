@@ -66,6 +66,7 @@ class _SistemaDisenoScreenState extends State<SistemaDisenoScreen> {
                   'Úsalos siempre en vez de crear estilos nuevos.',
                   style: textos.bodyLarge,
                 ),
+                const SizedBox(height: 20),
                 _Seccion(
                   titulo: 'Colores · AppColors',
                   child: Wrap(

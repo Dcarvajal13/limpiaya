@@ -14,6 +14,10 @@ import '../../presentation/screens/auth/registro_screen.dart';
 import '../../presentation/screens/auth/revisa_tu_correo_screen.dart';
 import '../../presentation/screens/chat/chat_screen.dart';
 import '../../presentation/screens/chat/mensajes_screen.dart';
+import '../../presentation/screens/comun/avisos_screen.dart';
+import '../../presentation/screens/cuenta/cambiar_contrasena_screen.dart';
+import '../../presentation/screens/cuenta/desactivar_cuenta_screen.dart';
+import '../../presentation/screens/cuenta/mis_datos_screen.dart';
 import '../../presentation/screens/cliente/buscar_trabajadoras_screen.dart';
 import '../../presentation/screens/cliente/mis_solicitudes_screen.dart';
 import '../../presentation/screens/cliente/perfil_cliente_screen.dart';
@@ -110,6 +114,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.perfilCliente,
         builder: (context, state) => const PerfilClienteScreen(),
+      ),
+      // HU-41 · Editar mis datos personales.
+      GoRoute(
+        path: Rutas.misDatos,
+        builder: (context, state) => const MisDatosScreen(),
+      ),
+      // HU-39 · Cambiar la contraseña desde la cuenta.
+      GoRoute(
+        path: Rutas.cambiarContrasena,
+        builder: (context, state) => const CambiarContrasenaScreen(),
+      ),
+      // HU-42 · Desactivar la cuenta.
+      GoRoute(
+        path: Rutas.desactivarCuenta,
+        builder: (context, state) => const DesactivarCuentaScreen(),
       ),
       GoRoute(
         path: Rutas.inicioTrabajadora,
@@ -227,6 +246,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => PerfilPublicoScreen(
           trabajadoraId: state.pathParameters['id']!,
         ),
+      ),
+      // HU-50 / HU-49 · Campana de avisos en la app y avisos por correo.
+      GoRoute(
+        path: Rutas.avisos,
+        builder: (context, state) => const AvisosScreen(),
       ),
     ],
   );

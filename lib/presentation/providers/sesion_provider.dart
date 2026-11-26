@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/di/providers.dart';
+import '../../core/errors/app_exception.dart';
 import '../../domain/entities/sesion.dart';
+import 'cuenta_provider.dart';
 
 /// Sesión actual: rol, nombre y estado del perfil (HU-02A / HU-02B).
 ///
@@ -29,6 +31,26 @@ class SesionNotifier extends AsyncNotifier<Sesion?> {
     ref.onDispose(suscripcion.cancel);
 
     if (_usuarioCargado == null) return null;
-    return auth.obtenerSesion();
+
+    final sesion = await auth.obtenerSesion();
+
+    // HU-42: una cuenta desactivada no usa la app, entre por donde entre.
+    // Se revisa aquí, y no solo en el login, porque la sesión puede tardar
+    // un instante en quedar disponible al iniciar sesión en la web.
+    if (sesion != null && !sesion.activo) {
+      ref
+          .read(avisoCuentaDesactivadaProvider.notifier)
+          .mostrar(const CuentaDesactivadaException().mensaje);
+      await auth.cerrarSesion();
+      return null;
+    }
+    if (sesion != null && sesion.suspendido) {
+      ref
+          .read(avisoCuentaDesactivadaProvider.notifier)
+          .mostrar(CuentaSuspendidaException(sesion.motivoSuspension).mensaje);
+      await auth.cerrarSesion();
+      return null;
+    }
+    return sesion;
   }
 }

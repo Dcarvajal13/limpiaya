@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../widgets/acceso_perfil.dart';
+import '../../widgets/campana_avisos.dart';
 import '../../widgets/contenido_centrado.dart';
 import '../../widgets/logo_limpiaya.dart';
 
@@ -60,55 +62,65 @@ class BarraTrabajadora extends StatelessWidget {
       rutaPerfil: Rutas.perfilTrabajadora,
     );
 
-    return Material(
-      color: AppColors.superficie,
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.borde)),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: _altoPrincipal,
-                child: ContenidoCentrado(
-                  child: Row(
-                    children: [
-                      LogoLimpiaYa(tamano: 36, soloMarca: movil),
-                      // Las pestañas usan el espacio que queda entre el
-                      // logo y el nombre; si no caben, se desplazan en vez
-                      // de desbordar la barra (ventanas de ~800 px).
-                      if (!movil) ...[
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Center(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: pestanas,
+    // El encabezado completo (logo, menú y perfil) es un landmark de región:
+    // así nada de la barra queda suelto fuera de un punto de referencia.
+    return Semantics(
+      container: true,
+      role: SemanticsRole.region,
+      label: 'Encabezado',
+      explicitChildNodes: true,
+      child: Material(
+        color: AppColors.superficie,
+        child: Container(
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.borde)),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: _altoPrincipal,
+                  child: ContenidoCentrado(
+                    child: Row(
+                      children: [
+                        LogoLimpiaYa(tamano: 36, soloMarca: movil),
+                        // Las pestañas usan el espacio que queda entre el
+                        // logo y el nombre; si no caben, se desplazan en vez
+                        // de desbordar la barra (ventanas de ~800 px).
+                        if (!movil) ...[
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Center(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: pestanas,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                      ] else
-                        const Spacer(),
-                      usuario,
-                    ],
-                  ),
-                ),
-              ),
-              if (movil)
-                SizedBox(
-                  height: _altoPestanas,
-                  child: ContenidoCentrado(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: pestanas,
+                          const SizedBox(width: 16),
+                        ] else
+                          const Spacer(),
+                        const CampanaAvisos(),
+                        const SizedBox(width: 4),
+                        usuario,
+                      ],
                     ),
                   ),
                 ),
-            ],
+                if (movil)
+                  SizedBox(
+                    height: _altoPestanas,
+                    child: ContenidoCentrado(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: pestanas,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -140,7 +152,7 @@ class _Pestanas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final menu = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _Pestana(
@@ -150,7 +162,8 @@ class _Pestanas extends StatelessWidget {
         ),
         _Pestana(
           etiqueta: 'Mis servicios',
-          activa: ubicacion == Rutas.misServicios ||
+          activa:
+              ubicacion == Rutas.misServicios ||
               ubicacion.startsWith('${Rutas.misServicios}/'),
           onTap: onMisServicios,
         ),
@@ -166,6 +179,16 @@ class _Pestanas extends StatelessWidget {
           contador: noLeidos,
         ),
       ],
+    );
+
+    // Landmark de navegación (<nav>, WCAG 1.3.1 y 2.4.1): NVDA lo lista en
+    // sus "Puntos de referencia" y se puede saltar directo al menú.
+    return Semantics(
+      container: true,
+      role: SemanticsRole.navigation,
+      label: 'Menú principal',
+      explicitChildNodes: true,
+      child: menu,
     );
   }
 }
@@ -187,48 +210,64 @@ class _Pestana extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Material(
-        color: activa ? AppColors.primarioClaro : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          onTap: onTap,
+    final textos = Theme.of(context).textTheme;
+
+    // selected → aria-current: el lector de pantalla dice cuál es la página
+    // actual, no solo el color de fondo (WCAG 1.3.1 y 1.4.1).
+    return Semantics(
+      container: true,
+      selected: activa,
+      button: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Material(
+          color: activa ? AppColors.primarioClaro : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  etiqueta,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontSize: 13,
-                    color: activa ? AppColors.primarioOscuro : AppColors.texto,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    etiqueta,
+                    style: textos.labelMedium?.copyWith(
+                      fontSize: 13,
+                      color: activa
+                          ? AppColors.primarioOscuro
+                          : AppColors.texto,
+                    ),
                   ),
-                ),
-                if (contador > 0) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    key: const Key('aviso-mensajes'),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primario,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      '$contador',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                  if (contador > 0) ...[
+                    const SizedBox(width: 6),
+                    // Sin esto NVDA lee "Mensajes 3" sin decir qué es el 3.
+                    Semantics(
+                      label: '$contador sin leer',
+                      excludeSemantics: true,
+                      child: Container(
+                        key: const Key('aviso-mensajes'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primario,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          '$contador',
+                          style: textos.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

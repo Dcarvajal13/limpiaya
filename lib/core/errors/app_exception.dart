@@ -12,6 +12,24 @@ class AppException implements Exception {
   String toString() => mensaje;
 }
 
+/// HU-42 · La cuenta está desactivada: no puede volver a entrar.
+class CuentaDesactivadaException extends AppException {
+  const CuentaDesactivadaException()
+      : super(
+          'Tu cuenta está desactivada. Escríbenos si quieres volver a usarla.',
+        );
+}
+
+/// HU-34 · La cuenta fue suspendida por administración.
+class CuentaSuspendidaException extends AppException {
+  CuentaSuspendidaException([String? motivo])
+      : super(
+          motivo != null && motivo.trim().isNotEmpty
+              ? 'Tu cuenta fue suspendida. Motivo: ${motivo.trim()}'
+              : 'Tu cuenta fue suspendida por administración. Contáctanos para más información.',
+        );
+}
+
 /// HU-40 c2 · Quiso entrar sin haber confirmado su correo. Lleva el correo
 /// para poder reenviarle el enlace.
 class CorreoSinVerificarException extends AppException {

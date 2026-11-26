@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:limpiaya/core/di/providers.dart';
+import 'package:limpiaya/core/errors/app_exception.dart';
 import 'package:limpiaya/core/theme/app_fonts.dart';
 import 'package:limpiaya/core/theme/app_theme.dart';
 import 'package:limpiaya/domain/entities/calificacion.dart';
 import 'package:limpiaya/domain/entities/estado_solicitud.dart';
 import 'package:limpiaya/domain/entities/metodo_pago.dart';
+import 'package:limpiaya/domain/entities/pago.dart';
 import 'package:limpiaya/domain/entities/rol_usuario.dart';
 import 'package:limpiaya/domain/entities/servicio_agendado.dart';
 import 'package:limpiaya/domain/entities/sesion.dart';
 import 'package:limpiaya/domain/entities/motivo_calificacion_baja.dart';
 import 'package:limpiaya/domain/entities/tipo_limpieza.dart';
 import 'package:limpiaya/domain/repositories/calificacion_repository.dart';
+import 'package:limpiaya/domain/repositories/pago_repository.dart';
 import 'package:limpiaya/domain/repositories/servicio_repository.dart';
 import 'package:limpiaya/presentation/providers/sesion_provider.dart';
 import 'package:limpiaya/presentation/screens/trabajadora/servicio_agendado_screen.dart';
@@ -22,6 +25,37 @@ class _ServiciosFalsos implements ServicioRepository {
 
   ServicioAgendado? servicio;
   final completados = <String>[];
+
+  /// E9 · Lo que devolverá el detalle después de pagar.
+  Pago? pago;
+
+  ServicioAgendado? _actual() {
+    final actual = servicio;
+    if (actual == null) return null;
+    return ServicioAgendado(
+      id: actual.id,
+      estado: actual.estado,
+      tipo: actual.tipo,
+      zona: actual.zona,
+      inicio: actual.inicio,
+      horasEstimadas: actual.horasEstimadas,
+      pagoOfrecido: actual.pagoOfrecido,
+      metodoPago: actual.metodoPago,
+      soyCliente: actual.soyCliente,
+      direccion: actual.direccion,
+      puntoReferencia: actual.puntoReferencia,
+      notas: actual.notas,
+      motivoCancelacion: actual.motivoCancelacion,
+      canceladaEn: actual.canceladaEn,
+      contraparteId: actual.contraparteId,
+      contraparteNombre: actual.contraparteNombre,
+      contraparteFotoUrl: actual.contraparteFotoUrl,
+      contrapartePromedio: actual.contrapartePromedio,
+      completadaEn: actual.completadaEn,
+      yaCalifique: actual.yaCalifique,
+      pago: pago,
+    );
+  }
 
   @override
   Future<void> elegir(String postulacionId) async {}
@@ -57,7 +91,36 @@ class _ServiciosFalsos implements ServicioRepository {
   Future<List<ServicioAgendado>> misServicios() async => [?servicio];
 
   @override
-  Future<ServicioAgendado?> servicioAgendado(String id) async => servicio;
+  Future<ServicioAgendado?> servicioAgendado(String id) async => _actual();
+}
+
+class _PagosFalsos implements PagoRepository {
+  _PagosFalsos(this._servicios);
+
+  final _ServiciosFalsos _servicios;
+  final pagados = <String>[];
+  bool fallar = false;
+
+  @override
+  Future<Pago> pagar(String solicitudId) async {
+    pagados.add(solicitudId);
+    if (fallar) {
+      throw const AppException('No pudimos registrar el pago. Intenta de nuevo.');
+    }
+    final pago = Pago(
+      id: 'p1',
+      solicitudId: solicitudId,
+      pagoTrabajadora: 30,
+      tarifa: 3,
+      total: 33,
+      metodo: MetodoPago.pagoMovil,
+      estado: EstadoPago.aprobado,
+      referencia: 'PG-000001',
+      creadoEn: DateTime.now(),
+    );
+    _servicios.pago = pago;
+    return pago;
+  }
 }
 
 class _CalificacionesFalsas implements CalificacionRepository {
@@ -124,6 +187,7 @@ Widget _app(
   ServicioRepository repo,
   RolUsuario rol, {
   CalificacionRepository? calificaciones,
+  PagoRepository? pagos,
 }) =>
     ProviderScope(
       overrides: [
@@ -131,6 +195,7 @@ Widget _app(
         sesionProvider.overrideWith(() => _SesionFalsa(rol)),
         if (calificaciones != null)
           calificacionRepositoryProvider.overrideWithValue(calificaciones),
+        if (pagos != null) pagoRepositoryProvider.overrideWithValue(pagos),
       ],
       child: MaterialApp(
         theme: AppTheme.claro,
@@ -191,6 +256,74 @@ void main() {
 
     expect(find.byKey(const Key('calificar-servicio')), findsOneWidget);
     expect(find.byKey(const Key('completar-servicio')), findsNothing);
+  });
+
+  testWidgets('E9: el cliente paga con un toque y el pago queda guardado',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo = _ServiciosFalsos(_servicio());
+    final pagos = _PagosFalsos(repo);
+    await tester.pumpWidget(_app(repo, RolUsuario.cliente, pagos: pagos));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pago ofrecido'), findsOneWidget);
+    expect(find.text(r'$30'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pagar-servicio')));
+    await tester.pump();
+    expect(find.text('Procesando pago…'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+
+    expect(pagos.pagados, ['s1']);
+    expect(find.text('Pagado'), findsOneWidget);
+    expect(find.text(r'$33'), findsOneWidget);
+    expect(find.textContaining('PG-000001'), findsOneWidget);
+    expect(find.byKey(const Key('pagar-servicio')), findsNothing);
+  });
+
+  testWidgets('E9: la trabajadora no puede pagar, solo ve que ya está pagado',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo = _ServiciosFalsos(_servicio(soyCliente: false));
+    repo.pago = Pago(
+      id: 'p1',
+      solicitudId: 's1',
+      pagoTrabajadora: 30,
+      tarifa: 3,
+      total: 33,
+      metodo: MetodoPago.pagoMovil,
+      estado: EstadoPago.aprobado,
+      referencia: 'PG-000001',
+      creadoEn: DateTime.now(),
+    );
+    await tester.pumpWidget(
+      _app(repo, RolUsuario.trabajadora, pagos: _PagosFalsos(repo)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pagar-servicio')), findsNothing);
+    expect(find.text('Pagado'), findsOneWidget);
+    expect(find.text(r'$30'), findsOneWidget);
+    expect(find.textContaining('El cliente ya pagó'), findsOneWidget);
+  });
+
+  testWidgets('E9: si el cobro falla se muestra el error y no queda pagado',
+      (tester) async {
+    _pantallaGrande(tester);
+    final repo = _ServiciosFalsos(_servicio());
+    final pagos = _PagosFalsos(repo)..fallar = true;
+    await tester.pumpWidget(_app(repo, RolUsuario.cliente, pagos: pagos));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('pagar-servicio')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('No pudimos registrar el pago. Intenta de nuevo.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('pagar-servicio')), findsOneWidget);
   });
 
   testWidgets('HU-16 c4: Calificar abre el diálogo de HU-29 con la otra parte',

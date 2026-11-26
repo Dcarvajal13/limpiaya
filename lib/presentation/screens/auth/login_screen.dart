@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +9,7 @@ import '../../../core/router/recuperacion.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validadores.dart';
+import '../../providers/cuenta_provider.dart';
 import '../../widgets/campo_texto.dart';
 import 'widgets/aviso_verificar_correo.dart';
 import 'widgets/plantilla_auth.dart';
@@ -53,11 +55,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
       _sinVerificar = null;
     });
+    ref.read(avisoCuentaDesactivadaProvider.notifier).limpiar();
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
     try {
-      await ref.read(authRepositoryProvider).iniciarSesion(
+      await ref
+          .read(authRepositoryProvider)
+          .iniciarSesion(
             email: _email.text.trim().toLowerCase(),
             password: _password.text,
           );
@@ -69,6 +74,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _sinVerificar = e.email;
         _cargando = false;
       });
+    } on CuentaDesactivadaException catch (e) {
+      // HU-42: al cerrar la sesión la pantalla se remonta, por eso el aviso
+      // se guarda en un provider y no en el estado del widget.
+      ref.read(avisoCuentaDesactivadaProvider.notifier).mostrar(e.mensaje);
+      if (mounted) setState(() => _cargando = false);
+      await ref.read(authRepositoryProvider).cerrarSesion();
+    } on CuentaSuspendidaException catch (e) {
+      // HU-34: mismo flujo seguro para cuentas suspendidas por administración.
+      ref.read(avisoCuentaDesactivadaProvider.notifier).mostrar(e.mensaje);
+      if (mounted) setState(() => _cargando = false);
+      await ref.read(authRepositoryProvider).cerrarSesion();
     } on AppException catch (e) {
       _mostrarError(e.mensaje);
     } catch (_) {
@@ -87,94 +103,104 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
+    final avisoCuentaDesactivada = ref.watch(avisoCuentaDesactivadaProvider);
 
     return PlantillaAuth(
       titulo: 'Qué bueno verte por aquí.',
       texto: 'Tus solicitudes, mensajes y reseñas siguen esperándote.',
-      child: Form(
-        key: _formKey,
-        child: AutofillGroup(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Hola de nuevo', style: textos.headlineLarge),
-              const SizedBox(height: 8),
-              Text('Entra con tus datos.', style: textos.bodyLarge),
-              const SizedBox(height: 28),
-              CampoTexto(
-                etiqueta: 'Correo',
-                pista: 'tu@correo.com',
-                controller: _email,
-                validator: Validadores.email,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.email],
-                enabled: !_cargando,
-              ),
-              const SizedBox(height: 18),
-              CampoTexto(
-                etiqueta: 'Contraseña',
-                pista: 'Tu contraseña',
-                controller: _password,
-                validator: Validadores.requerido,
-                obscureText: !_verPassword,
-                textInputAction: TextInputAction.done,
-                autofillHints: const [AutofillHints.password],
-                onFieldSubmitted: (_) => _entrar(),
-                enabled: !_cargando,
-                sufijo: IconButton(
-                  tooltip: _verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña',
-                  icon: Icon(
-                    _verPassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                  ),
-                  onPressed: () => setState(() => _verPassword = !_verPassword),
+      child: Semantics(
+        container: true,
+        role: SemanticsRole.form,
+        label: 'Iniciar sesión',
+        explicitChildNodes: true,
+        child: Form(
+          key: _formKey,
+          child: AutofillGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Hola de nuevo', style: textos.headlineLarge),
+                const SizedBox(height: 8),
+                Text('Entra con tus datos.', style: textos.bodyLarge),
+                const SizedBox(height: 28),
+                CampoTexto(
+                  etiqueta: 'Correo',
+                  pista: 'tu@correo.com',
+                  controller: _email,
+                  validator: Validadores.email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.email],
+                  enabled: !_cargando,
                 ),
-              ),
-              // HU-19 (taller UX, H3 · severidad 3): quien olvida la
-              // contraseña ya no queda bloqueado.
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _cargando
-                      ? null
-                      : () => context.go(Rutas.recuperarContrasena),
-                  child: const Text('¿Olvidaste tu contraseña?'),
-                ),
-              ),
-              if (_error != null) ...[
                 const SizedBox(height: 18),
-                AvisoErrorAuth(_error!),
-              ],
-              if (_sinVerificar != null) ...[
-                const SizedBox(height: 18),
-                AvisoVerificarCorreo(email: _sinVerificar!),
-              ],
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _cargando ? null : _entrar,
-                child: _cargando
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      )
-                    : const Text('Entrar'),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text('¿Aún no tienes cuenta?', style: textos.bodySmall),
-                  TextButton(
-                    onPressed: () => context.go(Rutas.registro),
-                    child: const Text('Crear cuenta'),
+                CampoTexto(
+                  etiqueta: 'Contraseña',
+                  pista: 'Tu contraseña',
+                  controller: _password,
+                  validator: Validadores.requerido,
+                  obscureText: !_verPassword,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
+                  onFieldSubmitted: (_) => _entrar(),
+                  enabled: !_cargando,
+                  sufijo: IconButton(
+                    tooltip: _verPassword
+                        ? 'Ocultar contraseña'
+                        : 'Mostrar contraseña',
+                    icon: Icon(
+                      _verPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () =>
+                        setState(() => _verPassword = !_verPassword),
                   ),
+                ),
+                // HU-19 (taller UX, H3 · severidad 3): quien olvida la
+                // contraseña ya no queda bloqueado.
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _cargando
+                        ? null
+                        : () => context.go(Rutas.recuperarContrasena),
+                    child: const Text('¿Olvidaste tu contraseña?'),
+                  ),
+                ),
+                if ((_error ?? avisoCuentaDesactivada) != null) ...[
+                  const SizedBox(height: 18),
+                  AvisoErrorAuth((_error ?? avisoCuentaDesactivada)!),
                 ],
-              ),
-            ],
+                if (_sinVerificar != null) ...[
+                  const SizedBox(height: 18),
+                  AvisoVerificarCorreo(email: _sinVerificar!),
+                ],
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _cargando ? null : _entrar,
+                  child: _cargando
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : const Text('Entrar'),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('¿Aún no tienes cuenta?', style: textos.bodySmall),
+                    TextButton(
+                      onPressed: () => context.go(Rutas.registro),
+                      child: const Text('Crear cuenta'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -201,15 +227,19 @@ class AvisoErrorAuth extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline_rounded, size: 20, color: AppColors.error),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 20,
+              color: AppColors.error,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 mensaje,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.error, fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

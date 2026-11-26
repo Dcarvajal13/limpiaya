@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 
 import 'pie_pagina.dart';
 
@@ -28,14 +29,22 @@ class DesplazableConPie extends StatelessWidget {
         controller: controller,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            minHeight:
-                restricciones.maxHeight.isFinite ? restricciones.maxHeight : 0,
+            minHeight: restricciones.maxHeight.isFinite
+                ? restricciones.maxHeight
+                : 0,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(padding: padding, child: child),
+              // El contenido va dentro de <main>; el pie queda como hermano
+              // para conservar su landmark contentinfo en el nivel superior.
+              Semantics(
+                container: true,
+                role: SemanticsRole.main,
+                explicitChildNodes: true,
+                child: Padding(padding: padding, child: child),
+              ),
               const PiePagina(),
             ],
           ),

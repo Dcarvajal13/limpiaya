@@ -165,6 +165,20 @@ void main() {
     expect(repo.ultimoZonaId, isNull);
   });
 
+  testWidgets('con el perfil completo ya no pide completarlo', (tester) async {
+    final repo = _ClienteFalso()
+      ..perfil = const PerfilCliente(
+        zona: Zona(id: 1, nombre: 'Sabana Grande'),
+        direccion: 'Av. Francisco de Miranda',
+      );
+    await tester.pumpWidget(_app(repo));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tu perfil'), findsOneWidget);
+    expect(find.text('Completa tu perfil'), findsNothing);
+    expect(find.text('Tu zona'), findsOneWidget);
+  });
+
   testWidgets('HU-05: dirección de menos de 5 caracteres no guarda', (tester) async {
     final repo = _ClienteFalso();
     await tester.pumpWidget(_app(repo));

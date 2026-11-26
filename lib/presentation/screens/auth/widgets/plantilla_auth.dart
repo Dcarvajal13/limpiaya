@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/rutas.dart';
@@ -49,12 +50,16 @@ class PlantillaAuth extends StatelessWidget {
 
     if (dosColumnas) {
       return Scaffold(
+        // El panel es un landmark complementario y el formulario el principal;
+        // el pie conserva su contentinfo sin quedar dentro de main.
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               flex: 9,
-              child: _PanelAmplio(titulo: titulo, texto: texto),
+              child: _complementario(
+                _PanelAmplio(titulo: titulo, texto: texto),
+              ),
             ),
             Expanded(
               flex: 11,
@@ -71,7 +76,9 @@ class PlantillaAuth extends StatelessWidget {
                         const SizedBox(height: 8),
                         Aparecer(
                           retraso: const Duration(milliseconds: 60),
-                          child: _Formulario(compacto: false, child: child),
+                          child: _principal(
+                            _Formulario(compacto: false, child: child),
+                          ),
                         ),
                         const Padding(
                           padding: EdgeInsets.only(top: 40),
@@ -93,10 +100,12 @@ class PlantillaAuth extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _PanelCompacto(titulo: titulo, texto: texto),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              child: _Formulario(compacto: true, child: child),
+            _complementario(_PanelCompacto(titulo: titulo, texto: texto)),
+            _principal(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                child: _Formulario(compacto: true, child: child),
+              ),
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -105,6 +114,27 @@ class PlantillaAuth extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// Panel lateral: landmark complementario, no compite con el formulario.
+  Widget _complementario(Widget child) {
+    return Semantics(
+      container: true,
+      role: SemanticsRole.complementary,
+      label: 'Presentación',
+      explicitChildNodes: true,
+      child: child,
+    );
+  }
+
+  /// Landmark principal de las pantallas de autenticación.
+  Widget _principal(Widget child) {
+    return Semantics(
+      container: true,
+      role: SemanticsRole.main,
+      explicitChildNodes: true,
+      child: child,
     );
   }
 }
@@ -127,16 +157,16 @@ class _Pie extends StatelessWidget {
 
 TextStyle? _estiloTitulo(BuildContext context, double tamano) =>
     Theme.of(context).textTheme.displayMedium?.copyWith(
-          fontSize: tamano,
-          height: 1.1,
-          color: Colors.white,
-        );
+      fontSize: tamano,
+      height: 1.1,
+      color: Colors.white,
+    );
 
 TextStyle? _estiloTexto(BuildContext context, double tamano) =>
     Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontSize: tamano,
-          color: AppColors.textoSobreOscuro,
-        );
+      fontSize: tamano,
+      color: AppColors.textoSobreOscuro,
+    );
 
 /// Panel de escritorio: logo arriba, reseñas al centro y el título de la
 /// pantalla abajo. Si la ventana es muy baja, se puede desplazar.
@@ -176,7 +206,9 @@ class _PanelAmplio extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 28),
                   decoration: BoxDecoration(
                     border: Border(
-                      top: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                      top: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
                     ),
                   ),
                   child: ConstrainedBox(
@@ -184,7 +216,15 @@ class _PanelAmplio extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(titulo, style: _estiloTitulo(context, 30)),
+                        // <h1> de las pantallas de inicio de sesión y registro.
+                        Semantics(
+                          container: true,
+                          headingLevel: 1,
+                          child: Text(
+                            titulo,
+                            style: _estiloTitulo(context, 30),
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         Text(texto, style: _estiloTexto(context, 17)),
                       ],
@@ -221,7 +261,11 @@ class _PanelCompacto extends StatelessWidget {
             onTap: () => context.go(Rutas.landing),
           ),
           const SizedBox(height: 40),
-          Text(titulo, style: _estiloTitulo(context, 32)),
+          Semantics(
+            container: true,
+            headingLevel: 1,
+            child: Text(titulo, style: _estiloTitulo(context, 32)),
+          ),
           const SizedBox(height: 14),
           Text(texto, style: _estiloTexto(context, 16)),
         ],

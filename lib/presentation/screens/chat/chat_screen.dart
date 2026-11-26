@@ -95,12 +95,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final usuarioId = ref.read(sesionProvider).value?.id;
     if (usuarioId == null) return;
 
+    // HU-48 · Ocultar teléfonos, correos y wa.me en el envío optimista y avisar.
+    final teniaContacto = ChatService.contieneContacto(texto);
+    final textoSeguro = ChatService.ocultarContactos(texto.trim());
+
     // Envío optimista: la burbuja aparece ya y se quita si el envío falla.
     final temporal = Mensaje(
       id: --_siguienteTemporal,
       solicitudId: widget.solicitudId,
       autorId: usuarioId,
-      contenido: texto.trim(),
+      contenido: textoSeguro,
       enviadoEn: DateTime.now(),
     );
     setState(() => _pendientes.add(temporal));
@@ -112,7 +116,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (!mounted) return;
 
     setState(() => _pendientes.remove(temporal));
-    if (fallo != null) _avisar(fallo);
+    if (fallo != null) {
+      _avisar(fallo);
+    } else if (teniaContacto) {
+      _avisar(ChatService.avisoContactoOculto);
+    }
     _bajar();
   }
 
@@ -370,7 +378,7 @@ class _Burbuja extends StatelessWidget {
                 esMio ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Text(
-                mensaje.contenido,
+                ChatService.ocultarContactos(mensaje.contenido),
                 style: textos.bodyMedium?.copyWith(
                   color: esMio ? Colors.white : AppColors.texto,
                 ),

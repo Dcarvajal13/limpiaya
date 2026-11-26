@@ -52,14 +52,23 @@ class _SeccionPrecioState extends State<SeccionPrecio> {
           ],
         ),
         const SizedBox(height: 8),
-        Slider(
-          value: _pago,
-          min: 18,
-          max: 60,
-          divisions: 42,
-          label: '\$${_pago.round()}',
-          semanticFormatterCallback: (v) => '${v.round()} dólares',
-          onChanged: (v) => setState(() => _pago = v.roundToDouble()),
+        // Nombre accesible del deslizador (WCAG 4.1.2): sin esto el lector
+        // decía solo "30 dólares, deslizador", sin saber qué se ajusta.
+        // Flutter pone este nombre en el contenedor; web/index.html lo copia
+        // al <input type="range">, que es lo que leen NVDA y Lighthouse.
+        MergeSemantics(
+          child: Semantics(
+            label: 'Cuánto ofreces por la limpieza',
+            child: Slider(
+              value: _pago,
+              min: 18,
+              max: 60,
+              divisions: 42,
+              label: '\$${_pago.round()}',
+              semanticFormatterCallback: (v) => '${v.round()} dólares',
+              onChanged: (v) => setState(() => _pago = v.roundToDouble()),
+            ),
+          ),
         ),
       ],
     );

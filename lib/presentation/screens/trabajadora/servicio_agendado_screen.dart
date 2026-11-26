@@ -11,9 +11,11 @@ import '../../../domain/entities/estado_solicitud.dart';
 import '../../../domain/entities/rol_usuario.dart';
 import '../../../domain/entities/servicio_agendado.dart';
 import '../../../domain/services/servicio_service.dart';
+import '../../../domain/services/solicitud_service.dart';
 import '../../providers/completar_servicio_provider.dart';
 import '../../providers/mis_servicios_provider.dart';
 import '../../providers/mis_solicitudes_provider.dart';
+import '../../providers/pagar_servicio_provider.dart';
 import '../../providers/sesion_provider.dart';
 import '../../widgets/avatar_usuario.dart';
 import '../../widgets/calificar_contraparte.dart';
@@ -89,11 +91,38 @@ class ServicioAgendadoScreen extends ConsumerWidget {
       );
   }
 
+  /// E9 · Cobra el servicio con un solo toque: el pago queda guardado en la
+  /// base. La pasarela es de mentira, así que aquí no se piden datos de pago.
+  Future<void> _pagar(
+    BuildContext context,
+    WidgetRef ref,
+    ServicioAgendado servicio,
+  ) async {
+    final error =
+        await ref.read(pagarServicioProvider.notifier).pagar(servicio.id);
+    if (!context.mounted) return;
+
+    ref.invalidate(servicioAgendadoProvider(solicitudId));
+    ref.invalidate(misServiciosProvider);
+    ref.invalidate(misSolicitudesProvider);
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            error ?? 'Pago registrado. El servicio quedó pagado.',
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sesion = ref.watch(sesionProvider).value;
     final detalle = ref.watch(servicioAgendadoProvider(solicitudId));
     final movil = Responsive.esMovil(context);
+    final pagando = ref.watch(pagarServicioProvider).isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.fondo,
@@ -142,6 +171,8 @@ class ServicioAgendadoScreen extends ConsumerWidget {
               return _Contenido(
                 servicio: servicio,
                 movil: movil,
+                pagando: pagando,
+                onPagar: () => _pagar(context, ref, servicio),
                 onCompletar: () => _completar(context, ref, servicio),
                 // HU-38: el chat solo existe cuando ya hay trabajadora
                 // asignada (mientras está Publicada no hay con quién hablar).
@@ -163,6 +194,8 @@ class _Contenido extends StatelessWidget {
   const _Contenido({
     required this.servicio,
     required this.movil,
+    required this.pagando,
+    required this.onPagar,
     required this.onCompletar,
     required this.onChat,
     required this.onCalificar,
@@ -170,6 +203,8 @@ class _Contenido extends StatelessWidget {
 
   final ServicioAgendado servicio;
   final bool movil;
+  final bool pagando;
+  final VoidCallback onPagar;
   final VoidCallback onCompletar;
 
   /// HU-38 · Null cuando todavía no hay con quién chatear.
@@ -253,21 +288,44 @@ class _Contenido extends StatelessWidget {
       ),
     );
 
+    // E9: si el servicio ya se cobró, esta tarjeta muestra el pago guardado.
+    final cobro = servicio.pago;
+    final monto =
+        servicio.soyCliente && cobro != null ? cobro.total : servicio.pagoOfrecido;
+
     final pago = _Caja(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              servicio.soyCliente ? 'Pago ofrecido' : 'Recibes',
-              style: textos.labelLarge?.copyWith(
-                color: AppColors.textoSecundario,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    cobro != null
+                        ? 'Pagado'
+                        : servicio.soyCliente
+                            ? 'Pago ofrecido'
+                            : 'Recibes',
+                    style: textos.labelLarge?.copyWith(
+                      color: cobro != null
+                          ? AppColors.exito
+                          : AppColors.textoSecundario,
+                    ),
+                  ),
+                ),
+                if (cobro != null)
+                  const Icon(
+                    Icons.check_circle,
+                    size: 20,
+                    color: AppColors.exito,
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
-              Formato.dinero(servicio.pagoOfrecido),
+              Formato.dinero(monto),
               style: textos.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: AppColors.primario,
@@ -278,6 +336,18 @@ class _Contenido extends StatelessWidget {
               servicio.metodoPago.etiqueta,
               style: textos.bodySmall,
             ),
+            if (cobro != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                servicio.soyCliente
+                    ? 'Incluye ${Formato.dinero(cobro.tarifa)} de tarifa de '
+                        'servicio · ${cobro.referencia}'
+                    : 'El cliente ya pagó · ${cobro.referencia}',
+                style: textos.bodySmall?.copyWith(
+                  color: AppColors.textoSecundario,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -422,6 +492,25 @@ class _Contenido extends StatelessWidget {
     );
 
     final acciones = <Widget>[
+      if (servicio.puedePagar)
+        FilledButton.icon(
+          key: const Key('pagar-servicio'),
+          onPressed: pagando ? null : onPagar,
+          icon: pagando
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.credit_card_outlined, size: 18),
+          label: Text(
+            pagando
+                ? 'Procesando pago…'
+                : 'Pagar ${Formato.dinero(
+                    SolicitudService.total(servicio.pagoOfrecido),
+                  )}',
+          ),
+        ),
       if (servicio.puedeCompletar)
         FilledButton.icon(
           key: const Key('completar-servicio'),

@@ -49,9 +49,14 @@ class EnviarMensajeNotifier extends Notifier<AsyncValue<void>> {
     final error = ChatService.validar(texto);
     if (error != null) return error;
 
+    // HU-48 · Oculta teléfonos, correos y enlaces wa.me antes de guardar.
+    final contenidoSeguro = ChatService.ocultarContactos(texto.trim());
+
     state = const AsyncLoading();
     final resultado = await AsyncValue.guard(
-      () => ref.read(chatRepositoryProvider).enviar(solicitudId, texto.trim()),
+      () => ref
+          .read(chatRepositoryProvider)
+          .enviar(solicitudId, contenidoSeguro),
     );
     state = resultado;
 

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -31,7 +32,14 @@ class PiePagina extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return compacto ? _franja(context) : _completo(context);
+    // Landmark de pie de página (<footer>, rol contentinfo; WCAG 1.3.1).
+    return Semantics(
+      container: true,
+      role: SemanticsRole.contentInfo,
+      label: 'Pie de página',
+      explicitChildNodes: true,
+      child: compacto ? _franja(context) : _completo(context),
+    );
   }
 
   static TextStyle get _pequeno => AppFonts.texto(
@@ -58,11 +66,17 @@ class PiePagina extends StatelessWidget {
         children: [
           const Icon(Icons.mail_outline_rounded, size: 17, color: AppColors.primario),
           const SizedBox(width: 8),
+          // SelectionArea + Text y no SelectableText: SelectableText se
+          // expone en la web como un <textarea> deshabilitado y sin nombre,
+          // que Lighthouse marca como campo de formulario sin etiqueta.
+          // Así el correo se sigue pudiendo seleccionar y copiar.
           Flexible(
-            child: SelectableText(
-              AppConstants.correoSoporte,
-              style: AppFonts.texto(
-                const TextStyle(fontSize: 15, color: AppColors.texto),
+            child: SelectionArea(
+              child: Text(
+                AppConstants.correoSoporte,
+                style: AppFonts.texto(
+                  const TextStyle(fontSize: 15, color: AppColors.texto),
+                ),
               ),
             ),
           ),

@@ -1,6 +1,7 @@
 import '../services/chat_service.dart';
 import 'estado_solicitud.dart';
 import 'metodo_pago.dart';
+import 'pago.dart';
 import 'quien_pone_productos.dart';
 import 'tipo_limpieza.dart';
 
@@ -35,6 +36,7 @@ class ServicioAgendado {
     this.contraparteFotoUrl,
     this.contrapartePromedio,
     this.yaCalifique = false,
+    this.pago,
   });
 
   final String id;
@@ -75,6 +77,19 @@ class ServicioAgendado {
 
   /// Si esta persona ya calificó el servicio (HU-29).
   final bool yaCalifique;
+
+  /// E9 · El cobro ya registrado de este servicio. Null si no se ha pagado.
+  final Pago? pago;
+
+  /// E9 · Si el servicio ya está pagado.
+  bool get pagado => pago?.estaAprobado ?? false;
+
+  /// E9 · El cliente paga desde el detalle del servicio, con un solo toque.
+  bool get puedePagar =>
+      soyCliente &&
+      !pagado &&
+      (estado == EstadoSolicitud.asignada ||
+          estado == EstadoSolicitud.completada);
 
   /// HU-16 c1: "Próximos" son los asignados; se ordenan del más cercano
   /// al más lejano.

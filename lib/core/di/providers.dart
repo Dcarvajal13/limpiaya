@@ -1,31 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../data/repositories/supabase_admin_repository.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
+import '../../data/repositories/supabase_aviso_repository.dart';
 import '../../data/repositories/supabase_busqueda_trabajadoras_repository.dart';
 import '../../data/repositories/supabase_calificacion_repository.dart';
 import '../../data/repositories/supabase_chat_repository.dart';
 import '../../data/repositories/supabase_cliente_publico_repository.dart';
 import '../../data/repositories/supabase_cliente_repository.dart';
+import '../../data/repositories/supabase_cuenta_repository.dart';
 import '../../data/repositories/supabase_direcciones_repository.dart';
 import '../../data/repositories/supabase_trabajadora_publica_repository.dart';
 import '../../data/repositories/supabase_mi_reputacion_repository.dart';
 import '../../data/repositories/supabase_perfil_repository.dart';
+import '../../data/repositories/supabase_pago_repository.dart';
 import '../../data/repositories/supabase_postulacion_repository.dart';
 import '../../data/repositories/supabase_reputacion_repository.dart';
 import '../../data/repositories/supabase_servicio_repository.dart';
 import '../../data/repositories/supabase_solicitud_repository.dart';
 import '../../data/repositories/supabase_verificacion_correo_repository.dart';
 import '../../data/repositories/supabase_verificacion_repository.dart';
+import '../../domain/repositories/admin_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/aviso_repository.dart';
 import '../../domain/repositories/busqueda_trabajadoras_repository.dart';
 import '../../domain/repositories/calificacion_repository.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../../domain/repositories/cliente_publico_repository.dart';
 import '../../domain/repositories/cliente_repository.dart';
+import '../../domain/repositories/cuenta_repository.dart';
 import '../../domain/repositories/direcciones_repository.dart';
 import '../../domain/repositories/mi_reputacion_repository.dart';
 import '../../domain/repositories/perfil_repository.dart';
+import '../../domain/repositories/pago_repository.dart';
 import '../../domain/repositories/postulacion_repository.dart';
 import '../../domain/repositories/reputacion_repository.dart';
 import '../../domain/repositories/servicio_repository.dart';
@@ -33,6 +41,7 @@ import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/repositories/trabajadora_publica_repository.dart';
 import '../../domain/repositories/verificacion_correo_repository.dart';
 import '../../domain/repositories/verificacion_repository.dart';
+import '../../domain/services/admin_service.dart';
 import '../../domain/services/registro_service.dart';
 import '../../domain/services/solicitud_service.dart';
 import '../../domain/services/verificacion_service.dart';
@@ -52,6 +61,11 @@ final supabaseClientProvider = Provider<SupabaseClient>(
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => SupabaseAuthRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// HU-39 / HU-42 · Cambiar la contraseña y desactivar la propia cuenta.
+final cuentaRepositoryProvider = Provider<CuentaRepository>(
+  (ref) => SupabaseCuentaRepository(ref.watch(supabaseClientProvider)),
 );
 
 final solicitudRepositoryProvider = Provider<SolicitudRepository>(
@@ -135,10 +149,31 @@ final verificacionServiceProvider = Provider<VerificacionService>(
   (ref) => VerificacionService(ref.watch(verificacionRepositoryProvider)),
 );
 
+/// E9 · Cobros guardados. El pago lo registra la base a partir de la
+/// solicitud; la pasarela es de mentira, pero el cobro queda guardado.
+final pagoRepositoryProvider = Provider<PagoRepository>(
+  (ref) => SupabasePagoRepository(ref.watch(supabaseClientProvider)),
+);
+
 /// HU-40 · Reenviar el enlace para verificar el correo.
+
 final verificacionCorreoRepositoryProvider =
     Provider<VerificacionCorreoRepository>(
   (ref) => SupabaseVerificacionCorreoRepository(
     ref.watch(supabaseClientProvider),
   ),
+);
+
+/// HU-50 y HU-49 · Campana de avisos en la app y avisos por correo.
+final avisoRepositoryProvider = Provider<AvisoRepository>(
+  (ref) => SupabaseAvisoRepository(ref.watch(supabaseClientProvider)),
+);
+
+/// HU-34, HU-35 y HU-36 · Administración de cuentas, moderación y métricas.
+final adminRepositoryProvider = Provider<AdminRepository>(
+  (ref) => SupabaseAdminRepository(ref.watch(supabaseClientProvider)),
+);
+
+final adminServiceProvider = Provider<AdminService>(
+  (ref) => AdminService(ref.watch(adminRepositoryProvider)),
 );

@@ -70,6 +70,17 @@ abstract final class Rutas {
   /// HU-25 · Buscar trabajadoras e invitarlas a una solicitud.
   static const buscarTrabajadoras = '/cliente/buscar';
 
+  /// HU-41 · Editar nombre y teléfono. La puede abrir cualquier rol con
+  /// sesión.
+  static const misDatos = '/cuenta/datos';
+
+  /// HU-39 · Cambiar la contraseña desde la cuenta. La puede abrir cualquier
+  /// rol con sesión.
+  static const cambiarContrasena = '/cuenta/contrasena';
+
+  /// HU-42 · Desactivar la propia cuenta.
+  static const desactivarCuenta = '/cuenta/desactivar';
+
   /// HU-06 · Perfil público de una trabajadora, visto por el cliente.
   static const perfilPublicoTrabajadoraPatron = '/cliente/trabajadoras/:id';
   static String perfilPublicoTrabajadora(String trabajadoraId) =>
@@ -122,6 +133,9 @@ abstract final class Rutas {
   /// cambia.
   static const mensajesCliente = '/cliente/mensajes';
   static const mensajesTrabajadora = '/trabajadora/mensajes';
+
+  /// HU-50 / HU-49 · Campana de avisos en la app y avisos por correo.
+  static const avisos = '/avisos';
 
   static const sistemaDiseno = '/diseno';
 

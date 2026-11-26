@@ -13,6 +13,10 @@ class Sesion {
     this.fotoPath,
     this.fotoUrl,
     this.verificacion,
+    this.activo = true,
+    this.suspendido = false,
+    this.motivoSuspension,
+    this.avisosCorreo = true,
   });
 
   final String id;
@@ -32,4 +36,15 @@ class Sesion {
   /// Verificación de identidad (clientes y trabajadoras): pendiente,
   /// en_revision, aprobada o rechazada. Null para el admin.
   final String? verificacion;
+
+  /// HU-42 · false cuando la persona desactivó su cuenta. Una cuenta
+  /// desactivada no puede iniciar sesión.
+  final bool activo;
+
+  /// HU-34 · true cuando administración suspendió la cuenta.
+  final bool suspendido;
+  final String? motivoSuspension;
+
+  /// HU-49 · Si recibe avisos por correo electrónico.
+  final bool avisosCorreo;
 }

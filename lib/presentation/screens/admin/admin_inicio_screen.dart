@@ -16,6 +16,42 @@ import '../../widgets/campo_texto.dart';
 import '../../widgets/estado_vacio.dart';
 import '../../widgets/insignia_estado.dart';
 import '../../widgets/logo_limpiaya.dart';
+import 'panel_cuentas_admin.dart';
+import 'panel_metricas_admin.dart';
+import 'panel_moderacion_admin.dart';
+
+enum _SeccionAdmin {
+  verificaciones(
+    'Verificaciones',
+    'Verificaciones pendientes',
+    'Revisa de la más antigua a la más reciente.',
+    Icons.shield_outlined,
+  ),
+  cuentas(
+    'Cuentas',
+    'Gestión de cuentas',
+    'Suspende o reactiva clientes y trabajadoras indicando el motivo.',
+    Icons.manage_accounts_outlined,
+  ),
+  moderacion(
+    'Moderación',
+    'Reseñas reportadas',
+    'Revisa la cola de reportes para ocultar o mantener cada reseña.',
+    Icons.flag_outlined,
+  ),
+  metricas(
+    'Métricas',
+    'Métricas de la plataforma',
+    'Totales del mes, % con postulación y % completado del MVP.',
+    Icons.insights_rounded,
+  );
+
+  const _SeccionAdmin(this.menu, this.titulo, this.subtitulo, this.icono);
+  final String menu;
+  final String titulo;
+  final String subtitulo;
+  final IconData icono;
+}
 
 /// HU-33 · Revisar verificaciones de identidad (vista "admin" del Figma).
 ///
@@ -33,6 +69,7 @@ class AdminInicioScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
+  _SeccionAdmin _seccion = _SeccionAdmin.verificaciones;
   String? _seleccionada;
   bool _guardando = false;
 
@@ -123,24 +160,29 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
     final movil = Responsive.esMovil(context);
     final textos = Theme.of(context).textTheme;
 
-    final contenido = pendientes.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.all(48),
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, _) => EstadoVacio(
-        icono: Icons.error_outline_rounded,
-        titulo: 'No pudimos cargar las verificaciones',
-        mensaje: error is AppException ? error.mensaje : null,
-        textoBoton: 'Intentar de nuevo',
-        onPressed: () => ref.invalidate(verificacionesPendientesProvider),
-      ),
-      data: (lista) => _panel(lista, movil),
-    );
+    final contenido = switch (_seccion) {
+      _SeccionAdmin.verificaciones => pendientes.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => EstadoVacio(
+            icono: Icons.error_outline_rounded,
+            titulo: 'No pudimos cargar las verificaciones',
+            mensaje: error is AppException ? error.mensaje : null,
+            textoBoton: 'Intentar de nuevo',
+            onPressed: () => ref.invalidate(verificacionesPendientesProvider),
+          ),
+          data: (lista) => _panel(lista, movil),
+        ),
+      _SeccionAdmin.cuentas => const PanelCuentasAdmin(),
+      _SeccionAdmin.moderacion => const PanelModeracionAdmin(),
+      _SeccionAdmin.metricas => const PanelMetricasAdmin(),
+    };
 
     final principal = SingleChildScrollView(
       padding: movil
-          ? const EdgeInsets.fromLTRB(16, 30, 16, 80)
+          ? const EdgeInsets.fromLTRB(16, 20, 16, 80)
           : const EdgeInsets.all(50),
       child: Align(
         alignment: Alignment.topLeft,
@@ -149,13 +191,31 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (movil) ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final sec in _SeccionAdmin.values) ...[
+                        ChoiceChip(
+                          label: Text(sec.menu),
+                          selected: _seccion == sec,
+                          onSelected: (_) => setState(() => _seccion = sec),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
               Text(
-                'Verificaciones pendientes',
+                _seccion.titulo,
                 style: movil ? textos.headlineLarge : textos.displayMedium,
               ),
               const SizedBox(height: 10),
               Text(
-                'Revisa de la más antigua a la más reciente.',
+                _seccion.subtitulo,
                 style: textos.bodyLarge,
               ),
               const SizedBox(height: 40),
@@ -199,7 +259,11 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _BarraLateral(cantidad: cantidad),
+          _BarraLateral(
+            cantidad: cantidad,
+            seccionActiva: _seccion,
+            onSeleccionar: (s) => setState(() => _seccion = s),
+          ),
           Expanded(child: principal),
         ],
       ),
@@ -262,9 +326,15 @@ class _AdminInicioScreenState extends ConsumerState<AdminInicioScreen> {
 
 /// Barra lateral oscura del Figma (solo escritorio).
 class _BarraLateral extends StatelessWidget {
-  const _BarraLateral({required this.cantidad});
+  const _BarraLateral({
+    required this.cantidad,
+    required this.seccionActiva,
+    required this.onSeleccionar,
+  });
 
   final int cantidad;
+  final _SeccionAdmin seccionActiva;
+  final ValueChanged<_SeccionAdmin> onSeleccionar;
 
   @override
   Widget build(BuildContext context) {
@@ -280,14 +350,86 @@ class _BarraLateral extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: LogoLimpiaYa(sobreOscuro: true, subtitulo: 'Admin'),
           ),
-          const SizedBox(height: 50),
-          _ItemVerificaciones(cantidad: cantidad),
+          const SizedBox(height: 40),
+          for (final sec in _SeccionAdmin.values) ...[
+            _ItemMenuAdmin(
+              seccion: sec,
+              activo: sec == seccionActiva,
+              cantidad: sec == _SeccionAdmin.verificaciones ? cantidad : 0,
+              onTap: () => onSeleccionar(sec),
+            ),
+            const SizedBox(height: 8),
+          ],
           const Spacer(),
           const Align(
             alignment: Alignment.centerLeft,
             child: _CerrarSesionSobreOscuro(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ItemMenuAdmin extends StatelessWidget {
+  const _ItemMenuAdmin({
+    required this.seccion,
+    required this.activo,
+    required this.cantidad,
+    required this.onTap,
+  });
+
+  final _SeccionAdmin seccion;
+  final bool activo;
+  final int cantidad;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final contador = cantidad == 0
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+            decoration: BoxDecoration(
+              color: AppColors.acentoTexto,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              '$cantidad',
+              style: textos.labelSmall?.copyWith(color: Colors.white),
+            ),
+          );
+
+    return Material(
+      color: activo ? Colors.white.withValues(alpha: 0.14) : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(
+                seccion.icono,
+                color: activo ? Colors.white : AppColors.textoSobreOscuro,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  seccion.menu,
+                  style: textos.labelMedium?.copyWith(
+                    color: activo ? Colors.white : AppColors.textoSobreOscuro,
+                    fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (contador != null) ...[const SizedBox(width: 6), contador],
+            ],
+          ),
+        ),
       ),
     );
   }
